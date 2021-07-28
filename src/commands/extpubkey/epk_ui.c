@@ -8,11 +8,9 @@
 #include "../../context.h"
 #include "../../io.h"
 #include "../../sw.h"
-#include "../../ui.h"
+#include "../../menu.h"
 #include "../../common/bip32.h"
 #include "../../common/macros.h"
-
-static action_validate_cb g_epk_validate_callback;
 
 // Step with icon and text
 UX_STEP_NOCB(ux_epk_display_confirm_ext_pubkey_step, pn, {&C_icon_eye, "Confirm Extended Pubkey"});
@@ -33,7 +31,7 @@ UX_STEP_NOCB(ux_epk_display_app_token_step,
 // Step with approve button
 UX_STEP_CB(ux_epk_display_approve_step,
            pb,
-           (*g_epk_validate_callback)(true),
+           ui_action_get_extended_pubkey(true),
            {
                &C_icon_validate_14,
                "Approve",
@@ -41,7 +39,7 @@ UX_STEP_CB(ux_epk_display_approve_step,
 // Step with reject button
 UX_STEP_CB(ux_epk_display_reject_step,
            pb,
-           (*g_epk_validate_callback)(false),
+           ui_action_get_extended_pubkey(false),
            {
                &C_icon_crossmark,
                "Reject",
@@ -86,8 +84,6 @@ int ui_display_account(uint32_t app_access_token) {
              MEMBER_SIZE(extended_public_key_ui_ctx_t, app_token),
              "0x%x",
              app_access_token);
-
-    g_epk_validate_callback = &ui_action_get_extended_pubkey;
 
     ux_flow_init(0, ux_epk_display_confirm_ext_pubkey_flow, NULL);
 

@@ -8,7 +8,7 @@
 #include "../../context.h"
 #include "../../io.h"
 #include "../../sw.h"
-#include "../../ui.h"
+#include "../../menu.h"
 #include "../../common/base58.h"
 #include "../../common/macros.h"
 #include "../../ergo/address.h"
@@ -41,7 +41,7 @@ UX_STEP_NOCB(ux_da_display_app_token_step,
 // Step with approve button
 UX_STEP_CB(ux_da_display_approve_step,
            pb,
-           (*g_da_validate_callback)(true),
+           ui_action_derive_address(true),
            {
                &C_icon_validate_14,
                "Approve",
@@ -49,7 +49,7 @@ UX_STEP_CB(ux_da_display_approve_step,
 // Step with reject button
 UX_STEP_CB(ux_da_display_reject_step,
            pb,
-           (*g_da_validate_callback)(false),
+           ui_action_derive_address(false),
            {
                &C_icon_crossmark,
                "Reject",
@@ -115,8 +115,6 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
              "0x%x",
              app_access_token);
 
-    g_da_validate_callback = &ui_action_derive_address;
-
     if (send) {
         memcpy(G_ui_ctx.derive_address.confirm_title,
                "Confirm Send Address",
@@ -137,7 +135,7 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
 // Action
 void ui_action_derive_address(bool choice) {
     G_context.is_ui_busy = false;
-    
+
     if (choice) {
         G_context.app_session_id = G_ui_ctx.derive_address.app_token_value;
         if (G_ui_ctx.derive_address.send) {

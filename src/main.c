@@ -26,7 +26,7 @@
 #include "globals.h"
 #include "io.h"
 #include "sw.h"
-#include "ui.h"
+#include "menu.h"
 #include "apdu/parser.h"
 #include "apdu/dispatcher.h"
 #include "common/macros.h"
