@@ -19,6 +19,7 @@ ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
 
+include Makefile.env
 include $(BOLOS_SDK)/Makefile.defines
 
 APP_LOAD_PARAMS  = --curve secp256k1
@@ -77,19 +78,7 @@ else
         DEFINES += PRINTF\(...\)=
 endif
 
-ifneq ($(BOLOS_ENV),)
-$(info BOLOS_ENV=$(BOLOS_ENV))
-CLANGPATH := $(BOLOS_ENV)/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/
-GCCPATH   := $(BOLOS_ENV)/gcc-arm-none-eabi-10-2020-q4-major/bin/
-else
-$(info BOLOS_ENV is not set: falling back to CLANGPATH and GCCPATH)
-endif
-ifeq ($(CLANGPATH),)
-$(info CLANGPATH is not set: clang will be used from PATH)
-endif
-ifeq ($(GCCPATH),)
-$(info GCCPATH is not set: arm-none-eabi-* will be used from PATH)
-endif
+include Makefile.env
 
 CC      := $(CLANGPATH)clang
 CFLAGS  += -O3 -Os
