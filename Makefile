@@ -21,9 +21,9 @@ endif
 
 include $(BOLOS_SDK)/Makefile.defines
 
-APP_LOAD_PARAMS  = --curve ed25519
+APP_LOAD_PARAMS  = --curve secp256k1
 APP_LOAD_PARAMS += --appFlags 0x240
-APP_LOAD_PARAMS += --path "44'"
+APP_LOAD_PARAMS += --path "44'/429'"
 APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
 
 APPNAME      = "Ergo"
@@ -33,9 +33,9 @@ APPVERSION_P = 1
 APPVERSION   = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
-    ICONNAME=icons/nanox_app_boilerplate.gif
+    ICONNAME=icons/nanox_app.gif
 else
-    ICONNAME=icons/nanos_app_boilerplate.gif
+    ICONNAME=icons/nanos_app.gif
 endif
 
 all: default

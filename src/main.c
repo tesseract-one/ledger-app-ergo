@@ -18,21 +18,24 @@
 #include <stdint.h>  // uint*_t
 #include <string.h>  // memset, explicit_bzero
 
-#include "os.h"
-#include "ux.h"
+#include <os.h>
+#include <ux.h>
+#include <cx.h>
 
 #include "types.h"
 #include "globals.h"
 #include "io.h"
 #include "sw.h"
-#include "ui/menu.h"
+#include "ui.h"
 #include "apdu/parser.h"
 #include "apdu/dispatcher.h"
+#include "common/macros.h"
 
 uint8_t G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 io_state_e G_io_state;
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
+global_ui_ctx_u G_ui_ctx;
 global_ctx_t G_context;
 
 /**
@@ -49,7 +52,13 @@ void app_main() {
     G_io_state = READY;
 
     // Reset context
-    explicit_bzero(&G_context, sizeof(G_context));
+    clear_context(&G_context, CMD_NONE);
+
+    // Set zero session id
+    G_context.app_session_id = 0;
+
+    // Generate random key for session
+    cx_rng(G_context.session_key, MEMBER_SIZE(global_ctx_t, session_key));
 
     for (;;) {
         BEGIN_TRY {

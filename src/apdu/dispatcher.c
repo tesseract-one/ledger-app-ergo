@@ -25,10 +25,10 @@
 #include "../io.h"
 #include "../sw.h"
 #include "../common/buffer.h"
-#include "../handler/get_version.h"
-#include "../handler/get_app_name.h"
-#include "../handler/get_public_key.h"
-#include "../handler/sign_tx.h"
+#include "../commands/app_name.h"
+#include "../commands/app_version.h"
+#include "../commands/extpubkey/epk_handler.h"
+#include "../commands/deriveaddress/da_handler.h"
 
 int apdu_dispatcher(const command_t *cmd) {
     if (cmd->cla != CLA) {
@@ -38,20 +38,20 @@ int apdu_dispatcher(const command_t *cmd) {
     buffer_t buf = {0};
 
     switch (cmd->ins) {
-        case GET_VERSION:
+        case CMD_GET_APP_VERSION:
             if (cmd->p1 != 0 || cmd->p2 != 0) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
 
             return handler_get_version();
-        case GET_APP_NAME:
+        case CMD_GET_APP_NAME:
             if (cmd->p1 != 0 || cmd->p2 != 0) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
 
             return handler_get_app_name();
-        case GET_PUBLIC_KEY:
-            if (cmd->p1 > 1 || cmd->p2 > 0) {
+        case CMD_GET_EXTENDED_PUBLIC_KEY:
+            if (cmd->p1 == 0 || cmd->p1 > 2 || cmd->p2 > 0) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
 
@@ -63,11 +63,9 @@ int apdu_dispatcher(const command_t *cmd) {
             buf.size = cmd->lc;
             buf.offset = 0;
 
-            return handler_get_public_key(&buf, (bool) cmd->p1);
-        case SIGN_TX:
-            if ((cmd->p1 == P1_START && cmd->p2 != P2_MORE) ||  //
-                cmd->p1 > P1_MAX ||                             //
-                (cmd->p2 != P2_LAST && cmd->p2 != P2_MORE)) {
+            return handler_get_extended_public_key(&buf, cmd->p1 == 2);
+        case CMD_DERIVE_ADDRESS:
+            if (cmd->p1 == 0 || cmd->p1 > 2 || cmd->p2 == 0 || cmd->p2 > 2) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
 
@@ -79,7 +77,23 @@ int apdu_dispatcher(const command_t *cmd) {
             buf.size = cmd->lc;
             buf.offset = 0;
 
-            return handler_sign_tx(&buf, cmd->p1, (bool) (cmd->p2 & P2_MORE));
+            return handler_derive_address(&buf, cmd->p1 == 2, cmd->p2 == 2);
+        // case SIGN_TX:
+        //     if ((cmd->p1 == P1_START && cmd->p2 != P2_MORE) ||  //
+        //         cmd->p1 > P1_MAX ||                             //
+        //         (cmd->p2 != P2_LAST && cmd->p2 != P2_MORE)) {
+        //         return io_send_sw(SW_WRONG_P1P2);
+        //     }
+
+        //     if (!cmd->data) {
+        //         return io_send_sw(SW_WRONG_DATA_LENGTH);
+        //     }
+
+        //     buf.ptr = cmd->data;
+        //     buf.size = cmd->lc;
+        //     buf.offset = 0;
+
+        //     return handler_sign_tx(&buf, cmd->p1, (bool) (cmd->p2 & P2_MORE));
         default:
             return io_send_sw(SW_INS_NOT_SUPPORTED);
     }

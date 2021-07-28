@@ -85,3 +85,27 @@ bool bip32_path_format(const uint32_t *bip32_path,
 
     return true;
 }
+
+bool bip32_path_validate(const uint32_t *bip32_path,
+                         size_t bip32_path_len,
+                         uint32_t type,
+                         uint32_t coin,
+                         bip32_path_validation_type_e vtype) {
+    switch (vtype)
+    {
+    case BIP32_PATH_VALIDATE_AT_LEAST_ACCOUNT: {
+        return bip32_path_len >= 3
+            && bip32_path[0] == type
+            && bip32_path[1] == coin
+            && bip32_path[2] >= BIP32_HARDENED_CONSTANT;
+    }
+    case BIP32_PATH_VALIDATE_AT_LEAST_ADDRESS: {
+        return bip32_path_len >= 5
+            && bip32_path[0] == type
+            && bip32_path[1] == coin
+            && bip32_path[2] >= BIP32_HARDENED_CONSTANT
+            && (bip32_path[3] == 0 || bip32_path[3] == 1)
+            && bip32_path[4] < BIP32_HARDENED_CONSTANT;
+    }
+    }
+}

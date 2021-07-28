@@ -7,6 +7,7 @@
 #include "io.h"
 #include "types.h"
 #include "constants.h"
+#include "context.h"
 
 /**
  * Global buffer for interactions between SE and MCU.
@@ -32,6 +33,11 @@ extern bolos_ux_params_t G_ux_params;
  * Global enumeration with the state of IO (READY, RECEIVING, WAITING).
  */
 extern io_state_e G_io_state;
+
+/**
+ * Global context for UI storage.
+ */
+extern global_ui_ctx_u G_ui_ctx;
 
 /**
  * Global context for user requests.

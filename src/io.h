@@ -2,8 +2,8 @@
 
 #include <stdint.h>
 
-#include "ux.h"
-#include "os_io_seproxyhal.h"
+#include <ux.h>
+#include <os_io_seproxyhal.h>
 
 #include "types.h"
 #include "common/buffer.h"

@@ -9,6 +9,15 @@
  */
 #define MAX_BIP32_PATH 10
 
+#define BIP32_HARDENED_CONSTANT 0x80000000
+
+#define BIP32_HARDENED(x) (BIP32_HARDENED_CONSTANT + x)
+
+typedef enum {
+    BIP32_PATH_VALIDATE_AT_LEAST_ACCOUNT,
+    BIP32_PATH_VALIDATE_AT_LEAST_ADDRESS
+} bip32_path_validation_type_e;
+
 /**
  * Read BIP32 path from byte buffer.
  *
@@ -45,3 +54,9 @@ bool bip32_path_format(const uint32_t *bip32_path,
                        size_t bip32_path_len,
                        char *out,
                        size_t out_len);
+
+bool bip32_path_validate(const uint32_t *bip32_path,
+                         size_t bip32_path_len,
+                         uint32_t type,
+                         uint32_t coin,
+                         bip32_path_validation_type_e vtype);

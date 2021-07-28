@@ -20,14 +20,15 @@
 #include <stdbool.h>  // bool
 
 #include "crypto.h"
-
 #include "globals.h"
 
+#define PRIVATE_KEY_SIZE 32
+
 int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
-                              uint8_t chain_code[static 32],
+                              uint8_t chain_code[static CHAIN_CODE_LEN],
                               const uint32_t *bip32_path,
                               uint8_t bip32_path_len) {
-    uint8_t raw_private_key[32] = {0};
+    uint8_t raw_private_key[PRIVATE_KEY_SIZE] = {0};
 
     BEGIN_TRY {
         TRY {
@@ -57,54 +58,54 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
 
 int crypto_init_public_key(cx_ecfp_private_key_t *private_key,
                            cx_ecfp_public_key_t *public_key,
-                           uint8_t raw_public_key[static 64]) {
+                           uint8_t raw_public_key[static PUBLIC_KEY_LEN]) {
     // generate corresponding public key
     cx_ecfp_generate_pair(CX_CURVE_256K1, public_key, private_key, 1);
 
-    memmove(raw_public_key, public_key->W + 1, 64);
+    memmove(raw_public_key, public_key->W, PUBLIC_KEY_LEN);
 
     return 0;
 }
 
-int crypto_sign_message() {
-    cx_ecfp_private_key_t private_key = {0};
-    uint8_t chain_code[32] = {0};
-    uint32_t info = 0;
-    int sig_len = 0;
+// int crypto_sign_message() {
+//     cx_ecfp_private_key_t private_key = {0};
+//     uint8_t chain_code[32] = {0};
+//     uint32_t info = 0;
+//     int sig_len = 0;
 
-    // derive private key according to BIP32 path
-    crypto_derive_private_key(&private_key,
-                              chain_code,
-                              G_context.bip32_path,
-                              G_context.bip32_path_len);
+//     // derive private key according to BIP32 path
+//     crypto_derive_private_key(&private_key,
+//                               chain_code,
+//                               G_context.bip32_path,
+//                               G_context.bip32_path_len);
 
-    BEGIN_TRY {
-        TRY {
-            sig_len = cx_ecdsa_sign(&private_key,
-                                    CX_RND_RFC6979 | CX_LAST,
-                                    CX_SHA256,
-                                    G_context.tx_info.m_hash,
-                                    sizeof(G_context.tx_info.m_hash),
-                                    G_context.tx_info.signature,
-                                    sizeof(G_context.tx_info.signature),
-                                    &info);
-            PRINTF("Signature: %.*H\n", sig_len, G_context.tx_info.signature);
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-            explicit_bzero(&private_key, sizeof(private_key));
-        }
-    }
-    END_TRY;
+//     BEGIN_TRY {
+//         TRY {
+//             sig_len = cx_ecdsa_sign(&private_key,
+//                                     CX_RND_RFC6979 | CX_LAST,
+//                                     CX_SHA256,
+//                                     G_context.tx_info.m_hash,
+//                                     sizeof(G_context.tx_info.m_hash),
+//                                     G_context.tx_info.signature,
+//                                     sizeof(G_context.tx_info.signature),
+//                                     &info);
+//             PRINTF("Signature: %.*H\n", sig_len, G_context.tx_info.signature);
+//         }
+//         CATCH_OTHER(e) {
+//             THROW(e);
+//         }
+//         FINALLY {
+//             explicit_bzero(&private_key, sizeof(private_key));
+//         }
+//     }
+//     END_TRY;
 
-    if (sig_len < 0) {
-        return -1;
-    }
+//     if (sig_len < 0) {
+//         return -1;
+//     }
 
-    G_context.tx_info.signature_len = sig_len;
-    G_context.tx_info.v = (uint8_t)(info & CX_ECCINFO_PARITY_ODD);
+//     G_context.tx_info.signature_len = sig_len;
+//     G_context.tx_info.v = (uint8_t)(info & CX_ECCINFO_PARITY_ODD);
 
-    return 0;
-}
+//     return 0;
+// }

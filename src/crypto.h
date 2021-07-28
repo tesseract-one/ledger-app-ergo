@@ -3,8 +3,9 @@
 
 #include <stdint.h>  // uint*_t
 
-#include "os.h"
-#include "cx.h"
+#include <os.h>
+#include <cx.h>
+#include "constants.h"
 
 /**
  * Derive private key given BIP32 path.
@@ -24,7 +25,7 @@
  *
  */
 int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
-                              uint8_t chain_code[static 32],
+                              uint8_t chain_code[static CHAIN_CODE_LEN],
                               const uint32_t *bip32_path,
                               uint8_t bip32_path_len);
 
@@ -45,7 +46,7 @@ int crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
  */
 int crypto_init_public_key(cx_ecfp_private_key_t *private_key,
                            cx_ecfp_public_key_t *public_key,
-                           uint8_t raw_public_key[static 64]);
+                           uint8_t raw_public_key[static PUBLIC_KEY_LEN]);
 
 /**
  * Sign message hash in global context.
@@ -58,4 +59,4 @@ int crypto_init_public_key(cx_ecfp_private_key_t *private_key,
  * @throw INVALID_PARAMETER
  *
  */
-int crypto_sign_message(void);
+// int crypto_sign_message(void);

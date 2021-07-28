@@ -4,10 +4,12 @@
 #include <stddef.h>   // size_t
 #include <stdbool.h>  // bool
 
+#include "../constants.h"
+
 /**
  * Convert public key to address.
  *
- * address = Keccak256(public_key)[12:32] (20 bytes)
+ * https://ergoplatform.org/en/blog/2019_07_24_ergo_address/
  *
  * @param[in]  public_key
  *   Pointer to byte buffer with public key.
@@ -21,4 +23,4 @@
  * @return true if success, false otherwise.
  *
  */
-bool address_from_pubkey(const uint8_t public_key[static 64], uint8_t *out, size_t out_len);
+bool address_from_pubkey(uint8_t network, const uint8_t public_key[static PUBLIC_KEY_LEN], uint8_t *out, size_t out_len);
