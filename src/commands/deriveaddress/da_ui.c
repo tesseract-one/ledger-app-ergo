@@ -67,7 +67,8 @@ UX_FLOW(ux_da_display_address_flow,
         &ux_da_display_address_step,
         &ux_da_display_app_token_step,
         &ux_da_display_approve_step,
-        &ux_da_display_reject_step);
+        &ux_da_display_reject_step,
+        FLOW_LOOP);
 
 // FLOW to display BIP32 path and send:
 // #1 screen: eye icon + "Confirm Send Address"
@@ -80,7 +81,8 @@ UX_FLOW(ux_da_send_address_flow,
         &ux_da_display_path_step,
         &ux_da_display_app_token_step,
         &ux_da_display_approve_step,
-        &ux_da_display_reject_step);
+        &ux_da_display_reject_step,
+        FLOW_LOOP);
 
 // Display
 int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token) {

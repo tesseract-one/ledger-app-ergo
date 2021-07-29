@@ -56,7 +56,8 @@ UX_FLOW(ux_epk_display_confirm_ext_pubkey_flow,
         &ux_epk_display_account_step,
         &ux_epk_display_app_token_step,
         &ux_epk_display_approve_step,
-        &ux_epk_display_reject_step);
+        &ux_epk_display_reject_step,
+        FLOW_LOOP);
 
 int ui_display_account(uint32_t app_access_token) {
     if (G_context.current_command != CMD_GET_EXTENDED_PUBLIC_KEY) {
