@@ -13,8 +13,6 @@
 #include "../../common/macros.h"
 #include "../../ergo/address.h"
 
-static action_validate_cb g_da_validate_callback;
-
 // Step with icon and text
 UX_STEP_NOCB(ux_da_display_confirm_addr_step, pn, {&C_icon_eye, G_ui_ctx.derive_address.confirm_title});
 // Step with title/text for account number
@@ -80,7 +78,7 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
                              G_context.derive_ctx.bip32_path_len,
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
-                             BIP32_PATH_VALIDATE_AT_LEAST_ADDRESS)) {
+                             BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
         return io_send_sw(SW_DISPLAY_BIP32_PATH_FAIL);
     }
 

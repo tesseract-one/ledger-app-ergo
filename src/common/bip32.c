@@ -96,9 +96,18 @@ bool bip32_path_validate(const uint32_t *bip32_path,
     }
     switch (vtype)
     {
-    case BIP32_PATH_VALIDATE_ACCOUNT:
+    case BIP32_PATH_VALIDATE_COIN:
+        return true;
+    case BIP32_PATH_VALIDATE_COIN_GE2_HARD:
+        for (size_t i = 2; i < bip32_path_len; i++) {
+            if (bip32_path[i] < BIP32_HARDENED_CONSTANT) {
+                return false;
+            }
+        }
+        return true;
+    case BIP32_PATH_VALIDATE_ACCOUNT_E3:
         return bip32_path_len == 3 && bip32_path[2] >= BIP32_HARDENED_CONSTANT;
-    case BIP32_PATH_VALIDATE_HARD_AT_LEAST_ACCOUNT:
+    case BIP32_PATH_VALIDATE_ACCOUNT_GE3:
         if (bip32_path_len < 3) {
             return false;
         }
@@ -108,12 +117,12 @@ bool bip32_path_validate(const uint32_t *bip32_path,
             }
         }
         return true;
-    case BIP32_PATH_VALIDATE_ADDRESS:
-        return bip32_path_len >= 5
+    case BIP32_PATH_VALIDATE_ADDRESS_E5:
+        return bip32_path_len == 5
             && bip32_path[2] >= BIP32_HARDENED_CONSTANT
             && (bip32_path[3] == 0 || bip32_path[3] == 1)
             && bip32_path[4] < BIP32_HARDENED_CONSTANT;
-    case BIP32_PATH_VALIDATE_AT_LEAST_ADDRESS:
+    case BIP32_PATH_VALIDATE_ADDRESS_GE5:
         if (bip32_path_len < 5) {
             return false;
         }

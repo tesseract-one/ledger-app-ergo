@@ -49,7 +49,7 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
                              G_context.derive_ctx.bip32_path_len,
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
-                             BIP32_PATH_VALIDATE_AT_LEAST_ADDRESS)) {
+                             BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
         return io_send_sw(SW_DISPLAY_BIP32_PATH_FAIL);
     }
     BEGIN_TRY {

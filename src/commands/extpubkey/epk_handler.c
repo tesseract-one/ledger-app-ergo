@@ -44,7 +44,7 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
                              G_context.ext_pub_ctx.bip32_path_len,
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
-                             BIP32_PATH_VALIDATE_HARD_AT_LEAST_ACCOUNT)) {
+                             BIP32_PATH_VALIDATE_ACCOUNT_GE3)) {
         return io_send_sw(SW_DISPLAY_BIP32_PATH_FAIL);
     }
 
