@@ -13,24 +13,33 @@ bool address_from_pubkey(uint8_t network, const uint8_t public_key[static PUBLIC
     if (network > 252 || out_len < ADDRESS_LEN) {
         return false;
     }
+    size_t offset = 0;
 
     // P2PK + network id
-    out[0] = 0x01 + network;
+    out[offset++] = 0x01 + network;
 
     // Compressed pubkey
-    out[1] = ((public_key[64] & 1) ? 0x03 : 0x02);
-    memcpy(out + 2, public_key + 1, 32);
+    out[offset++] = ((public_key[64] & 1) ? 0x03 : 0x02);
+    memcpy(out + offset, public_key + 1, 32);
+    offset += 32;
 
     uint8_t hash[32] = {0};
-    cx_hash_t blake2b;
+    cx_blake2b_t blake2b;
 
-    if (cx_hash_init_ex(&blake2b, CX_BLAKE2B, 256) != CX_BLAKE2B) {
+    if (cx_blake2b_init_no_throw(&blake2b, 256) != 0) {
         return false;
     }
 
-    cx_hash(&blake2b, CX_LAST, out, 34, hash, sizeof(hash));
+    if (cx_hash_no_throw((cx_hash_t*) &blake2b,
+                          CX_LAST,
+                          out,
+                          offset,
+                          hash,
+                          sizeof(hash)) != 0) {
+        return false;
+    }
 
-    memcpy(out + 34, hash, 4);
+    memcpy(out + offset, hash, 4);
 
     return true;
 }

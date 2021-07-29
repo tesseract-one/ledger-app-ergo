@@ -28,7 +28,7 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
     cx_ecfp_private_key_t private_key = {0};
     cx_ecfp_public_key_t public_key = {0};
 
-    uint32_t access_token;
+    uint32_t access_token = 0;
 
     if (!buffer_read_u8(cdata, &G_context.ext_pub_ctx.bip32_path_len) ||
         !buffer_read_bip32_path(cdata, G_context.ext_pub_ctx.bip32_path, (size_t) G_context.ext_pub_ctx.bip32_path_len)
@@ -70,7 +70,9 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
     }
     END_TRY;
 
-    if (has_access_token && access_token == G_context.app_session_id) {
+    if (has_access_token
+        && access_token != 0
+        && access_token == G_context.app_session_id) {
         return send_response_extended_pubkey();
     }
 

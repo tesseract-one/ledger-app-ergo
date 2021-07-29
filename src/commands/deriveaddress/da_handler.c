@@ -28,7 +28,7 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
     cx_ecfp_private_key_t private_key = {0};
     cx_ecfp_public_key_t public_key = {0};
 
-    uint32_t access_token;
+    uint32_t access_token = 0;
     uint8_t network_type = 0;
 
     if (!buffer_read_u8(cdata, &network_type)) {
@@ -74,7 +74,10 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
     }
     END_TRY;
 
-    if (!display && has_access_token && access_token == G_context.app_session_id) {
+    if (!display
+        && has_access_token
+        && access_token != 0
+        && access_token == G_context.app_session_id) {
         return send_response_address();
     }
 

@@ -22,6 +22,7 @@
                 "HAVE_SECP_CURVES",
                 "HAVE_SPRINTF",
                 "HAVE_HASH",
+                "HAVE_BLAKE2",
                 "HAVE_RNG",
                 "HAVE_IO_USB",
                 "HAVE_L4_USBLIB",

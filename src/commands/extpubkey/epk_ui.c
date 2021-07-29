@@ -13,7 +13,7 @@
 #include "../../common/macros.h"
 
 // Step with icon and text
-UX_STEP_NOCB(ux_epk_display_confirm_ext_pubkey_step, pn, {&C_icon_eye, "Confirm Extended Pubkey"});
+UX_STEP_NOCB(ux_epk_display_confirm_ext_pubkey_step, pn, {&C_icon_eye, "Confirm Ext PubKey"});
 // Step with title/text for account number
 UX_STEP_NOCB(ux_epk_display_account_step,
              bnnn_paging,

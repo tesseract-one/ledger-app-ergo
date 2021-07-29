@@ -83,6 +83,7 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
     }
 
     G_ui_ctx.derive_address.app_token_value = app_access_token;
+    G_ui_ctx.derive_address.send = send;
 
     memset(G_ui_ctx.derive_address.bip32_path, 0, MEMBER_SIZE(derive_address_ui_ctx_t, bip32_path));
     if (!bip32_path_format(G_context.derive_ctx.bip32_path,
