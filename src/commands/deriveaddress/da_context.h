@@ -12,7 +12,6 @@ typedef struct {
 } derive_address_ctx_t;
 
 typedef struct {
-    char confirm_title[21]; // Title for the first screen
     char bip32_path[60]; // Bip32 path string buffer
     char address[ADDRESS_STRING_MAX_LEN]; // Address string
     char app_token[9]; // hexified app token

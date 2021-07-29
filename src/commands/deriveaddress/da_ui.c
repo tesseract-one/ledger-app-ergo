@@ -14,7 +14,8 @@
 #include "../../ergo/address.h"
 
 // Step with icon and text
-UX_STEP_NOCB(ux_da_display_confirm_addr_step, pn, {&C_icon_eye, G_ui_ctx.derive_address.confirm_title});
+UX_STEP_NOCB(ux_da_display_confirm_addr_step, pn, {&C_icon_eye, "Confirm Address"});
+UX_STEP_NOCB(ux_da_display_confirm_send_step, pn, {&C_icon_eye, "Confirm Send Address"});
 // Step with title/text for account number
 UX_STEP_NOCB(ux_da_display_path_step,
              bnnn_paging,
@@ -68,6 +69,19 @@ UX_FLOW(ux_da_display_address_flow,
         &ux_da_display_approve_step,
         &ux_da_display_reject_step);
 
+// FLOW to display BIP32 path and send:
+// #1 screen: eye icon + "Confirm Send Address"
+// #2 screen: display Bip32 path
+// #3 screen: display application token
+// #4 screen: approve button
+// #5 screen: reject button
+UX_FLOW(ux_da_send_address_flow,
+        &ux_da_display_confirm_send_step,
+        &ux_da_display_path_step,
+        &ux_da_display_app_token_step,
+        &ux_da_display_approve_step,
+        &ux_da_display_reject_step);
+
 // Display
 int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token) {
     if (G_context.current_command != CMD_DERIVE_ADDRESS) {
@@ -94,18 +108,24 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
     }
 
     memset(G_ui_ctx.derive_address.address, 0, MEMBER_SIZE(derive_address_ui_ctx_t, address));
-    uint8_t address[ADDRESS_LEN] = {0};
-    if (!address_from_pubkey(network_id, G_context.derive_ctx.raw_public_key, address, sizeof(address))) {
-        return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
-    }
+    if (!send) {
+        uint8_t address[ADDRESS_LEN] = {0};
+        if (!address_from_pubkey(
+                network_id,
+                G_context.derive_ctx.raw_public_key,
+                address,
+                sizeof(address))) {
+            return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
+        }
 
-    int result = base58_encode(address,
-                               sizeof(address),
-                               G_ui_ctx.derive_address.address,
-                               sizeof(G_ui_ctx.derive_address.address));
+        int result = base58_encode(address,
+                                sizeof(address),
+                                G_ui_ctx.derive_address.address,
+                                sizeof(G_ui_ctx.derive_address.address));
 
-    if (result == -1 || result >= ADDRESS_STRING_MAX_LEN) {
-        return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
+        if (result == -1 || result >= ADDRESS_STRING_MAX_LEN) {
+            return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
+        }
     }
 
     memset(G_ui_ctx.derive_address.app_token, 0, MEMBER_SIZE(derive_address_ui_ctx_t, app_token));
@@ -115,16 +135,10 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
              app_access_token);
 
     if (send) {
-        memcpy(G_ui_ctx.derive_address.confirm_title,
-               "Confirm Send Address",
-               sizeof("Confirm Send Address"));
+        ux_flow_init(0, ux_da_send_address_flow, NULL);
     } else {
-        memcpy(G_ui_ctx.derive_address.confirm_title,
-               "Confirm Address",
-               sizeof("Confirm Address"));
+        ux_flow_init(0, ux_da_display_address_flow, NULL);
     }
-
-    ux_flow_init(0, ux_da_display_address_flow, NULL);
 
     G_context.is_ui_busy = true;
 
