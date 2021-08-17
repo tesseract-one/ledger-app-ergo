@@ -101,7 +101,7 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
     G_ui_ctx.derive_address.app_token_value = app_access_token;
     G_ui_ctx.derive_address.send = send;
 
-    memset(G_ui_ctx.derive_address.bip32_path, 0, MEMBER_SIZE(derive_address_ui_ctx_t, bip32_path));
+    explicit_bzero(G_ui_ctx.derive_address.bip32_path, MEMBER_SIZE(derive_address_ui_ctx_t, bip32_path));
     if (!bip32_path_format(G_context.derive_ctx.bip32_path,
                            G_context.derive_ctx.bip32_path_len,
                            G_ui_ctx.derive_address.bip32_path,
@@ -109,7 +109,7 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
         return io_send_sw(SW_DISPLAY_BIP32_PATH_FAIL);
     }
 
-    memset(G_ui_ctx.derive_address.address, 0, MEMBER_SIZE(derive_address_ui_ctx_t, address));
+    explicit_bzero(G_ui_ctx.derive_address.address, MEMBER_SIZE(derive_address_ui_ctx_t, address));
     if (!send) {
         uint8_t address[ADDRESS_LEN] = {0};
         if (!address_from_pubkey(
@@ -130,7 +130,7 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
         }
     }
 
-    memset(G_ui_ctx.derive_address.app_token, 0, MEMBER_SIZE(derive_address_ui_ctx_t, app_token));
+    explicit_bzero(G_ui_ctx.derive_address.app_token, MEMBER_SIZE(derive_address_ui_ctx_t, app_token));
     snprintf(G_ui_ctx.derive_address.app_token,
              MEMBER_SIZE(derive_address_ui_ctx_t, app_token),
              "0x%x",

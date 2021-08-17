@@ -3,6 +3,7 @@
 #include "types.h"
 #include "commands/extpubkey/epk_context.h"
 #include "commands/deriveaddress/da_context.h"
+#include "commands/attestinput/ainpt_context.h"
 
 /**
  * Structure for global context.
@@ -26,6 +27,7 @@ typedef struct {
 typedef union {
     derive_address_ui_ctx_t derive_address;
     extended_public_key_ui_ctx_t ext_pub_key;
+    attest_input_ui_ctx_t attest_inpt;
 } global_ui_ctx_u;
 
 /**

@@ -21,40 +21,67 @@
 
 #include "buffer.h"
 #include "read.h"
-#include "varint.h"
+#include "write.h"
 #include "bip32.h"
 
-bool buffer_can_read(const buffer_t *buffer, size_t n) {
-    return buffer->size - buffer->offset >= n;
-}
-
-bool buffer_seek_set(buffer_t *buffer, size_t offset) {
-    if (offset > buffer->size) {
+bool buffer_seek_read_set(buffer_t *buffer, size_t offset) {
+    if (offset > buffer->write_offset) {
         return false;
     }
 
-    buffer->offset = offset;
+    buffer->read_offset = offset;
 
     return true;
 }
 
-bool buffer_seek_cur(buffer_t *buffer, size_t offset) {
-    if (buffer->offset + offset < buffer->offset ||  // overflow
-        buffer->offset + offset > buffer->size) {    // exceed buffer size
+bool buffer_seek_read_cur(buffer_t *buffer, size_t offset) {
+    if (buffer->read_offset + offset < buffer->read_offset ||  // overflow
+        buffer->read_offset + offset > buffer->write_offset) {    // exceed buffer size
         return false;
     }
 
-    buffer->offset += offset;
+    buffer->read_offset += offset;
 
     return true;
 }
 
-bool buffer_seek_end(buffer_t *buffer, size_t offset) {
+bool buffer_seek_read_end(buffer_t *buffer, size_t offset) {
+    if (offset > buffer->write_offset) {
+        return false;
+    }
+
+    buffer->read_offset = buffer->write_offset - offset;
+
+    return true;
+}
+
+bool buffer_seek_write_set(buffer_t *buffer, size_t offset) {
     if (offset > buffer->size) {
         return false;
     }
 
-    buffer->offset = buffer->size - offset;
+    buffer->write_offset = offset;
+
+    return true;
+}
+
+bool buffer_seek_write_cur(buffer_t *buffer, size_t offset) {
+    if (buffer->write_offset + offset < buffer->write_offset ||  // overflow
+        buffer->write_offset + offset > buffer->size) {    // exceed buffer size
+        return false;
+    }
+
+    buffer->write_offset += offset;
+
+    return true;
+}
+
+bool buffer_seek_write_end(buffer_t *buffer, size_t offset) {
+    if (offset > buffer->size) {
+        return false;
+    }
+
+    buffer->write_offset = buffer->size - offset;
 
     return true;
 }
@@ -66,8 +93,8 @@ bool buffer_read_u8(buffer_t *buffer, uint8_t *value) {
         return false;
     }
 
-    *value = buffer->ptr[buffer->offset];
-    buffer_seek_cur(buffer, 1);
+    *value = buffer->ptr[buffer->read_offset];
+    buffer_seek_read_cur(buffer, 1);
 
     return true;
 }
@@ -79,10 +106,10 @@ bool buffer_read_u16(buffer_t *buffer, uint16_t *value, endianness_t endianness)
         return false;
     }
 
-    *value = ((endianness == BE) ? read_u16_be(buffer->ptr, buffer->offset)
-                                 : read_u16_le(buffer->ptr, buffer->offset));
+    *value = ((endianness == BE) ? read_u16_be(buffer->ptr, buffer->read_offset)
+                                 : read_u16_le(buffer->ptr, buffer->read_offset));
 
-    buffer_seek_cur(buffer, 2);
+    buffer_seek_read_cur(buffer, 2);
 
     return true;
 }
@@ -94,10 +121,10 @@ bool buffer_read_u32(buffer_t *buffer, uint32_t *value, endianness_t endianness)
         return false;
     }
 
-    *value = ((endianness == BE) ? read_u32_be(buffer->ptr, buffer->offset)
-                                 : read_u32_le(buffer->ptr, buffer->offset));
+    *value = ((endianness == BE) ? read_u32_be(buffer->ptr, buffer->read_offset)
+                                 : read_u32_le(buffer->ptr, buffer->read_offset));
 
-    buffer_seek_cur(buffer, 4);
+    buffer_seek_read_cur(buffer, 4);
 
     return true;
 }
@@ -109,57 +136,123 @@ bool buffer_read_u64(buffer_t *buffer, uint64_t *value, endianness_t endianness)
         return false;
     }
 
-    *value = ((endianness == BE) ? read_u64_be(buffer->ptr, buffer->offset)
-                                 : read_u64_le(buffer->ptr, buffer->offset));
+    *value = ((endianness == BE) ? read_u64_be(buffer->ptr, buffer->read_offset)
+                                 : read_u64_le(buffer->ptr, buffer->read_offset));
 
-    buffer_seek_cur(buffer, 8);
-
-    return true;
-}
-
-bool buffer_read_varint(buffer_t *buffer, uint64_t *value) {
-    int length = varint_read(buffer->ptr + buffer->offset, buffer->size - buffer->offset, value);
-
-    if (length < 0) {
-        *value = 0;
-
-        return false;
-    }
-
-    buffer_seek_cur(buffer, (size_t) length);
+    buffer_seek_read_cur(buffer, 8);
 
     return true;
 }
 
 bool buffer_read_bip32_path(buffer_t *buffer, uint32_t *out, size_t out_len) {
-    if (!bip32_path_read(buffer->ptr + buffer->offset,
-                         buffer->size - buffer->offset,
+    if (!bip32_path_read(buffer->ptr + buffer->read_offset,
+                         buffer->write_offset - buffer->read_offset,
                          out,
                          out_len)) {
         return false;
     }
 
-    buffer_seek_cur(buffer, sizeof(*out) * out_len);
+    buffer_seek_read_cur(buffer, sizeof(*out) * out_len);
 
     return true;
 }
 
-bool buffer_copy(const buffer_t *buffer, uint8_t *out, size_t out_len) {
-    if (buffer->size - buffer->offset > out_len) {
+bool buffer_write_u8(buffer_t *buffer, uint8_t value) {
+    if (!buffer_can_write(buffer, 1)) {
         return false;
     }
 
-    memmove(out, buffer->ptr + buffer->offset, buffer->size - buffer->offset);
+    buffer->ptr[buffer->write_offset] = value;
+    buffer_seek_write_cur(buffer, 1);
 
     return true;
 }
 
-bool buffer_move(buffer_t *buffer, uint8_t *out, size_t out_len) {
-    if (!buffer_copy(buffer, out, out_len)) {
+bool buffer_write_u16(buffer_t *buffer, uint16_t value, endianness_t endianness) {
+    if (!buffer_can_write(buffer, 2)) {
         return false;
     }
 
-    buffer_seek_cur(buffer, out_len);
+    if (endianness == BE) {
+        write_u16_be(buffer->ptr, buffer->write_offset, value);
+    } else {
+        write_u16_le(buffer->ptr, buffer->write_offset, value);
+    }
+
+    buffer_seek_write_cur(buffer, 2);
 
     return true;
+}
+
+bool buffer_write_u32(buffer_t *buffer, uint32_t value, endianness_t endianness) {
+    if (!buffer_can_write(buffer, 4)) {
+        return false;
+    }
+
+    if (endianness == BE) {
+        write_u32_be(buffer->ptr, buffer->write_offset, value);
+    } else {
+        write_u32_le(buffer->ptr, buffer->write_offset, value);
+    }
+
+    buffer_seek_write_cur(buffer, 4);
+
+    return true;
+}
+
+bool buffer_write_u64(buffer_t *buffer, uint64_t value, endianness_t endianness) {
+    if (!buffer_can_write(buffer, 8)) {
+        return false;
+    }
+
+    if (endianness == BE) {
+        write_u64_be(buffer->ptr, buffer->write_offset, value);
+    } else {
+        write_u64_le(buffer->ptr, buffer->write_offset, value);
+    }
+
+    buffer_seek_write_cur(buffer, 8);
+
+    return true;
+}
+
+
+bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, size_t out_len) {
+    if (buffer_data_len(buffer) < out_len) {
+        return false;
+    }
+    
+    memmove(out, buffer->ptr + buffer->read_offset, out_len);
+
+    buffer_seek_read_cur(buffer, out_len);
+
+    return true;
+}
+
+bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, size_t out_len) {
+    if (buffer_data_len(buffer) > out_len) {
+        return false;
+    }
+    memmove(out, buffer->ptr + buffer->read_offset, buffer_data_len(buffer));
+    return true;
+}
+
+bool buffer_write_bytes(buffer_t *buffer, uint8_t *from, size_t from_len) {
+    if (!buffer_can_write(buffer, from_len)) {
+        return false;
+    }
+    
+    memcpy(buffer->ptr + buffer->write_offset, from, from_len);
+    
+    buffer_seek_write_cur(buffer, from_len);
+    
+    return true;
+}
+
+void buffer_shift_data(buffer_t *buffer) {
+    if (buffer->read_offset == 0) return;
+    size_t data_len = buffer_data_len(buffer);
+    memmove(buffer->ptr, buffer->ptr + buffer->read_offset, data_len);
+    buffer->write_offset = data_len;
+    buffer->read_offset = 0;
 }

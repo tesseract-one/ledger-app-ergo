@@ -8,6 +8,7 @@
 
 #include "address.h"
 #include "../common/base58.h"
+#include "../helpers/blake2b.h"
 
 bool address_from_pubkey(uint8_t network, const uint8_t public_key[static PUBLIC_KEY_LEN], uint8_t *out, size_t out_len) {
     if (network > 252 || out_len < ADDRESS_LEN) {
@@ -23,21 +24,9 @@ bool address_from_pubkey(uint8_t network, const uint8_t public_key[static PUBLIC
     memcpy(out + offset, public_key + 1, 32);
     offset += 32;
 
-    uint8_t hash[32] = {0};
-    cx_blake2b_t blake2b;
+    uint8_t hash[BLAKE2B_256_DIGEST_LEN] = {0};
 
-    if (cx_blake2b_init_no_throw(&blake2b, 256) != 0) {
-        return false;
-    }
-
-    if (cx_hash_no_throw((cx_hash_t*) &blake2b,
-                          CX_LAST,
-                          out,
-                          offset,
-                          hash,
-                          sizeof(hash)) != 0) {
-        return false;
-    }
+    if (!blake2b_256(out, offset, hash)) return false;
 
     memcpy(out + offset, hash, 4);
 

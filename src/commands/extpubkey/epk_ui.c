@@ -73,14 +73,14 @@ int ui_display_account(uint32_t app_access_token) {
     }
 
     G_ui_ctx.ext_pub_key.app_token_value = app_access_token;
-    memset(G_ui_ctx.ext_pub_key.account, 0, MEMBER_SIZE(extended_public_key_ui_ctx_t, account));
+    explicit_bzero(G_ui_ctx.ext_pub_key.account, MEMBER_SIZE(extended_public_key_ui_ctx_t, account));
     snprintf(
         G_ui_ctx.ext_pub_key.account,
         MEMBER_SIZE(extended_public_key_ui_ctx_t, account),
         "%d",
         G_context.ext_pub_ctx.bip32_path[2] - BIP32_HARDENED_CONSTANT);
 
-    memset(G_ui_ctx.ext_pub_key.app_token, 0, MEMBER_SIZE(extended_public_key_ui_ctx_t, app_token));
+    explicit_bzero(G_ui_ctx.ext_pub_key.app_token, MEMBER_SIZE(extended_public_key_ui_ctx_t, app_token));
     snprintf(G_ui_ctx.ext_pub_key.app_token,
              MEMBER_SIZE(extended_public_key_ui_ctx_t, app_token),
              "0x%x",

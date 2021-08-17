@@ -46,6 +46,11 @@
 #define TRANSACTION_HASH_LEN 32
 
 /**
+ * Length of Box Id.
+ */
+#define BOX_ID_LEN 32
+
+/**
  * Length of Session Key.
  */
 #define SESSION_KEY_LEN 16
@@ -74,18 +79,3 @@
  * Length of Extended Public Key.
  */
 #define EXTENDED_PUBLIC_KEY_LEN (PUBLIC_KEY_LEN + CHAIN_CODE_LEN)
-
-/**
- * Maximum transaction length (bytes).
- */
-#define MAX_TRANSACTION_LEN 510
-
-/**
- * Maximum signature length (bytes).
- */
-#define MAX_DER_SIG_LEN 72
-
-/**
- * Exponent used to convert mBOL to BOL unit (N BOL = N * 10^3 mBOL).
- */
-#define EXPONENT_SMALLEST_UNIT 3

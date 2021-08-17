@@ -3,10 +3,10 @@
 #include <stdint.h>   // uint*
 #include <stdbool.h>  // bool
 
-/**
- * Callback to reuse action with approve/reject in step FLOW.
- */
-typedef void (*action_validate_cb)(bool);
+// /**
+//  * Callback to reuse action with approve/reject in step FLOW.
+//  */
+// typedef void (*action_validate_cb)(bool);
 
 /**
  * Display account on the device and ask confirmation to export.

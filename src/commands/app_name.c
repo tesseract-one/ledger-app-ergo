@@ -13,7 +13,8 @@
 int handler_get_app_name() {
     _Static_assert(APPNAME_LEN < MAX_APPNAME_LEN, "APPNAME must be at most 64 characters!");
 
-    buffer_t rdata = {.ptr = (uint8_t *) PIC(APPNAME), .size = APPNAME_LEN, .offset = 0};
+    buffer_t rdata = {0};
+    buffer_init(&rdata, (uint8_t *) PIC(APPNAME), APPNAME_LEN, APPNAME_LEN);
 
     return io_send_response(&rdata, SW_OK);
 }

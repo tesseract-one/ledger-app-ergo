@@ -1,52 +1,64 @@
+//
+//  gve.h
+//  ErgoTxParser
+//
+//  Created by Yehor Popovych on 11.08.2021.
+//
+
 #pragma once
 
-#include <stdint.h>   // uint*_t
-#include <stddef.h>   // size_t
-#include <stdbool.h>  // bool
+#include <stdint.h>
+#include <stdbool.h>
+#include "zigzag.h"
+#include "buffer.h"
 
-/**
- * Size of value represented as Bitcoin-like varint.
- *
- * @see https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
- *
- * @param[in] value
- *   64-bit unsigned integer to compute varint size.
- *
- * @return number of bytes to write value as varint (1, 3, 5 or 9 bytes).
- *
- */
-uint8_t varint_size(uint64_t value);
+typedef enum {
+    GVE_OK = 0,
+    GVE_ERR_INT_TO_BIG,
+    GVE_ERR_DATA_SIZE
+} gve_result_e;
 
-/**
- * Read Bitcoin-like varint from byte buffer.
- *
- * @see https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
- *
- * @param[in]  in
- *   Pointer to input byte buffer.
- * @param[in]  in_len
- *   Length of the input byte buffer.
- * @param[out] value
- *   Pointer to 64-bit unsigned integer to output varint.
- *
- * @return number of bytes read (1, 3, 5 or 9 bytes), -1 otherwise.
- *
- */
-int varint_read(const uint8_t *in, size_t in_len, uint64_t *value);
+static inline gve_result_e gve_get_u8(buffer_t *buffer, uint8_t* val) {
+    return buffer_read_u8(buffer, val) ? GVE_OK : GVE_ERR_DATA_SIZE;
+}
 
-/**
- * Write Bitcoin-like varint to byte buffer.
- *
- * @see https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
- *
- * @param[out] out
- *   Pointer to output byte buffer.
- * @param[in]  offset
- *   Offset in the output byte buffer.
- * @param[in]  value
- *   64-bit unsigned integer to write as varint.
- *
- * @return number of bytes written (1, 3, 5 or 9 bytes), -1 otherwise.
- *
- */
-int varint_write(uint8_t *out, size_t offset, uint64_t value);
+static inline gve_result_e gve_get_i8(buffer_t *buffer, int8_t* val) {
+    return gve_get_u8(buffer, (uint8_t*)val);
+}
+
+gve_result_e gve_get_i16(buffer_t *buffer, int16_t* val);
+gve_result_e gve_get_u16(buffer_t *buffer, uint16_t* val);
+gve_result_e gve_get_i32(buffer_t *buffer, int32_t* val);
+gve_result_e gve_get_u32(buffer_t *buffer, uint32_t* val);
+gve_result_e gve_get_i64(buffer_t *buffer, int64_t* val);
+gve_result_e gve_get_u64(buffer_t *buffer, uint64_t* val);
+
+gve_result_e gve_put_u64(buffer_t *buffer, uint64_t val);
+
+static inline gve_result_e gve_put_i64(buffer_t *buffer, int64_t val) {
+    return gve_put_u64(buffer, zigzag_encode_i64(val));
+}
+
+static inline gve_result_e gve_put_u32(buffer_t *buffer, uint32_t val) {
+    return gve_put_u64(buffer, val);
+}
+
+static inline gve_result_e gve_put_i32(buffer_t *buffer, int32_t val) {
+    return gve_put_u64(buffer, zigzag_encode_i32(val));
+}
+
+static inline gve_result_e gve_put_u8(buffer_t *buffer, uint8_t val) {
+    return buffer_write_bytes(buffer, &val, 1) ? GVE_OK : GVE_ERR_DATA_SIZE;
+}
+
+static inline gve_result_e gve_put_i8(buffer_t *buffer, int8_t val) {
+    return gve_put_u8(buffer, (uint8_t)val);
+}
+
+static inline gve_result_e gve_put_i16(buffer_t *buffer, int16_t val) {
+    return gve_put_u32(buffer, (uint32_t)zigzag_encode_i32(val));
+}
+
+static inline gve_result_e gve_put_u16(buffer_t *buffer, uint16_t val) {
+    return gve_put_u64(buffer, val);
+}

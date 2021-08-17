@@ -14,7 +14,7 @@
 #include "../../types.h"
 #include "../../io.h"
 #include "../../sw.h"
-#include "../../crypto.h"
+#include "../../helpers/crypto.h"
 #include "../../common/buffer.h"
 #include "../../common/bip32.h"
 

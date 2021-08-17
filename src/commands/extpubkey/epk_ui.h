@@ -6,7 +6,7 @@
 /**
  * Callback to reuse action with approve/reject in step FLOW.
  */
-typedef void (*action_validate_cb)(bool);
+// typedef void (*action_validate_cb)(bool);
 
 /**
  * Display account on the device and ask confirmation to export.

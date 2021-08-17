@@ -61,25 +61,6 @@ typedef struct {
 //     uint8_t v;                            /// parity of y-coordinate of R in ECDSA signature
 // } transaction_ctx_t;
 
-
-typedef struct {
-    uint8_t id[TOKEN_ID_LEN];
-    uint64_t amount;
-} token_amount_t;
-
-typedef struct {
-    uint8_t count;
-    token_amount_t tokens[TOKEN_MAX_COUNT];
-} token_amount_table_t;
-
-typedef struct {
-    uint8_t session_id;
-    uint8_t tx_id[TRANSACTION_ID_LEN];
-    uint16_t box_index;
-    uint64_t amount;
-    token_amount_table_t tokens;
-} attest_input_ctx_t;
-
 typedef enum {
     CMD_SIGN_TRANSACTION_NONE = 0x00,
     CMD_SIGN_TRANSACTION_START = 0x01,
@@ -99,7 +80,7 @@ typedef struct {
     uint8_t distinct_token_ids_count;
     uint16_t output_count;
     uint64_t amount;
-    token_amount_table_t tokens;
+    // token_amount_table_t tokens;
     bool approved;
     uint8_t tx_hash[TRANSACTION_HASH_LEN];
 } sign_transaction_ctx_t;

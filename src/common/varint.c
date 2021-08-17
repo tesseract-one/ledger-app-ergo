@@ -1,101 +1,86 @@
-/*****************************************************************************
- *   (c) 2020 Ledger SAS.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *****************************************************************************/
-
-#include <stdint.h>   // uint*_t
-#include <stddef.h>   // size_t
-#include <stdbool.h>  // bool
+//
+//  gve.c
+//  ErgoTxParser
+//
+//  Created by Yehor Popovych on 11.08.2021.
+//
 
 #include "varint.h"
-#include "write.h"
-#include "read.h"
 
-uint8_t varint_size(uint64_t value) {
-    if (value <= 0xFC) {
-        return 1;
-    }
-
-    if (value <= UINT16_MAX) {
-        return 3;
-    }
-
-    if (value <= UINT32_MAX) {
-        return 5;
-    }
-
-    return 9;  // <= UINT64_MAX
+gve_result_e gve_get_i16(buffer_t *buffer, int16_t* val) {
+    int32_t i32;
+    gve_result_e res;
+    *val = 0;
+    if ((res = gve_get_i32(buffer, &i32)) != GVE_OK) return res;
+    if (i32 > INT16_MAX || i32 < INT16_MIN) return GVE_ERR_INT_TO_BIG;
+    *val = (int16_t)i32;
+    return GVE_OK;
 }
 
-int varint_read(const uint8_t *in, size_t in_len, uint64_t *value) {
-    if (in_len < 1) {
-        return -1;
-    }
-
-    uint8_t prefix = in[0];
-
-    if (prefix == 0xFD) {
-        if (in_len < 3) {
-            return -1;
-        }
-        *value = (uint64_t) read_u16_le(in, 1);
-        return 3;
-    }
-
-    if (prefix == 0xFE) {
-        if (in_len < 5) {
-            return -1;
-        }
-        *value = (uint64_t) read_u32_le(in, 1);
-        return 5;
-    }
-
-    if (prefix == 0xFF) {
-        if (in_len < 9) {
-            return -1;
-        }
-        *value = (uint64_t) read_u64_le(in, 1);
-        return 9;
-    }
-
-    *value = (uint64_t) prefix;  // prefix <= 0xFC
-
-    return 1;
+gve_result_e gve_get_u16(buffer_t *buffer, uint16_t* val) {
+    uint64_t u64;
+    gve_result_e res;
+    *val = 0;
+    if ((res = gve_get_u64(buffer, &u64)) != GVE_OK) return res;
+    if (u64 > UINT16_MAX) return GVE_ERR_INT_TO_BIG;
+    *val = (uint16_t)u64;
+    return GVE_OK;
 }
 
-int varint_write(uint8_t *out, size_t offset, uint64_t value) {
-    uint8_t varint_len = varint_size(value);
+gve_result_e gve_get_i32(buffer_t *buffer, int32_t* val) {
+    uint64_t u64;
+    gve_result_e res;
+    *val = 0;
+    if ((res = gve_get_u64(buffer, &u64)) != GVE_OK) return res;
+    if (u64 > 0xFFFFFFFFULL) return GVE_ERR_INT_TO_BIG;
+    *val = zigzag_decode_i32(u64);
+    return GVE_OK;
+}
 
-    switch (varint_len) {
-        case 1:
-            out[offset] = (uint8_t) value;
+gve_result_e gve_get_u32(buffer_t *buffer, uint32_t* val) {
+    uint64_t u64;
+    gve_result_e res;
+    *val = 0;
+    if ((res = gve_get_u64(buffer, &u64)) != GVE_OK) return res;
+    if (u64 > UINT32_MAX) return false;
+    *val = (uint32_t)u64;
+    return GVE_OK;
+}
+
+gve_result_e gve_get_i64(buffer_t *buffer, int64_t* val) {
+    uint64_t u64;
+    gve_result_e res;
+    *val = 0;
+    if ((res = gve_get_u64(buffer, &u64)) != GVE_OK) return res;
+    *val = zigzag_decode_i64(u64);
+    return GVE_OK;
+}
+
+gve_result_e gve_get_u64(buffer_t *buffer, uint64_t* val) {
+    *val = 0;
+    uint8_t byte = 0;
+    size_t shift = 0;
+    gve_result_e res = GVE_ERR_DATA_SIZE;
+    while (shift < 64) {
+        if ((res = gve_get_u8(buffer, &byte)) != GVE_OK) break;
+        *val |= (uint64_t)(byte & 0x7F) << shift;
+        if ((byte & 0x80) == 0) {
+            res = GVE_OK;
             break;
-        case 3:
-            out[offset++] = 0xFD;
-            write_u16_le(out, offset, (uint16_t) value);
-            break;
-        case 5:
-            out[offset++] = 0xFE;
-            write_u32_le(out, offset, (uint32_t) value);
-            break;
-        case 9:
-            out[offset++] = 0xFF;
-            write_u64_le(out, offset, (uint64_t) value);
-            break;
-        default:
-            return -1;
+        }
+        shift += 7;
     }
+    return res;
+}
 
-    return varint_len;
+gve_result_e gve_put_u64(buffer_t *buffer, uint64_t val) {
+    uint8_t out[10];
+    size_t i = 0;
+    do {
+        uint8_t byte = val & 0x7FU;
+        val >>= 7;
+        if (val) byte |= 0x80U;
+        out[i++] = byte;
+    } while (val);
+    return buffer_write_bytes(buffer, out, i) ? GVE_OK : GVE_ERR_DATA_SIZE;;
 }
