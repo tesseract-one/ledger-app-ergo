@@ -73,6 +73,7 @@ void ui_action_attest_input(bool choice) {
 
     if (choice) {
         G_context.app_session_id = G_ui_ctx.attest_inpt.app_token_value;
+        G_context.input_ctx.approved = true;
         send_response_attested_input_session_id();
     } else {
         res_deny();
