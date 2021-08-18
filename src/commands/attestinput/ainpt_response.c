@@ -51,7 +51,8 @@ int send_response_attested_input_frame(uint8_t index) {
         if (G_context.input_ctx.tokens_table.tokens[i].amount > 0) {
             non_empty++;
         }
-        if (non_empty >= offset) {
+        if (G_context.input_ctx.tokens_table.tokens[i].amount > 0 && 
+            non_empty >= offset) {
             if (!buffer_write_bytes(&buffer,
                                     G_context.input_ctx.tokens_table.tokens[i].id,
                                     TOKEN_ID_LEN)) {
