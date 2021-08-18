@@ -123,8 +123,10 @@ def serialize_box_tokens(tokens: list) -> bytes:
 def print_input_frame(index: int, frame: bytes):
     offset = 0
     print(f"Frame[{index}]:")
-    print(f"  ID: {binascii.hexlify(frame[offset:offset+31]).decode()}")
+    print(f"  ID: {binascii.hexlify(frame[offset:offset+32]).decode()}")
     offset += 32
+    print(f"  Count: {frame[offset]}")
+    offset += 1
     print(f"  Index: {frame[offset]}")
     offset += 1
     token_count = int(frame[offset])

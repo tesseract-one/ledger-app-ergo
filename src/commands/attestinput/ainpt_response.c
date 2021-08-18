@@ -26,14 +26,18 @@ static inline uint8_t get_frames_count(uint8_t tokens_count) {
 }
 
 int send_response_attested_input_frame(uint8_t index) {
-    if (index >= get_frames_count(G_context.input_ctx.box.tokens_count)) {
+    uint8_t frames_count = get_frames_count(G_context.input_ctx.box.tokens_count);
+    if (index >= frames_count) {
         return io_send_sw(SW_ATTEST_UTXO_BAD_FRAME_INDEX);
     }
-    uint8_t _buf[218];
+    uint8_t _buf[219];
     buffer_t buffer = {0};
     buffer_init(&buffer, _buf, sizeof(_buf), 0);
     
     if (!buffer_write_bytes(&buffer, G_context.input_ctx.box_id, BOX_ID_LEN)) {
+        return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
+    }
+    if (!buffer_write_u8(&buffer, frames_count)) {
         return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
     if (!buffer_write_u8(&buffer, index)) {

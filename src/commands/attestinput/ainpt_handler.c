@@ -230,6 +230,10 @@ int handler_attest_input(buffer_t *cdata,
     if (G_context.is_ui_busy) {
         return io_send_sw(SW_BUSY);
     }
+    if (subcommand != ATTEST_INPUT_SUBCOMMAND_INIT &&
+        !G_context.input_ctx.approved) {
+        return io_send_sw(SW_DENY);
+    }
     switch (subcommand) {
         case ATTEST_INPUT_SUBCOMMAND_INIT:
             if (session_or_token != 0x01 && session_or_token != 0x02) {
