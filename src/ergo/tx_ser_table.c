@@ -57,9 +57,7 @@ ergo_tx_serializer_table_result_e ergo_tx_serializer_table_hash(
     const ergo_tx_serializer_table_context_t* context,
     cx_blake2b_t* hash
 ) {
-    uint8_t ser_buf[10];
-    buffer_t buffer = {0};
-    buffer_init(&buffer, ser_buf, sizeof(ser_buf), 0);
+    BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
     if (gve_put_u32(&buffer, context->tokens_table->count) != GVE_OK) {
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_BUFFER;
     }

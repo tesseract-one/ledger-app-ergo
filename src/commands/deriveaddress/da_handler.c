@@ -9,18 +9,18 @@
 #include "da_handler.h"
 #include "da_ui.h"
 #include "da_response.h"
+#include "da_sw.h"
 #include "../../globals.h"
 #include "../../context.h"
 #include "../../types.h"
-#include "../../io.h"
-#include "../../sw.h"
 #include "../../helpers/crypto.h"
 #include "../../common/buffer.h"
 #include "../../common/bip32.h"
+#include "../../helpers/response.h"
 
 int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token) {
     if (G_context.is_ui_busy) {
-        return io_send_sw(SW_BUSY);
+        return res_ui_busy();
     }
 
     clear_context(&G_context, CMD_DERIVE_ADDRESS);
@@ -32,17 +32,17 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
     uint8_t network_type = 0;
 
     if (!buffer_read_u8(cdata, &network_type)) {
-        return io_send_sw(SW_WRONG_DATA_LENGTH);
+        return res_error(SW_WRONG_DATA_LENGTH);
     }
 
     if (!buffer_read_u8(cdata, &G_context.derive_ctx.bip32_path_len) ||
         !buffer_read_bip32_path(cdata, G_context.derive_ctx.bip32_path, (size_t) G_context.derive_ctx.bip32_path_len)
     ) {
-        return io_send_sw(SW_WRONG_DATA_LENGTH);
+        return res_error(SW_WRONG_DATA_LENGTH);
     }
 
     if (has_access_token && !buffer_read_u32(cdata, &access_token, BE)) {
-        return io_send_sw(SW_WRONG_DATA_LENGTH);
+        return res_error(SW_WRONG_DATA_LENGTH);
     }
 
     if (!bip32_path_validate(G_context.derive_ctx.bip32_path,
@@ -50,7 +50,7 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
-        return io_send_sw(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
     }
     BEGIN_TRY {
         TRY {

@@ -24,9 +24,8 @@
 
 #include "types.h"
 #include "globals.h"
-#include "io.h"
-#include "sw.h"
 #include "menu.h"
+#include "sw.h"
 #include "apdu/parser.h"
 #include "apdu/dispatcher.h"
 #include "common/macros.h"
@@ -96,6 +95,7 @@ void app_main() {
                 THROW(EXCEPTION_IO_RESET);
             }
             CATCH_OTHER(e) {
+                clear_context(&G_context, CMD_NONE);
                 io_send_sw(e);
             }
             FINALLY {

@@ -10,64 +10,66 @@
 #include "ainpt_sw.h"
 #include "../../globals.h"
 #include "../../helpers/hmac.h"
-#include "../../io.h"
+#include "../../helpers/response.h"
 
-#include <cx.h>
+#define FRAME_MAX_TOKENS_COUNT 4
+#define FRAME_TOKEN_VALUE_PAIR_SIZE (TOKEN_ID_LEN + sizeof(uint64_t))
+#define FRAME_SIGNATURE_SIZE 16
+#define FRAME_MAX_SIZE (BOX_ID_LEN + 3*sizeof(uint8_t) + \
+    sizeof(uint64_t) + FRAME_MAX_TOKENS_COUNT*FRAME_TOKEN_VALUE_PAIR_SIZE +\
+    FRAME_SIGNATURE_SIZE)
+
+#define TOKENS_COUNT(gctx) gctx.input_ctx.box.tokens_count
+#define BOX_VALUE(gctx) gctx.input_ctx.box.ctx.value
+#define BOX_ID(gctx) gctx.input_ctx.box_id
+#define TOKEN_INFO_COUNT(gctx) gctx.input_ctx.tokens_table.count
+#define TOKEN_INFO(gctx, idx) gctx.input_ctx.tokens_table.tokens[idx]
 
 static inline uint8_t get_frames_count(uint8_t tokens_count) {
-    uint8_t frames_count = tokens_count / 4;
-    if (tokens_count % 4 > 0) {
-        frames_count++;
-    }
-    if (frames_count == 0) {
-        frames_count = 1;
-    }
-    return frames_count;
+    uint8_t frames_count = (tokens_count + (FRAME_MAX_TOKENS_COUNT-1)) /
+                            FRAME_MAX_TOKENS_COUNT;
+    return frames_count == 0 ? 1 : frames_count;
 }
 
 int send_response_attested_input_frame(uint8_t index) {
-    uint8_t frames_count = get_frames_count(G_context.input_ctx.box.tokens_count);
+    uint8_t frames_count = get_frames_count(TOKENS_COUNT(G_context));
     if (index >= frames_count) {
-        return io_send_sw(SW_ATTEST_UTXO_BAD_FRAME_INDEX);
+        return res_error(SW_ATTEST_UTXO_BAD_FRAME_INDEX);
     }
-    uint8_t _buf[219];
-    buffer_t buffer = {0};
-    buffer_init(&buffer, _buf, sizeof(_buf), 0);
+
+    BUFFER_NEW_LOCAL_EMPTY(buffer, FRAME_MAX_SIZE);
     
-    if (!buffer_write_bytes(&buffer, G_context.input_ctx.box_id, BOX_ID_LEN)) {
-        return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
+    if (!buffer_write_bytes(&buffer, BOX_ID(G_context), BOX_ID_LEN)) {
+        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
     if (!buffer_write_u8(&buffer, frames_count)) {
-        return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
+        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
     if (!buffer_write_u8(&buffer, index)) {
-        return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
+        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
-    if (!buffer_write_u8(&buffer, G_context.input_ctx.box.tokens_count)) {
-        return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
+    if (!buffer_write_u8(&buffer, TOKENS_COUNT(G_context))) {
+        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
-    if (!buffer_write_u64(&buffer, G_context.input_ctx.box.ctx.value, BE)) {
-        return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
+    if (!buffer_write_u64(&buffer, BOX_VALUE(G_context), BE)) {
+        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
-    uint8_t offset = index * 4;
+    uint8_t offset = index * FRAME_MAX_TOKENS_COUNT;
     uint8_t non_empty = 0;
-    for (uint8_t i = 0; i < G_context.input_ctx.tokens_table.count; i++) {
-        if (G_context.input_ctx.tokens_table.tokens[i].amount > 0) {
-            non_empty++;
-        }
-        if (G_context.input_ctx.tokens_table.tokens[i].amount > 0 && 
-            non_empty >= offset) {
+    for (uint8_t i = 0; i < TOKEN_INFO_COUNT(G_context); i++) {
+        if (TOKEN_INFO(G_context, i).amount > 0) non_empty++;
+        if (TOKEN_INFO(G_context, i).amount > 0 && non_empty >= offset) {
             if (!buffer_write_bytes(&buffer,
-                                    G_context.input_ctx.tokens_table.tokens[i].id,
+                                    TOKEN_INFO(G_context, i).id,
                                     TOKEN_ID_LEN)) {
-                return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
+                return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
             }
             if (!buffer_write_u64(&buffer,
-                                  G_context.input_ctx.tokens_table.tokens[i].amount,
+                                  TOKEN_INFO(G_context, i).amount,
                                   BE)) {
-                return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
+                return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
             }
-            if (non_empty - offset == 3) break;
+            if (non_empty - offset == FRAME_MAX_TOKENS_COUNT-1) break;
         }
     }
     
@@ -78,25 +80,23 @@ int send_response_attested_input_frame(uint8_t index) {
                      buffer.ptr,
                      buffer_data_len(&buffer),
                      hmac)) {
-        return io_send_sw(SW_ATTEST_UTXO_HMAC_ERROR);
+        return res_error(SW_ATTEST_UTXO_HMAC_ERROR);
     }
     
-    if (!buffer_write_bytes(&buffer, hmac, 16)) {
-        return io_send_sw(SW_ATTEST_UTXO_BUFFER_ERROR);
+    if (!buffer_write_bytes(&buffer, hmac, FRAME_SIGNATURE_SIZE)) {
+        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
 
-    return io_send_response(&buffer, SW_OK);
+    return res_ok_data(&buffer);
 }
 
 int send_response_attested_input_frame_count(void) {
-    uint8_t frames_count = get_frames_count(G_context.input_ctx.box.tokens_count);
-    buffer_t buffer = {0};
-    buffer_init(&buffer, &frames_count, 1, 1);
-    return io_send_response(&buffer, SW_OK);
+    uint8_t frames_count = get_frames_count(TOKENS_COUNT(G_context));
+    BUFFER_FROM_VAR_FULL(buf, frames_count);
+    return res_ok_data(&buf);
 }
 
 int send_response_attested_input_session_id(void) {
-    buffer_t buffer = {0};
-    buffer_init(&buffer, &G_context.input_ctx.session, 1, 1);
-    return io_send_response(&buffer, SW_OK);
+    BUFFER_FROM_VAR_FULL(buf, G_context.input_ctx.session);
+    return res_ok_data(&buf);
 }

@@ -6,11 +6,11 @@
 #include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../context.h"
-#include "../../io.h"
 #include "../../sw.h"
 #include "../../menu.h"
 #include "../../common/bip32.h"
 #include "../../common/macros.h"
+#include "../../helpers/response.h"
 
 // Step with icon and text
 UX_STEP_NOCB(ux_epk_display_confirm_ext_pubkey_step, pn, {&C_icon_eye, "Confirm Ext PubKey"});
@@ -61,7 +61,7 @@ UX_FLOW(ux_epk_display_confirm_ext_pubkey_flow,
 
 int ui_display_account(uint32_t app_access_token) {
     if (G_context.current_command != CMD_GET_EXTENDED_PUBLIC_KEY) {
-        return io_send_sw(SW_BAD_STATE);
+        return res_error(SW_BAD_STATE);
     }
 
     if (!bip32_path_validate(G_context.ext_pub_ctx.bip32_path,
@@ -69,18 +69,18 @@ int ui_display_account(uint32_t app_access_token) {
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ACCOUNT_GE3)) {
-        return io_send_sw(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
     }
 
     G_ui_ctx.ext_pub_key.app_token_value = app_access_token;
-    explicit_bzero(G_ui_ctx.ext_pub_key.account, MEMBER_SIZE(extended_public_key_ui_ctx_t, account));
+    memset(G_ui_ctx.ext_pub_key.account, 0, MEMBER_SIZE(extended_public_key_ui_ctx_t, account));
     snprintf(
         G_ui_ctx.ext_pub_key.account,
         MEMBER_SIZE(extended_public_key_ui_ctx_t, account),
         "%d",
         G_context.ext_pub_ctx.bip32_path[2] - BIP32_HARDENED_CONSTANT);
 
-    explicit_bzero(G_ui_ctx.ext_pub_key.app_token, MEMBER_SIZE(extended_public_key_ui_ctx_t, app_token));
+    memset(G_ui_ctx.ext_pub_key.app_token, 0, MEMBER_SIZE(extended_public_key_ui_ctx_t, app_token));
     snprintf(G_ui_ctx.ext_pub_key.app_token,
              MEMBER_SIZE(extended_public_key_ui_ctx_t, app_token),
              "0x%x",
@@ -100,8 +100,7 @@ void ui_action_get_extended_pubkey(bool choice) {
         G_context.app_session_id = G_ui_ctx.ext_pub_key.app_token_value;
         send_response_extended_pubkey();
     } else {
-        clear_context(&G_context, CMD_NONE);
-        io_send_sw(SW_DENY);
+        res_deny();
     }
 
     ui_menu_main();

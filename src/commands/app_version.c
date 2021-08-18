@@ -4,9 +4,8 @@
 #include "app_version.h"
 #include "../globals.h"
 #include "../constants.h"
-#include "../io.h"
-#include "../sw.h"
 #include "../types.h"
+#include "helpers/response.h"
 #include "common/buffer.h"
 
 int handler_get_version() {
@@ -20,7 +19,7 @@ int handler_get_version() {
     uint8_t version[APPVERSION_LEN] = {(uint8_t) MAJOR_VERSION,
                                        (uint8_t) MINOR_VERSION,
                                        (uint8_t) PATCH_VERSION};
-    buffer_t response = {0};
-    buffer_init(&response, version, APPVERSION_LEN, APPVERSION_LEN);
-    return io_send_response(&response, SW_OK);
+
+    BUFFER_FROM_ARRAY_FULL(buf, version, APPVERSION_LEN);
+    return res_ok_data(&buf);
 }

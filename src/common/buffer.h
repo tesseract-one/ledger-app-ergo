@@ -4,6 +4,27 @@
 #include <stddef.h>   // size_t
 #include <stdbool.h>  // bool
 
+#define BUFFER_FROM_ARRAY_FULL(name, array, size) \
+    buffer_t name;\
+    buffer_init(&name, array, size, size)
+
+#define BUFFER_FROM_ARRAY_EMPTY(name, array, size) \
+    buffer_t name;\
+    buffer_init(&name, array, size, 0)
+
+#define BUFFER_FROM_VAR_FULL(name, var) \
+    buffer_t name;\
+    buffer_init(&name, &var, sizeof(var), sizeof(var))
+
+#define BUFFER_FROM_VAR_EMPTY(name, var) \
+    buffer_t name;\
+    buffer_init(&name, &var, sizeof(var), 0)
+
+#define BUFFER_NEW_LOCAL_EMPTY(name, size) \
+    uint8_t __##name[size];\
+    buffer_t name;\
+    buffer_init(&name, __##name, size, 0)
+
 /**
  * Enumeration for endianness.
  */
@@ -44,6 +65,18 @@ static inline void buffer_init(buffer_t *buffer,
     buffer->size = buf_size;
     buffer->read_offset = 0;
     buffer->write_offset = data_size;
+}
+
+/**
+ * Set buffer read and write pointers to zero.
+ *
+ * @param[in] buffer
+ *   Pointer to input buffer struct.
+ *
+ */
+static inline void buffer_empty(buffer_t *buffer) {
+    buffer->read_offset = 0;
+    buffer->write_offset = 0;
 }
 
 /**
@@ -354,7 +387,7 @@ bool buffer_write_u64(buffer_t *buffer, uint64_t value, endianness_t endianness)
  * @return true if success, false otherwise.
  *
  */
-bool buffer_write_bytes(buffer_t *buffer, uint8_t *from, size_t from_len);
+bool buffer_write_bytes(buffer_t *buffer, const uint8_t *from, size_t from_len);
 
 /**
  * Move all data to the start of the buffer.

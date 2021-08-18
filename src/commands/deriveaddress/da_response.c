@@ -8,20 +8,18 @@
 #include "../../context.h"
 #include "../../globals.h"
 #include "../../common/buffer.h"
+#include "../../helpers/response.h"
 
 int send_response_address() {
-    uint8_t _resp[PUBLIC_KEY_LEN] = {0};
-    buffer_t response = {0};
-    buffer_init(&response, _resp, PUBLIC_KEY_LEN, 0);
-
+    BUFFER_NEW_LOCAL_EMPTY(response, PUBLIC_KEY_LEN);
+    
     if (!buffer_write_bytes(&response,
                             G_context.ext_pub_ctx.raw_public_key,
                             PUBLIC_KEY_LEN)) {
-        clear_context(&G_context, CMD_NONE);
-        return io_send_sw(SW_DERIVE_ADDRESS_BUFFER_ERR);
+        return res_error(SW_DERIVE_ADDRESS_BUFFER_ERR);
     }
 
     clear_context(&G_context, CMD_NONE);
 
-    return io_send_response(&response, SW_OK);
+    return res_ok_data(&response);
 }

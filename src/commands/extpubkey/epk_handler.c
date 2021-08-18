@@ -12,15 +12,14 @@
 #include "../../globals.h"
 #include "../../context.h"
 #include "../../types.h"
-#include "../../io.h"
-#include "../../sw.h"
 #include "../../helpers/crypto.h"
+#include "../../helpers/response.h"
 #include "../../common/buffer.h"
 #include "../../common/bip32.h"
 
 int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
     if (G_context.is_ui_busy) {
-        return io_send_sw(SW_BUSY);
+        return res_ui_busy();
     }
 
     clear_context(&G_context, CMD_GET_EXTENDED_PUBLIC_KEY);
@@ -33,11 +32,11 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
     if (!buffer_read_u8(cdata, &G_context.ext_pub_ctx.bip32_path_len) ||
         !buffer_read_bip32_path(cdata, G_context.ext_pub_ctx.bip32_path, (size_t) G_context.ext_pub_ctx.bip32_path_len)
     ) {
-        return io_send_sw(SW_WRONG_DATA_LENGTH);
+        return res_error(SW_WRONG_DATA_LENGTH);
     }
 
     if (has_access_token && !buffer_read_u32(cdata, &access_token, BE)) {
-        return io_send_sw(SW_WRONG_DATA_LENGTH);
+        return res_error(SW_WRONG_DATA_LENGTH);
     }
 
     if (!bip32_path_validate(G_context.ext_pub_ctx.bip32_path,
@@ -45,7 +44,7 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ACCOUNT_GE3)) {
-        return io_send_sw(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
     }
 
     BEGIN_TRY {
@@ -64,7 +63,7 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
             THROW(e);
         }
         FINALLY {
-            // reset private key
+            // clear private key
             explicit_bzero(&private_key, sizeof(private_key));
         }
     }

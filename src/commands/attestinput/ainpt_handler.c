@@ -11,12 +11,12 @@
 #include "ainpt_ui.h"
 #include "../../globals.h"
 #include "../../helpers/session_id.h"
-#include "../../io.h"
+#include "../../helpers/response.h"
 
 #include <string.h>
 
 #define CHECK_SESSION(session_id) if (session_id != G_context.input_ctx.session) \
-    return SW_ATTEST_UTXO_BAD_SESSION
+    return res_error(SW_ATTEST_UTXO_BAD_SESSION)
 
 static inline int handle_init(buffer_t *cdata, bool has_token) {
     uint32_t prefix_size;
@@ -27,19 +27,19 @@ static inline int handle_init(buffer_t *cdata, bool has_token) {
     clear_context(&G_context, CMD_ATTEST_INPUT_BOX);
 
     if (!buffer_read_u32(cdata, &prefix_size, BE)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (!buffer_read_u32(cdata, &suffix_size, BE)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (!buffer_read_u8(cdata, &tokens_count)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (has_token && !buffer_read_u32(cdata, &app_session_id, BE)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (buffer_can_read(cdata, 1)) {
-        return io_send_sw(SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED);
+        return res_error(SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED);
     }
 
     ergo_tx_serializer_simple_result_e res = ergo_tx_serializer_simple_init(
@@ -51,7 +51,7 @@ static inline int handle_init(buffer_t *cdata, bool has_token) {
     );
     
     if (res != ERGO_TX_SERIALIZER_SIMPLE_RES_OK) {
-        return io_send_sw(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
+        return res_error(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
     }
     
     G_context.input_ctx.session = session_id_new_random(G_context.input_ctx.session);
@@ -73,10 +73,10 @@ static inline int handle_tx_prefix_chunk(buffer_t *cdata) {
     
     if (res != ERGO_TX_SERIALIZER_SIMPLE_RES_OK &&
         res != ERGO_TX_SERIALIZER_SIMPLE_RES_MORE_DATA) {
-        return io_send_sw(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
+        return res_error(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
     }
     
-    return io_send_sw(SW_OK);
+    return res_ok();
 }
 
 static inline int handle_tx_tokens(buffer_t *cdata) {
@@ -87,10 +87,10 @@ static inline int handle_tx_tokens(buffer_t *cdata) {
     
     if (res != ERGO_TX_SERIALIZER_SIMPLE_RES_OK &&
         res != ERGO_TX_SERIALIZER_SIMPLE_RES_MORE_DATA) {
-        return io_send_sw(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
+        return res_error(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
     }
     
-    return io_send_sw(SW_OK);
+    return res_ok();
 }
 
 static inline int handle_tx_suffix_chunk(buffer_t *cdata) {
@@ -104,13 +104,13 @@ static inline int handle_tx_suffix_chunk(buffer_t *cdata) {
             res = ergo_tx_serializer_simple_finalize(&G_context.input_ctx.tx,
                                                      G_context.input_ctx.tx_id);
             if (res != ERGO_TX_SERIALIZER_SIMPLE_RES_OK) {
-                return io_send_sw(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
+                return res_error(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
             }
-            return io_send_sw(SW_OK);
+            return res_ok();
         case ERGO_TX_SERIALIZER_SIMPLE_RES_MORE_DATA:
-            return io_send_sw(SW_OK);
+            return res_ok();
         default:
-            return io_send_sw(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
+            return res_error(SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t)res);
     }
 }
 
@@ -123,31 +123,31 @@ static inline int handle_box_init(buffer_t *cdata) {
     uint8_t registers_count;
     
     if (!buffer_read_u16(cdata, &box_index, BE)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (!buffer_read_u64(cdata, &value, BE)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (!buffer_read_u32(cdata, &ergo_tree_size, BE)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (!buffer_read_u32(cdata, &creation_height, BE)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (!buffer_read_u8(cdata, &tokens_count)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (!buffer_read_u8(cdata, &registers_count)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     if (buffer_can_read(cdata, 1)) {
-        return io_send_sw(SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED);
+        return res_error(SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED);
     }
 
     explicit_bzero(&G_context.input_ctx.box, sizeof(_attest_input_box_ctx_t));
     
     if (!ergo_tx_serializer_box_id_hash_init(&G_context.input_ctx.box.hash)) {
-        return io_send_sw(SW_ATTEST_UTXO_HASHER_ERROR);
+        return res_error(SW_ATTEST_UTXO_HASHER_ERROR);
     }
     
     ergo_tx_serializer_box_result_e res = ergo_tx_serializer_box_init(
@@ -157,13 +157,13 @@ static inline int handle_box_init(buffer_t *cdata) {
     );
     
     if (res != ERGO_TX_SERIALIZER_BOX_RES_OK) {
-        return io_send_sw(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
+        return res_error(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
     }
     
     G_context.input_ctx.box.box_index = box_index;
     G_context.input_ctx.box.tokens_count = tokens_count;
     
-    return io_send_sw(SW_OK);
+    return res_ok();
 }
 
 static inline int handle_box_tree_chunk(buffer_t *cdata) {
@@ -173,10 +173,10 @@ static inline int handle_box_tree_chunk(buffer_t *cdata) {
     
     if (res != ERGO_TX_SERIALIZER_BOX_RES_OK &&
         res != ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA) {
-        return io_send_sw(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
+        return res_error(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
     }
     
-    return io_send_sw(SW_OK);
+    return res_ok();
 }
 
 static inline int handle_box_tokens(buffer_t *cdata) {
@@ -186,10 +186,10 @@ static inline int handle_box_tokens(buffer_t *cdata) {
     
     if (res != ERGO_TX_SERIALIZER_BOX_RES_OK &&
         res != ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA) {
-        return io_send_sw(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
+        return res_error(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
     }
     
-    return io_send_sw(SW_OK);
+    return res_ok();
 }
 
 static inline int handle_box_register(buffer_t *cdata) {
@@ -206,20 +206,20 @@ static inline int handle_box_register(buffer_t *cdata) {
                 G_context.input_ctx.box_id
             );
             if (res != ERGO_TX_SERIALIZER_BOX_RES_OK) {
-                return io_send_sw(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
+                return res_error(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
             }
             return send_response_attested_input_frame_count();
         case ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA:
-            return io_send_sw(SW_OK);
+            return res_ok();
         default:
-            return io_send_sw(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
+            return res_error(SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t)res);
     }
 }
 
 static inline int handle_box_get_frame(buffer_t *cdata) {
     uint8_t index;
     if (!buffer_read_u8(cdata, &index)) {
-        return io_send_sw(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+        return res_error(SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
     }
     return send_response_attested_input_frame(index);
 }
@@ -228,16 +228,16 @@ int handler_attest_input(buffer_t *cdata,
                          attest_input_subcommand_e subcommand,
                          uint8_t session_or_token) {
     if (G_context.is_ui_busy) {
-        return io_send_sw(SW_BUSY);
+        return res_ui_busy();
     }
     if (subcommand != ATTEST_INPUT_SUBCOMMAND_INIT &&
         !G_context.input_ctx.approved) {
-        return io_send_sw(SW_DENY);
+        return res_deny();
     }
     switch (subcommand) {
         case ATTEST_INPUT_SUBCOMMAND_INIT:
             if (session_or_token != 0x01 && session_or_token != 0x02) {
-                return io_send_sw(SW_ATTEST_UTXO_BAD_P2);
+                return res_error(SW_ATTEST_UTXO_BAD_P2);
             }
             return handle_init(cdata, session_or_token == 0x02);
         case ATTEST_INPUT_SUBCOMMAND_PREFIX_CHUNK:
@@ -265,6 +265,6 @@ int handler_attest_input(buffer_t *cdata,
             CHECK_SESSION(session_or_token);
             return handle_box_get_frame(cdata);
         default:
-            return io_send_sw(SW_ATTEST_UTXO_BAD_COMMAND);
+            return res_error(SW_ATTEST_UTXO_BAD_COMMAND);
     }
 }

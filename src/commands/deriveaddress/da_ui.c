@@ -3,15 +3,15 @@
 
 #include "da_ui.h"
 #include "da_response.h"
+#include "da_sw.h"
 #include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../context.h"
-#include "../../io.h"
-#include "../../sw.h"
 #include "../../menu.h"
 #include "../../common/base58.h"
 #include "../../common/macros.h"
 #include "../../ergo/address.h"
+#include "../../helpers/response.h"
 
 // Step with icon and text
 UX_STEP_NOCB(ux_da_display_confirm_addr_step, pn, {&C_icon_eye, "Confirm Address"});
@@ -87,7 +87,7 @@ UX_FLOW(ux_da_send_address_flow,
 // Display
 int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token) {
     if (G_context.current_command != CMD_DERIVE_ADDRESS) {
-        return io_send_sw(SW_BAD_STATE);
+        return res_error(SW_BAD_STATE);
     }
 
     if (!bip32_path_validate(G_context.derive_ctx.bip32_path,
@@ -95,21 +95,21 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
-        return io_send_sw(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
     }
 
     G_ui_ctx.derive_address.app_token_value = app_access_token;
     G_ui_ctx.derive_address.send = send;
 
-    explicit_bzero(G_ui_ctx.derive_address.bip32_path, MEMBER_SIZE(derive_address_ui_ctx_t, bip32_path));
+    memset(G_ui_ctx.derive_address.bip32_path, 0, MEMBER_SIZE(derive_address_ui_ctx_t, bip32_path));
     if (!bip32_path_format(G_context.derive_ctx.bip32_path,
                            G_context.derive_ctx.bip32_path_len,
                            G_ui_ctx.derive_address.bip32_path,
                            MEMBER_SIZE(derive_address_ui_ctx_t, bip32_path))) {
-        return io_send_sw(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
     }
 
-    explicit_bzero(G_ui_ctx.derive_address.address, MEMBER_SIZE(derive_address_ui_ctx_t, address));
+    memset(G_ui_ctx.derive_address.address, 0, MEMBER_SIZE(derive_address_ui_ctx_t, address));
     if (!send) {
         uint8_t address[ADDRESS_LEN] = {0};
         if (!address_from_pubkey(
@@ -117,7 +117,7 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
                 G_context.derive_ctx.raw_public_key,
                 address,
                 sizeof(address))) {
-            return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
+            return res_error(SW_DISPLAY_ADDRESS_FAIL);
         }
 
         int result = base58_encode(address,
@@ -126,11 +126,11 @@ int ui_display_address(bool send, uint8_t network_id, uint32_t app_access_token)
                                 sizeof(G_ui_ctx.derive_address.address));
 
         if (result == -1 || result >= ADDRESS_STRING_MAX_LEN) {
-            return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
+            return res_error(SW_DISPLAY_ADDRESS_FAIL);
         }
     }
 
-    explicit_bzero(G_ui_ctx.derive_address.app_token, MEMBER_SIZE(derive_address_ui_ctx_t, app_token));
+    memset(G_ui_ctx.derive_address.app_token, 0, MEMBER_SIZE(derive_address_ui_ctx_t, app_token));
     snprintf(G_ui_ctx.derive_address.app_token,
              MEMBER_SIZE(derive_address_ui_ctx_t, app_token),
              "0x%x",
@@ -157,11 +157,10 @@ void ui_action_derive_address(bool choice) {
             send_response_address();
         } else {
             clear_context(&G_context, CMD_NONE);
-            io_send_sw(SW_OK);
+            res_ok();
         }
     } else {
-        clear_context(&G_context, CMD_NONE);
-        io_send_sw(SW_DENY);
+        res_deny();
     }
 
     ui_menu_main();

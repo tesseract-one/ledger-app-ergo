@@ -27,17 +27,16 @@ static inline ergo_tx_serializer_box_result_e parse_token(
 static inline ergo_tx_serializer_box_result_e add_height_and_token_count(
     ergo_tx_serializer_box_context_t* context
 ) {
-    uint8_t ser_buf[10];
-    buffer_t buffer = {0};
-    buffer_init(&buffer, ser_buf, sizeof(ser_buf), 0);
+    BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
+
     if (gve_put_u32(&buffer, context->creation_height) != GVE_OK) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER;
     }
     if (!blake2b_update(context->hash, buffer.ptr, buffer_data_len(&buffer))) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER;
     }
-    
-    buffer_init(&buffer, ser_buf, sizeof(ser_buf), 0);
+
+    buffer_empty(&buffer);
     if (gve_put_u8(&buffer, context->tokens_count) != GVE_OK) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER;
     }
@@ -51,9 +50,7 @@ static inline ergo_tx_serializer_box_result_e add_height_and_token_count(
 static inline ergo_tx_serializer_box_result_e add_registers_count(
     ergo_tx_serializer_box_context_t* context
 ) {
-    uint8_t ser_buf[1];
-    buffer_t buffer = {0};
-    buffer_init(&buffer, ser_buf, sizeof(ser_buf), 0);
+    BUFFER_NEW_LOCAL_EMPTY(buffer, 1);
     if (gve_put_u8(&buffer, context->registers_count) != GVE_OK) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER;
     }
@@ -75,15 +72,14 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_init(
     token_amount_table_t* tokens_table,
     cx_blake2b_t* hash
 ) {
-    explicit_bzero(context, sizeof(ergo_tx_serializer_box_context_t));
+    memset(context, 0, sizeof(ergo_tx_serializer_box_context_t));
     
     if (tokens_count > tokens_table->count) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MANY_TOKENS;
     }
     
-    uint8_t ser_buf[10];
-    buffer_t buffer = {0};
-    buffer_init(&buffer, ser_buf, sizeof(ser_buf), 0);
+    BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
+
     if (gve_put_u64(&buffer, value) != GVE_OK) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER;
     }
@@ -140,8 +136,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
     if (context->ergo_tree_size > 0) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE;
     }
-    uint8_t ser_buf[10];
-    buffer_t buffer = {0};
+    BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
     ergo_tx_serializer_box_result_e res = ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA;
     while (buffer_data_len(input) > 0) {
         uint32_t index;
@@ -169,7 +164,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
             if (context->tokens_table->tokens[index].amount < value) {
                 return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_VALUE;
             }
-            buffer_init(&buffer, ser_buf, sizeof(ser_buf), 0);
+            buffer_empty(&buffer);
             if (gve_put_u32(&buffer, index) != GVE_OK) {
                 return ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER;
             }
@@ -178,7 +173,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
             }
         }
         
-        buffer_init(&buffer, ser_buf, sizeof(ser_buf), 0);
+        buffer_empty(&buffer);
         if (gve_put_u64(&buffer, value) != GVE_OK) {
             return ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER;
         }
@@ -239,9 +234,8 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_id_finalize(
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER;
     }
     
-    uint8_t ser_buf[10];
-    buffer_t buffer = {0};
-    buffer_init(&buffer, ser_buf, sizeof(ser_buf), 0);
+    BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
+
     if (gve_put_u16(&buffer, box_index) != GVE_OK) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER;
     }

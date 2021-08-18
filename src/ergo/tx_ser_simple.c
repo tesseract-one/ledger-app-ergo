@@ -35,7 +35,7 @@ ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_init(
     uint8_t tokens_count,
     token_amount_table_t* tokens_table
 ) {
-    explicit_bzero(context, sizeof(ergo_tx_serializer_simple_context_t));
+    memset(context, 0, sizeof(ergo_tx_serializer_simple_context_t));
     if (tokens_count > TOKEN_MAX_COUNT) {
         return ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_TOO_MANY_TOKENS;
     }

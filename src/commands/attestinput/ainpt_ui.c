@@ -6,9 +6,9 @@
 #include "ainpt_sw.h"
 #include "../../glyphs.h"
 #include "../../globals.h"
-#include "../../io.h"
 #include "../../menu.h"
 #include "../../common/macros.h"
+#include "../../helpers/response.h"
 
 // Step with icon and text
 UX_STEP_NOCB(ux_ainpt_display_confirm_step, pn, {&C_icon_eye, "Confirm Attest Input"});
@@ -50,12 +50,12 @@ UX_FLOW(ux_ainpt_display_confirm_flow,
 
 int ui_display_access_token(uint32_t app_access_token) {
     if (G_context.current_command != CMD_ATTEST_INPUT_BOX) {
-        return io_send_sw(SW_BAD_STATE);
+        return res_error(SW_BAD_STATE);
     }
 
     G_ui_ctx.attest_inpt.app_token_value = app_access_token;
 
-    explicit_bzero(G_ui_ctx.attest_inpt.app_token, MEMBER_SIZE(attest_input_ui_ctx_t, app_token));
+    memset(G_ui_ctx.attest_inpt.app_token, 0, MEMBER_SIZE(attest_input_ui_ctx_t, app_token));
     snprintf(G_ui_ctx.attest_inpt.app_token,
              MEMBER_SIZE(extended_public_key_ui_ctx_t, app_token),
              "0x%x",
@@ -75,8 +75,7 @@ void ui_action_attest_input(bool choice) {
         G_context.app_session_id = G_ui_ctx.attest_inpt.app_token_value;
         send_response_attested_input_session_id();
     } else {
-        clear_context(&G_context, CMD_NONE);
-        io_send_sw(SW_DENY);
+        res_deny();
     }
 
     ui_menu_main();

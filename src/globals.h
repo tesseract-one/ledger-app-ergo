@@ -2,12 +2,12 @@
 
 #include <stdint.h>
 
-#include "ux.h"
+#include <ux.h>
 
-#include "io.h"
 #include "types.h"
 #include "constants.h"
 #include "context.h"
+#include "helpers/io.h"
 
 /**
  * Global buffer for interactions between SE and MCU.

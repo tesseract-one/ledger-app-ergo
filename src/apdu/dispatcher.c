@@ -22,8 +22,8 @@
 #include "../constants.h"
 #include "../globals.h"
 #include "../types.h"
-#include "../io.h"
 #include "../sw.h"
+#include "../helpers/io.h"
 #include "../common/buffer.h"
 #include "../commands/app_name.h"
 #include "../commands/app_version.h"
@@ -36,52 +36,46 @@ int apdu_dispatcher(const command_t *cmd) {
         return io_send_sw(SW_CLA_NOT_SUPPORTED);
     }
 
-    buffer_t buf = {0};
+    buffer_t buf;
 
     switch (cmd->ins) {
         case CMD_GET_APP_VERSION:
             if (cmd->p1 != 0 || cmd->p2 != 0) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
-
             return handler_get_version();
         case CMD_GET_APP_NAME:
             if (cmd->p1 != 0 || cmd->p2 != 0) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
-
             return handler_get_app_name();
         case CMD_GET_EXTENDED_PUBLIC_KEY:
             if (cmd->p1 == 0 || cmd->p1 > 2 || cmd->p2 > 0) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
-
             if (!cmd->data) {
                 return io_send_sw(SW_WRONG_DATA_LENGTH);
             }
-
             buffer_init(&buf, cmd->data, cmd->lc, cmd->lc);
-
             return handler_get_extended_public_key(&buf, cmd->p1 == 2);
         case CMD_DERIVE_ADDRESS:
             if (cmd->p1 == 0 || cmd->p1 > 2 || cmd->p2 == 0 || cmd->p2 > 2) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
-
             if (!cmd->data) {
                 return io_send_sw(SW_WRONG_DATA_LENGTH);
             }
-
             buffer_init(&buf, cmd->data, cmd->lc, cmd->lc);
-
             return handler_derive_address(&buf, cmd->p1 == 2, cmd->p2 == 2);
         case CMD_ATTEST_INPUT_BOX:
             if (cmd->p1 == 0 || cmd->p2 == 0) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
+            if (!cmd->data) {
+                return io_send_sw(SW_WRONG_DATA_LENGTH);
+            }
             buffer_init(&buf, cmd->data, cmd->lc, cmd->lc);
             return handler_attest_input(&buf, cmd->p1, cmd->p2);
-
         // case SIGN_TX:
         //     if ((cmd->p1 == P1_START && cmd->p2 != P2_MORE) ||  //
         //         cmd->p1 > P1_MAX ||                             //

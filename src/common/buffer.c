@@ -237,7 +237,7 @@ bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, size_t out_len) {
     return true;
 }
 
-bool buffer_write_bytes(buffer_t *buffer, uint8_t *from, size_t from_len) {
+bool buffer_write_bytes(buffer_t *buffer, const uint8_t *from, size_t from_len) {
     if (!buffer_can_write(buffer, from_len)) {
         return false;
     }

@@ -8,27 +8,36 @@
 
 #include "address.h"
 #include "../common/base58.h"
+#include "../common/buffer.h"
 #include "../helpers/blake2b.h"
 
 bool address_from_pubkey(uint8_t network, const uint8_t public_key[static PUBLIC_KEY_LEN], uint8_t *out, size_t out_len) {
+    BUFFER_FROM_ARRAY_EMPTY(buffer, out, out_len);
+
     if (network > 252 || out_len < ADDRESS_LEN) {
         return false;
     }
-    size_t offset = 0;
-
     // P2PK + network id
-    out[offset++] = 0x01 + network;
-
+    if (!buffer_write_u8(&buffer, 0x01 + network)) {
+        return false;
+    }
     // Compressed pubkey
-    out[offset++] = ((public_key[64] & 1) ? 0x03 : 0x02);
-    memcpy(out + offset, public_key + 1, 32);
-    offset += 32;
+    if (!buffer_write_u8(&buffer, ((public_key[64] & 1) ? 0x03 : 0x02))) {
+        return false;
+    }
+    if (!buffer_write_bytes(&buffer, public_key + 1, 32)) {
+        return false;
+    }
 
     uint8_t hash[BLAKE2B_256_DIGEST_LEN] = {0};
 
-    if (!blake2b_256(out, offset, hash)) return false;
-
-    memcpy(out + offset, hash, 4);
+    if (!blake2b_256(buffer.ptr, buffer_data_len(&buffer), hash)) {
+        return false;
+    }
+    // Checksum
+    if (!buffer_write_bytes(&buffer, hash, 4)) {
+        return false;
+    }
 
     return true;
 }
