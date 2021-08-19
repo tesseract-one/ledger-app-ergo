@@ -81,7 +81,7 @@ static inline int handle_init(attest_input_ctx_t *ctx,
     ctx->state = ATTEST_INPUT_STATE_INITIALIZED;
     ctx->session = session_id_new_random(ctx->session);
 
-    if (has_token && app_session_id == app_session_id_in) {
+    if (is_known_application(app_session_id, app_session_id_in)) {
         ctx->state = ATTEST_INPUT_STATE_APPROVED;
         return send_response_attested_input_session_id(ctx->session);
     }

@@ -16,6 +16,7 @@
 #include "../../helpers/response.h"
 #include "../../common/buffer.h"
 #include "../../common/bip32.h"
+#include "../../helpers/session_id.h"
 
 #define UI_CONTEXT(gctx) gctx.ui.ext_pub_key
 
@@ -70,7 +71,7 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
     }
     END_TRY;
 
-    if (has_access_token && access_token != 0 && access_token == G_context.app_session_id) {
+    if (is_known_application(access_token, G_context.app_session_id)) {
         return send_response_extended_pubkey(UI_CONTEXT(G_context).raw_public_key,
                                              UI_CONTEXT(G_context).chain_code);
     }

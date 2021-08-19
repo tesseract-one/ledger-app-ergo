@@ -17,6 +17,7 @@
 #include "../../common/buffer.h"
 #include "../../common/bip32.h"
 #include "../../helpers/response.h"
+#include "../../helpers/session_id.h"
 
 #define UI_CONTEXT(gcxt) G_context.ui.derive_address
 
@@ -75,8 +76,7 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
     }
     END_TRY;
 
-    if (!display && has_access_token && access_token != 0 &&
-        access_token == G_context.app_session_id) {
+    if (!display && is_known_application(access_token, G_context.app_session_id)) {
         return send_response_address(UI_CONTEXT(G_context).raw_public_key);
     }
 
