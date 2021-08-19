@@ -25,9 +25,9 @@
 #define PRIVATE_KEY_SIZE 32
 
 void crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
-                              uint8_t chain_code[static CHAIN_CODE_LEN],
-                              const uint32_t *bip32_path,
-                              uint8_t bip32_path_len) {
+                               uint8_t chain_code[static CHAIN_CODE_LEN],
+                               const uint32_t *bip32_path,
+                               uint8_t bip32_path_len) {
     uint8_t raw_private_key[PRIVATE_KEY_SIZE] = {0};
 
     BEGIN_TRY {
@@ -55,8 +55,8 @@ void crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
 }
 
 void crypto_init_public_key(cx_ecfp_private_key_t *private_key,
-                           cx_ecfp_public_key_t *public_key,
-                           uint8_t raw_public_key[static PUBLIC_KEY_LEN]) {
+                            cx_ecfp_public_key_t *public_key,
+                            uint8_t raw_public_key[static PUBLIC_KEY_LEN]) {
     // generate corresponding public key
     cx_ecfp_generate_pair(CX_CURVE_256K1, public_key, private_key, 1);
 

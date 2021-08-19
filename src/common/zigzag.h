@@ -14,7 +14,7 @@ static inline uint64_t zigzag_encode_i32(int32_t v) {
 }
 
 static inline int32_t zigzag_decode_i32(uint64_t v) {
-    return (int32_t)((uint32_t)v >> 1) ^ -((int32_t)v & 1);
+    return (int32_t)((uint32_t) v >> 1) ^ -((int32_t) v & 1);
 }
 
 static inline uint64_t zigzag_encode_i64(int64_t v) {
@@ -22,5 +22,5 @@ static inline uint64_t zigzag_encode_i64(int64_t v) {
 }
 
 static inline int64_t zigzag_decode_i64(uint64_t v) {
-    return (int64_t)((v >> 1) ^ ((uint64_t)-((int64_t)(v & 1))));
+    return (int64_t)((v >> 1) ^ ((uint64_t) - ((int64_t)(v & 1))));
 }

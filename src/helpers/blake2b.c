@@ -5,21 +5,15 @@ bool blake2b_256_init(cx_blake2b_t* ctx) {
 }
 
 bool blake2b_update(cx_blake2b_t* ctx, uint8_t* data, size_t len) {
-    return cx_hash_no_throw((cx_hash_t*) ctx,
-                            0, data, len,
-                            NULL, 0) == 0;
+    return cx_hash_no_throw((cx_hash_t*) ctx, 0, data, len, NULL, 0) == 0;
 }
 
 bool blake2b_256_finalize(cx_blake2b_t* ctx, uint8_t out[static BLAKE2B_256_DIGEST_LEN]) {
-    return cx_hash_no_throw((cx_hash_t*) ctx,
-                            CX_LAST, NULL, 0,
-                            out, 32) == 0;
+    return cx_hash_no_throw((cx_hash_t*) ctx, CX_LAST, NULL, 0, out, 32) == 0;
 }
 
 bool blake2b_256(uint8_t* data, size_t len, uint8_t out[static BLAKE2B_256_DIGEST_LEN]) {
     cx_blake2b_t ctx;
     if (!blake2b_256_init(&ctx)) return false;
-    return cx_hash_no_throw((cx_hash_t*) &ctx,
-                            CX_LAST, data, len,
-                            out, 32) == 0;
+    return cx_hash_no_throw((cx_hash_t*) &ctx, CX_LAST, data, len, out, 32) == 0;
 }

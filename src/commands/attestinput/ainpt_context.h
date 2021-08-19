@@ -22,11 +22,21 @@ typedef struct {
     ergo_tx_serializer_box_context_t ctx;
 } _attest_input_box_ctx_t;
 
+typedef enum {
+    ATTEST_INPUT_STATE_INITIALIZED,
+    ATTEST_INPUT_STATE_TX_STARTED,
+    ATTEST_INPUT_STATE_TX_FINISHED,
+    ATTEST_INPUT_STATE_BOX_STARTED,
+    ATTEST_INPUT_STATE_BOX_FINISHED,
+    ATTEST_INPUT_STATE_APPROVED,
+    ATTEST_INPUT_STATE_ERROR
+} attest_input_state_e;
+
 typedef struct {
+    attest_input_state_e state;
     uint8_t tx_id[TRANSACTION_HASH_LEN];
     uint8_t box_id[BOX_ID_LEN];
     uint8_t session;
-    bool approved;
     token_amount_table_t tokens_table;
     union {
         _attest_input_box_ctx_t box;
@@ -35,6 +45,6 @@ typedef struct {
 } attest_input_ctx_t;
 
 typedef struct {
-    char app_token[9]; // hexified app token
+    char app_token[11];  // hexified app token
     uint32_t app_token_value;
 } attest_input_ui_ctx_t;

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdint.h>
+#include "../../constants.h"
+
 /**
  * Send APDU response with public key and chain code.
  *
@@ -9,4 +12,5 @@
  * @return zero or positive integer if success, -1 otherwise.
  *
  */
-int send_response_extended_pubkey(void);
+int send_response_extended_pubkey(uint8_t raw_public_key[static PUBLIC_KEY_LEN],
+                                  uint8_t chain_code[static CHAIN_CODE_LEN]);

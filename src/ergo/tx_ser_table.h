@@ -37,24 +37,19 @@ typedef struct {
     uint8_t tokens_count;
 } ergo_tx_serializer_table_context_t;
 
-void ergo_tx_serializer_table_init(
-    ergo_tx_serializer_table_context_t* context,
-    uint8_t tokens_count,
-    token_amount_table_t* tokens_table
-);
+void ergo_tx_serializer_table_init(ergo_tx_serializer_table_context_t* context,
+                                   uint8_t tokens_count,
+                                   token_amount_table_t* tokens_table);
 
 ergo_tx_serializer_table_result_e ergo_tx_serializer_table_add(
     ergo_tx_serializer_table_context_t* context,
-    buffer_t* input
-);
+    buffer_t* tokens);
 
 ergo_tx_serializer_table_result_e ergo_tx_serializer_table_hash(
     const ergo_tx_serializer_table_context_t* context,
-    cx_blake2b_t* hash
-);
+    cx_blake2b_t* hash);
 
 static inline bool ergo_tx_serializer_table_is_finished(
-    const ergo_tx_serializer_table_context_t* context
-) {
+    const ergo_tx_serializer_table_context_t* context) {
     return context->tokens_table->count >= context->tokens_count;
 }

@@ -30,11 +30,7 @@ UX_STEP_CB(ux_menu_exit_step, pb, os_sched_exit(-1), {&C_icon_dashboard_x, "Quit
 // #1 screen: ready
 // #2 screen: about submenu
 // #3 screen: quit
-UX_FLOW(ux_menu_main_flow,
-        &ux_menu_ready_step,
-        &ux_menu_about_step,
-        &ux_menu_exit_step,
-        FLOW_LOOP);
+UX_FLOW(ux_menu_main_flow, &ux_menu_ready_step, &ux_menu_about_step, &ux_menu_exit_step, FLOW_LOOP);
 
 void ui_menu_main() {
     if (G_ux.stack_count == 0) {
@@ -44,7 +40,7 @@ void ui_menu_main() {
     ux_flow_init(0, ux_menu_main_flow, NULL);
 }
 
-UX_STEP_NOCB(ux_menu_info_step, bn, {APPNAME" App", "(c) 2021 Ergo"});
+UX_STEP_NOCB(ux_menu_info_step, bn, {APPNAME " App", "(c) 2021 Ergo"});
 UX_STEP_NOCB(ux_menu_version_step, bn, {"Version", APPVERSION});
 UX_STEP_CB(ux_menu_back_step, pb, ui_menu_main(), {&C_icon_back, "Back"});
 

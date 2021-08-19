@@ -21,7 +21,7 @@
 #define MAX_APPNAME_LEN 64
 
 /**
- * Bip32 coin type of Ergo token 
+ * Bip32 coin type of Ergo token
  */
 #define BIP32_ERGO_COIN 429
 

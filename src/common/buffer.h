@@ -5,24 +5,24 @@
 #include <stdbool.h>  // bool
 
 #define BUFFER_FROM_ARRAY_FULL(name, array, size) \
-    buffer_t name;\
+    buffer_t name;                                \
     buffer_init(&name, array, size, size)
 
 #define BUFFER_FROM_ARRAY_EMPTY(name, array, size) \
-    buffer_t name;\
+    buffer_t name;                                 \
     buffer_init(&name, array, size, 0)
 
 #define BUFFER_FROM_VAR_FULL(name, var) \
-    buffer_t name;\
+    buffer_t name;                      \
     buffer_init(&name, &var, sizeof(var), sizeof(var))
 
 #define BUFFER_FROM_VAR_EMPTY(name, var) \
-    buffer_t name;\
+    buffer_t name;                       \
     buffer_init(&name, &var, sizeof(var), 0)
 
 #define BUFFER_NEW_LOCAL_EMPTY(name, size) \
-    uint8_t __##name[size];\
-    buffer_t name;\
+    uint8_t __##name[size];                \
+    buffer_t name;                         \
     buffer_init(&name, __##name, size, 0)
 
 /**
@@ -37,10 +37,10 @@ typedef enum {
  * Struct for buffer with size and read+write offset.
  */
 typedef struct {
-    uint8_t *ptr;        /// Pointer to byte buffer
-    size_t size;         /// Size of byte buffer
-    size_t read_offset;  /// Read offset in byte buffer
-    size_t write_offset; /// Write offset in byte buffer
+    uint8_t *ptr;         /// Pointer to byte buffer
+    size_t size;          /// Size of byte buffer
+    size_t read_offset;   /// Read offset in byte buffer
+    size_t write_offset;  /// Write offset in byte buffer
 } buffer_t;
 
 /**
@@ -56,11 +56,7 @@ typedef struct {
  *   Data size of the buffer.
  *
  */
-static inline void buffer_init(buffer_t *buffer,
-                               uint8_t* ptr,
-                               size_t buf_size,
-                               size_t data_size)
-{
+static inline void buffer_init(buffer_t *buffer, uint8_t *ptr, size_t buf_size, size_t data_size) {
     buffer->ptr = ptr;
     buffer->size = buf_size;
     buffer->read_offset = 0;
@@ -77,6 +73,17 @@ static inline void buffer_init(buffer_t *buffer,
 static inline void buffer_empty(buffer_t *buffer) {
     buffer->read_offset = 0;
     buffer->write_offset = 0;
+}
+
+/**
+ * Return read pointer to the start of the data.
+ *
+ * @param[in] buffer
+ *   Pointer to input buffer struct.
+ *
+ */
+static inline uint8_t *buffer_read_ptr(const buffer_t *buffer) {
+    return buffer->ptr + buffer->read_offset;
 }
 
 /**

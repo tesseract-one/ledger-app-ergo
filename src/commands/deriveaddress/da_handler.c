@@ -18,8 +18,10 @@
 #include "../../common/bip32.h"
 #include "../../helpers/response.h"
 
+#define UI_CONTEXT(gcxt) G_context.ui.derive_address
+
 int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token) {
-    if (G_context.is_ui_busy) {
+    if (G_context.ui.is_busy) {
         return res_ui_busy();
     }
 
@@ -28,6 +30,10 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
     cx_ecfp_private_key_t private_key = {0};
     cx_ecfp_public_key_t public_key = {0};
 
+    uint8_t bip32_path_len;
+    uint32_t bip32_path[MAX_BIP32_PATH];
+    uint8_t chain_code[CHAIN_CODE_LEN];
+
     uint32_t access_token = 0;
     uint8_t network_type = 0;
 
@@ -35,9 +41,8 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
         return res_error(SW_WRONG_DATA_LENGTH);
     }
 
-    if (!buffer_read_u8(cdata, &G_context.derive_ctx.bip32_path_len) ||
-        !buffer_read_bip32_path(cdata, G_context.derive_ctx.bip32_path, (size_t) G_context.derive_ctx.bip32_path_len)
-    ) {
+    if (!buffer_read_u8(cdata, &bip32_path_len) ||
+        !buffer_read_bip32_path(cdata, bip32_path, (size_t) bip32_path_len)) {
         return res_error(SW_WRONG_DATA_LENGTH);
     }
 
@@ -45,8 +50,8 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
         return res_error(SW_WRONG_DATA_LENGTH);
     }
 
-    if (!bip32_path_validate(G_context.derive_ctx.bip32_path,
-                             G_context.derive_ctx.bip32_path_len,
+    if (!bip32_path_validate(bip32_path,
+                             bip32_path_len,
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
@@ -55,31 +60,30 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
     BEGIN_TRY {
         TRY {
             // derive private key according to BIP32 path
-            crypto_derive_private_key(&private_key,
-                                    G_context.derive_ctx.chain_code,
-                                    G_context.derive_ctx.bip32_path,
-                                    G_context.derive_ctx.bip32_path_len);
+            crypto_derive_private_key(&private_key, chain_code, bip32_path, bip32_path_len);
             // generate corresponding public key
-            crypto_init_public_key(&private_key, 
-                                   &public_key,
-                                   G_context.derive_ctx.raw_public_key);
+            crypto_init_public_key(&private_key, &public_key, UI_CONTEXT(G_context).raw_public_key);
         }
         CATCH_OTHER(e) {
             THROW(e);
         }
         FINALLY {
-            // reset private key
+            // reset private key and chaincode
             explicit_bzero(&private_key, sizeof(private_key));
+            explicit_bzero(chain_code, CHAIN_CODE_LEN);
         }
     }
     END_TRY;
 
-    if (!display
-        && has_access_token
-        && access_token != 0
-        && access_token == G_context.app_session_id) {
-        return send_response_address();
+    if (!display && has_access_token && access_token != 0 &&
+        access_token == G_context.app_session_id) {
+        return send_response_address(UI_CONTEXT(G_context).raw_public_key);
     }
 
-    return ui_display_address(!display, network_type, access_token);
+    return ui_display_address(!display,
+                              network_type,
+                              access_token,
+                              bip32_path,
+                              bip32_path_len,
+                              UI_CONTEXT(G_context).raw_public_key);
 }

@@ -23,4 +23,7 @@
  * @return true if success, false otherwise.
  *
  */
-bool address_from_pubkey(uint8_t network, const uint8_t public_key[static PUBLIC_KEY_LEN], uint8_t *out, size_t out_len);
+bool address_from_pubkey(uint8_t network,
+                         const uint8_t public_key[static PUBLIC_KEY_LEN],
+                         uint8_t *out,
+                         size_t out_len);

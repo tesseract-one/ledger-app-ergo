@@ -37,25 +37,19 @@ ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_init(
     uint32_t prefix_data_size,
     uint32_t suffix_data_size,
     uint8_t tokens_count,
-    token_amount_table_t* tokens_table
-);
+    token_amount_table_t* tokens_table);
 
-ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_add_prefix_chunk(
+ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_add_prefix(
     ergo_tx_serializer_simple_context_t* context,
-    buffer_t* input
-);
+    buffer_t* chunk);
 
 ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_add_tokens(
     ergo_tx_serializer_simple_context_t* context,
-    buffer_t* input
-);
+    buffer_t* tokens);
 
-ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_add_suffix_chunk(
+ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_add_suffix(
     ergo_tx_serializer_simple_context_t* context,
-    buffer_t* input
-);
+    buffer_t* chunk);
 
-ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_finalize(
-    ergo_tx_serializer_simple_context_t* context,
-    uint8_t tx_id[static TRANSACTION_HASH_LEN]
-);
+bool ergo_tx_serializer_simple_finalize(ergo_tx_serializer_simple_context_t* context,
+                                        uint8_t tx_id[static TRANSACTION_HASH_LEN]);

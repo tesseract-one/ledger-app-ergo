@@ -27,7 +27,17 @@ typedef enum {
     ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE = 0x08
 } ergo_tx_serializer_box_result_e;
 
+typedef enum {
+    ERGO_TX_SERIALIZER_BOX_STATE_INITIALIZED,
+    ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED,
+    ERGO_TX_SERIALIZER_BOX_STATE_TOKENS_ADDED,
+    ERGO_TX_SERIALIZER_BOX_STATE_REGISTERS_ADDED,
+    ERGO_TX_SERIALIZER_BOX_STATE_FINISHED,
+    ERGO_TX_SERIALIZER_BOX_STATE_ERROR
+} ergo_tx_serializer_box_state_e;
+
 typedef struct {
+    ergo_tx_serializer_box_state_e state;
     uint64_t value;
     uint32_t ergo_tree_size;
     uint32_t creation_height;
@@ -47,31 +57,40 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_init(
     uint8_t registers_count,
     bool is_input_box,
     token_amount_table_t* tokens_table,
-    cx_blake2b_t* hash
-);
+    cx_blake2b_t* hash);
 
-ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tree_chunk(
+ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tree(
     ergo_tx_serializer_box_context_t* context,
-    buffer_t* input
-);
+    buffer_t* tree_chunk);
+
+ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_miners_fee_tree(
+    ergo_tx_serializer_box_context_t* context);
+
+ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_change_tree(
+    ergo_tx_serializer_box_context_t* context,
+    uint32_t* bip32_path,
+    uint8_t bip32_path_len);
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
     ergo_tx_serializer_box_context_t* context,
-    buffer_t* input
-);
+    buffer_t* tokens);
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_register(
     ergo_tx_serializer_box_context_t* context,
-    buffer_t* input
-);
+    buffer_t* value);
 
-bool ergo_tx_serializer_box_id_hash_init(
-    cx_blake2b_t* hash
-);
-
-ergo_tx_serializer_box_result_e ergo_tx_serializer_box_id_finalize(
-    cx_blake2b_t* hash,
+ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tx_id_and_index(
+    ergo_tx_serializer_box_context_t* context,
     uint8_t tx_id[static TRANSACTION_HASH_LEN],
-    uint16_t box_index,
-    uint8_t box_id[static BOX_ID_LEN]
-);
+    uint16_t box_index);
+
+bool ergo_tx_serializer_box_id_finalize(ergo_tx_serializer_box_context_t* context,
+                                        uint8_t box_id[static BOX_ID_LEN]);
+
+bool ergo_tx_serializer_box_id_hash_init(cx_blake2b_t* hash);
+
+static inline bool ergo_tx_serializer_box_is_registers_finished(
+    ergo_tx_serializer_box_context_t* context) {
+    return context->state == ERGO_TX_SERIALIZER_BOX_STATE_REGISTERS_ADDED ||
+           context->state == ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
+}

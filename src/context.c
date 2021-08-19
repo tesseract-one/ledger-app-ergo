@@ -1,5 +1,5 @@
-#include <stdint.h>   // uint*_t
-#include <string.h>   // memset, explicit_bzero
+#include <stdint.h>  // uint*_t
+#include <string.h>  // memset, explicit_bzero
 
 #include "context.h"
 
@@ -11,5 +11,5 @@ void clear_context(global_ctx_t* context, command_e current_command) {
     memcpy(context->session_key, session_key, SESSION_KEY_LEN);
     context->app_session_id = app_session;
     context->current_command = current_command;
-    context->is_ui_busy = false;
+    context->ui.is_busy = false;
 }

@@ -10,14 +10,16 @@
 #include "../../common/macros.h"
 #include "../../helpers/response.h"
 
+#define UI_CONTEXT(gctx) gctx.ui.attest_inpt
+
 // Step with icon and text
 UX_STEP_NOCB(ux_ainpt_display_confirm_step, pn, {&C_icon_eye, "Confirm Attest Input"});
 // Step with title/text for application token
 UX_STEP_NOCB(ux_ainpt_display_app_token_step,
-             bnnn_paging,
+             bn,
              {
-                 .title = "Application",
-                 .text = G_ui_ctx.attest_inpt.app_token,
+                 .line1 = "Application",
+                 .line2 = UI_CONTEXT(G_context).app_token,
              });
 // Step with approve button
 UX_STEP_CB(ux_ainpt_display_approve_step,
@@ -49,32 +51,28 @@ UX_FLOW(ux_ainpt_display_confirm_flow,
         FLOW_LOOP);
 
 int ui_display_access_token(uint32_t app_access_token) {
-    if (G_context.current_command != CMD_ATTEST_INPUT_BOX) {
-        return res_error(SW_BAD_STATE);
-    }
+    UI_CONTEXT(G_context).app_token_value = app_access_token;
 
-    G_ui_ctx.attest_inpt.app_token_value = app_access_token;
-
-    memset(G_ui_ctx.attest_inpt.app_token, 0, MEMBER_SIZE(attest_input_ui_ctx_t, app_token));
-    snprintf(G_ui_ctx.attest_inpt.app_token,
+    memset(UI_CONTEXT(G_context).app_token, 0, MEMBER_SIZE(attest_input_ui_ctx_t, app_token));
+    snprintf(UI_CONTEXT(G_context).app_token,
              MEMBER_SIZE(extended_public_key_ui_ctx_t, app_token),
-             "0x%x",
+             "0x%08x",
              app_access_token);
 
     ux_flow_init(0, ux_ainpt_display_confirm_flow, NULL);
 
-    G_context.is_ui_busy = true;
+    G_context.ui.is_busy = true;
 
     return 0;
 }
 
 void ui_action_attest_input(bool choice) {
-    G_context.is_ui_busy = false;
+    G_context.ui.is_busy = false;
 
     if (choice) {
-        G_context.app_session_id = G_ui_ctx.attest_inpt.app_token_value;
-        G_context.input_ctx.approved = true;
-        send_response_attested_input_session_id();
+        G_context.app_session_id = UI_CONTEXT(G_context).app_token_value;
+        G_context.input_ctx.state = ATTEST_INPUT_STATE_APPROVED;
+        send_response_attested_input_session_id(G_context.input_ctx.session);
     } else {
         res_deny();
     }

@@ -54,7 +54,10 @@ bool bip32_path_format(const uint32_t *bip32_path,
     for (uint16_t i = 0; i < bip32_path_len; i++) {
         size_t written;
 
-        snprintf(out + offset, out_len - offset, "%d", bip32_path[i] & 0x7FFFFFFFu);
+        snprintf(out + offset,
+                 out_len - offset,
+                 "%d",
+                 bip32_path[i] & (BIP32_HARDENED_CONSTANT - 1));
         written = strlen(out + offset);
         if (written == 0 || written >= out_len - offset) {
             memset(out, 0, out_len);
@@ -62,7 +65,7 @@ bool bip32_path_format(const uint32_t *bip32_path,
         }
         offset += written;
 
-        if ((bip32_path[i] & 0x80000000u) != 0) {
+        if ((bip32_path[i] & BIP32_HARDENED_CONSTANT) != 0) {
             snprintf(out + offset, out_len - offset, "'");
             written = strlen(out + offset);
             if (written == 0 || written >= out_len - offset) {
@@ -94,49 +97,47 @@ bool bip32_path_validate(const uint32_t *bip32_path,
     if (bip32_path_len <= 2 || bip32_path[0] != type || bip32_path[1] != coin) {
         return false;
     }
-    switch (vtype)
-    {
-    case BIP32_PATH_VALIDATE_COIN:
-        return true;
-    case BIP32_PATH_VALIDATE_COIN_GE2_HARD:
-        for (size_t i = 2; i < bip32_path_len; i++) {
-            if (bip32_path[i] < BIP32_HARDENED_CONSTANT) {
+    switch (vtype) {
+        case BIP32_PATH_VALIDATE_COIN:
+            return true;
+        case BIP32_PATH_VALIDATE_COIN_GE2_HARD:
+            for (size_t i = 2; i < bip32_path_len; i++) {
+                if (bip32_path[i] < BIP32_HARDENED_CONSTANT) {
+                    return false;
+                }
+            }
+            return true;
+        case BIP32_PATH_VALIDATE_ACCOUNT_E3:
+            return bip32_path_len == 3 && bip32_path[2] >= BIP32_HARDENED_CONSTANT;
+        case BIP32_PATH_VALIDATE_ACCOUNT_GE3:
+            if (bip32_path_len < 3) {
                 return false;
             }
-        }
-        return true;
-    case BIP32_PATH_VALIDATE_ACCOUNT_E3:
-        return bip32_path_len == 3 && bip32_path[2] >= BIP32_HARDENED_CONSTANT;
-    case BIP32_PATH_VALIDATE_ACCOUNT_GE3:
-        if (bip32_path_len < 3) {
-            return false;
-        }
-        for (size_t i = 2; i < bip32_path_len; i++) {
-            if (bip32_path[i] < BIP32_HARDENED_CONSTANT) {
+            for (size_t i = 2; i < bip32_path_len; i++) {
+                if (bip32_path[i] < BIP32_HARDENED_CONSTANT) {
+                    return false;
+                }
+            }
+            return true;
+        case BIP32_PATH_VALIDATE_ADDRESS_E5:
+            return bip32_path_len == 5 && bip32_path[2] >= BIP32_HARDENED_CONSTANT &&
+                   (bip32_path[3] == 0 || bip32_path[3] == 1) &&
+                   bip32_path[4] < BIP32_HARDENED_CONSTANT;
+        case BIP32_PATH_VALIDATE_ADDRESS_GE5:
+            if (bip32_path_len < 5) {
                 return false;
             }
-        }
-        return true;
-    case BIP32_PATH_VALIDATE_ADDRESS_E5:
-        return bip32_path_len == 5
-            && bip32_path[2] >= BIP32_HARDENED_CONSTANT
-            && (bip32_path[3] == 0 || bip32_path[3] == 1)
-            && bip32_path[4] < BIP32_HARDENED_CONSTANT;
-    case BIP32_PATH_VALIDATE_ADDRESS_GE5:
-        if (bip32_path_len < 5) {
-            return false;
-        }
-        if (bip32_path[2] < BIP32_HARDENED_CONSTANT) {
-            return false;
-        }
-        if (bip32_path[3] != 0 && bip32_path[3] != 1) {
-            return false;
-        }
-        for (size_t i = 4; i < bip32_path_len; i++) {
-            if (bip32_path[i] >= BIP32_HARDENED_CONSTANT) {
+            if (bip32_path[2] < BIP32_HARDENED_CONSTANT) {
                 return false;
             }
-        }
-        return true;
+            if (bip32_path[3] != 0 && bip32_path[3] != 1) {
+                return false;
+            }
+            for (size_t i = 4; i < bip32_path_len; i++) {
+                if (bip32_path[i] >= BIP32_HARDENED_CONSTANT) {
+                    return false;
+                }
+            }
+            return true;
     }
 }

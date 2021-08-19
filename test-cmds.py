@@ -7,8 +7,10 @@ from ledgerblue.comm import getDongle
 from test_cmds_txs import *
 
 CLA = 0xE0
-SHELL_CMD = ['python3', '-m', 'ledgerblue.runScript']
 BIP32_HARD_PREFIX = 0x80000000
+
+application_token = random.randint(
+    1, 0xFFFFFFFE).to_bytes(4, 'big', signed=False)
 
 ledger = getDongle()
 
@@ -72,7 +74,8 @@ def version(args: argparse.Namespace):
 @subcommand([argument("account", type=int, nargs="?", default=0)])
 def extpubkey(args: argparse.Namespace):
     path = bip44(args.account)
-    key = ledger_cmd(0x10, 0x01, 0x00, path)
+    path += application_token
+    key = ledger_cmd(0x10, 0x02, 0x00, path)
     print(binascii.hexlify(key).decode())
 
 
@@ -82,7 +85,8 @@ def extpubkey(args: argparse.Namespace):
              argument("--net", type=int, nargs="?", default=0)])
 def getaddr(args: argparse.Namespace):
     path = bip44(args.account, args.change, args.address)
-    address = ledger_cmd(0x11, 0x01, 0x01, bytes([args.net & 0xFF]) + path)
+    path += application_token
+    address = ledger_cmd(0x11, 0x01, 0x02, bytes([args.net & 0xFF]) + path)
     print("Address: " + binascii.hexlify(address).decode())
 
 
@@ -92,7 +96,8 @@ def getaddr(args: argparse.Namespace):
              argument("--net", type=int, nargs="?", default=0)])
 def showaddr(args: argparse.Namespace):
     path = bip44(args.account, args.change, args.address)
-    ledger_cmd(0x11, 0x02, 0x01, bytes([args.net & 0xFF]) + path)
+    path += application_token
+    ledger_cmd(0x11, 0x02, 0x02, bytes([args.net & 0xFF]) + path)
 
 
 @subcommand([argument("tx", type=int, nargs="?", default=0),
@@ -104,7 +109,7 @@ def attest(args: argparse.Namespace):
 
     tx_header = serialize_tx_header(
         tx["prefix"], tx["suffix"], len(tokens))
-    tx_header += random.randint(1, 0xFFFFFFFE).to_bytes(4, 'big', signed=False)
+    tx_header += application_token
     session_id = ledger_cmd(0x20, 0x01, 0x02, tx_header)[0]
 
     prefix = binascii.unhexlify(tx["prefix"])

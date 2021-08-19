@@ -1,19 +1,3 @@
-/*****************************************************************************
- *   (c) 2020 Ledger SAS.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *****************************************************************************/
-
 #include <stdint.h>   // uint*_t
 #include <stddef.h>   // size_t
 #include <stdbool.h>  // bool
@@ -35,8 +19,8 @@ bool buffer_seek_read_set(buffer_t *buffer, size_t offset) {
 }
 
 bool buffer_seek_read_cur(buffer_t *buffer, size_t offset) {
-    if (buffer->read_offset + offset < buffer->read_offset ||  // overflow
-        buffer->read_offset + offset > buffer->write_offset) {    // exceed buffer size
+    if (buffer->read_offset + offset < buffer->read_offset ||   // overflow
+        buffer->read_offset + offset > buffer->write_offset) {  // exceed buffer size
         return false;
     }
 
@@ -67,7 +51,7 @@ bool buffer_seek_write_set(buffer_t *buffer, size_t offset) {
 
 bool buffer_seek_write_cur(buffer_t *buffer, size_t offset) {
     if (buffer->write_offset + offset < buffer->write_offset ||  // overflow
-        buffer->write_offset + offset > buffer->size) {    // exceed buffer size
+        buffer->write_offset + offset > buffer->size) {          // exceed buffer size
         return false;
     }
 
@@ -216,12 +200,11 @@ bool buffer_write_u64(buffer_t *buffer, uint64_t value, endianness_t endianness)
     return true;
 }
 
-
 bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, size_t out_len) {
     if (buffer_data_len(buffer) < out_len) {
         return false;
     }
-    
+
     memmove(out, buffer->ptr + buffer->read_offset, out_len);
 
     buffer_seek_read_cur(buffer, out_len);
@@ -241,11 +224,11 @@ bool buffer_write_bytes(buffer_t *buffer, const uint8_t *from, size_t from_len) 
     if (!buffer_can_write(buffer, from_len)) {
         return false;
     }
-    
+
     memcpy(buffer->ptr + buffer->write_offset, from, from_len);
-    
+
     buffer_seek_write_cur(buffer, from_len);
-    
+
     return true;
 }
 

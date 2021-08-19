@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "cppdbg",
+            "type": "gdb",
             "request": "attach",
             "name": "Attach to gdbserver",
-            "program": "${workspaceFolder}/bin/app.elf",
+            "executable": "${workspaceFolder}/bin/app.elf",
             "target": ":1234",
             "remote": true,
             "cwd": "${workspaceFolder}",

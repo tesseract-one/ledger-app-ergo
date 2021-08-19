@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../constants.h"
+
 /**
  * Send APDU response with address public key.
  *
@@ -8,4 +10,4 @@
  * @return zero or positive integer if success, -1 otherwise.
  *
  */
-int send_response_address(void);
+int send_response_address(uint8_t raw_pub_key[static PUBLIC_KEY_LEN]);

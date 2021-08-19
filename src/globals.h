@@ -35,11 +35,6 @@ extern bolos_ux_params_t G_ux_params;
 extern io_state_e G_io_state;
 
 /**
- * Global context for UI storage.
- */
-extern global_ui_ctx_u G_ui_ctx;
-
-/**
  * Global context for user requests.
  */
 extern global_ctx_t G_context;
