@@ -1,0 +1,134 @@
+//
+//  tx_ser_full.h
+//  ErgoTxSerializer
+//
+//  Created by Yehor Popovych on 18.08.2021.
+//
+
+#pragma once
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "../constants.h"
+#include "tx_ser_table.h"
+#include "tx_ser_box.h"
+#include "../common/buffer.h"
+#include "../helpers/blake2b.h"
+
+typedef enum {
+    ERGO_TX_SERIALIZER_FULL_STATE_TOKENS_STARTED,
+    ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED,
+    ERGO_TX_SERIALIZER_FULL_STATE_DATA_INPUTS_STARTED,
+    ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED,
+    ERGO_TX_SERIALIZER_FULL_STATE_FINISHED,
+    ERGO_TX_SERIALIZER_FULL_STATE_ERROR
+} ergo_tx_serializer_full_state_e;
+
+typedef struct {
+    uint8_t box_id[BOX_ID_LEN];
+    uint8_t frames_count;
+    uint8_t frames_processed;
+    uint32_t proof_data_size;
+} ergo_tx_serializer_input_context_t;
+
+typedef struct {
+    ergo_tx_serializer_full_state_e state;
+    uint16_t inputs_count;
+    uint16_t data_inputs_count;
+    uint16_t outputs_count;
+    uint64_t value;
+    cx_blake2b_t hash;
+    token_amount_table_t token_table;
+    ergo_tx_serializer_table_context_t table_ctx;
+    union {
+        ergo_tx_serializer_box_context_t box_ctx;
+        ergo_tx_serializer_input_context_t input_ctx;
+    };
+} ergo_tx_serializer_full_context_t;
+
+typedef enum {
+    ERGO_TX_SERIALIZER_FULL_RES_OK = 0x7F,
+    ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA = 0x7E,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_TOKEN_ID = 0x01,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_TOKEN_VALUE = 0x01,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_PROOF_SIZE = 0x01,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_DATA_INPUT = 0x01,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_TOKEN_INDEX = 0x01,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_INPUT_COUNT = 0x01,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_OUTPUT_COUNT = 0x01,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_TOKENS = 0x02,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_INPUTS = 0x02,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_DATA_INPUTS = 0x02,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_INPUT_FRAMES = 0x02,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_OUTPUTS = 0x02,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_REGISTERS = 0x02,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MUCH_DATA = 0x03,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_U64_OVERFLOW = 0x04,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER = 0x04,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER = 0x05,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE = 0x06
+} ergo_tx_serializer_full_result_e;
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_init(
+    ergo_tx_serializer_full_context_t* context,
+    uint16_t inputs_count,
+    uint16_t data_inputs_count,
+    uint16_t outputs_count,
+    uint8_t tokens_count);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
+    ergo_tx_serializer_full_context_t* context,
+    buffer_t* tokens);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
+    ergo_tx_serializer_full_context_t* context,
+    uint8_t box_id[BOX_ID_LEN],
+    uint64_t value,
+    uint8_t token_frames_count,
+    uint32_t proof_data_size);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_tokens(
+    ergo_tx_serializer_full_context_t* context,
+    uint8_t box_id[BOX_ID_LEN],
+    uint8_t token_frame_index,
+    buffer_t* tokens);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_proof(
+    ergo_tx_serializer_full_context_t* context,
+    buffer_t* proof_chunk);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_data_inputs(
+    ergo_tx_serializer_full_context_t* context,
+    buffer_t* inputs);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box(
+    ergo_tx_serializer_full_context_t* context,
+    uint64_t value,
+    uint32_t ergo_tree_size,
+    uint32_t creation_height,
+    uint8_t tokens_count,
+    uint8_t registers_count);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_ergo_tree(
+    ergo_tx_serializer_full_context_t* context,
+    buffer_t* tree_chunk);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_change_tree(
+    ergo_tx_serializer_full_context_t* context,
+    uint32_t* bip32_path,
+    uint8_t bip32_path_len);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_miners_change_tree(
+    ergo_tx_serializer_full_context_t* context);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_tokens(
+    ergo_tx_serializer_full_context_t* context,
+    buffer_t* tokens);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_register(
+    ergo_tx_serializer_full_context_t* context,
+    buffer_t* value);
+
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
+    ergo_tx_serializer_full_context_t* context,
+    uint8_t tx_id[static TRANSACTION_HASH_LEN]);
