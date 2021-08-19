@@ -35,7 +35,7 @@ static int check_box_finished(attest_input_ctx_t *ctx) {
         return handler_err(ctx, SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t) res);
     }
 
-    if (!ergo_tx_serializer_box_id_finalize(&ctx->box.ctx, ctx->box_id)) {
+    if (!ergo_tx_serializer_box_id_hash(&ctx->box.ctx, ctx->box_id)) {
         return handler_err(ctx, SW_ATTEST_UTXO_HASHER_ERROR);
     }
 
@@ -127,7 +127,7 @@ static inline int handle_tx_suffix_chunk(attest_input_ctx_t *ctx, buffer_t *cdat
 
     switch (res) {
         case ERGO_TX_SERIALIZER_SIMPLE_RES_OK:
-            if (!ergo_tx_serializer_simple_finalize(&ctx->tx, ctx->tx_id)) {
+            if (!ergo_tx_serializer_simple_hash(&ctx->tx, ctx->tx_id)) {
                 return handler_err(ctx, SW_ATTEST_UTXO_HASHER_ERROR);
             }
             ctx->state = ATTEST_INPUT_STATE_TX_FINISHED;

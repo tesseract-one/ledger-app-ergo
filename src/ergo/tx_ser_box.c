@@ -9,6 +9,16 @@
 #include <os.h>
 #include <string.h>
 #include "../common/varint.h"
+#include "../common/int_ops.h"
+
+static uint8_t S_MINERS_HASH_FEE[] = {
+    0x10, 0x05, 0x04, 0x00, 0x04, 0x00, 0x0e, 0x36, 0x10, 0x02, 0x04, 0xa0, 0x0b, 0x08, 0xcd,
+    0x02, 0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0, 0x62, 0x95, 0xce, 0x87,
+    0x0b, 0x07, 0x02, 0x9b, 0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9, 0x59, 0xf2, 0x81, 0x5b, 0x16,
+    0xf8, 0x17, 0x98, 0xea, 0x02, 0xd1, 0x92, 0xa3, 0x9a, 0x8c, 0xc7, 0xa7, 0x01, 0x73, 0x00,
+    0x73, 0x01, 0x10, 0x01, 0x02, 0x04, 0x02, 0xd1, 0x96, 0x83, 0x03, 0x01, 0x93, 0xa3, 0x8c,
+    0xc7, 0xb2, 0xa5, 0x73, 0x00, 0x00, 0x01, 0x93, 0xc2, 0xb2, 0xa5, 0x73, 0x01, 0x00, 0x74,
+    0x73, 0x02, 0x73, 0x03, 0x83, 0x01, 0x08, 0xcd, 0xee, 0xac, 0x93, 0xb1, 0xa5, 0x73, 0x04};
 
 static inline ergo_tx_serializer_box_result_e parse_token(buffer_t* input,
                                                           uint32_t* index,
@@ -165,7 +175,13 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tree(
 }
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_miners_fee_tree(
-    ergo_tx_serializer_box_context_t* context);
+    ergo_tx_serializer_box_context_t* context) {
+    if (!blake2b_update(context->hash, PIC(S_MINERS_HASH_FEE), sizeof(S_MINERS_HASH_FEE))) {
+        context->state = ERGO_TX_SERIALIZER_BOX_STATE_ERROR;
+        return ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER;
+    }
+    return ergo_tree_added(context);
+}
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_change_tree(
     ergo_tx_serializer_box_context_t* context,
@@ -238,8 +254,11 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
         if (context->is_input_box) {  // setup amount from input box
             context->tokens_table->tokens[index].amount = value;
         } else {  // decrease spent amount
-            // TODO: CHECKED FOR OVERFLOW
-            context->tokens_table->tokens[index].amount -= value;
+            if (!checked_sub_u64(context->tokens_table->tokens[index].amount,
+                                 value,
+                                 &context->tokens_table->tokens[index].amount)) {
+                return ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW;
+            }
         }
         context->tokens_count--;
     }
@@ -327,8 +346,8 @@ bool ergo_tx_serializer_box_id_hash_init(cx_blake2b_t* hash) {
     return blake2b_256_init(hash);
 }
 
-bool ergo_tx_serializer_box_id_finalize(ergo_tx_serializer_box_context_t* context,
-                                        uint8_t box_id[static BOX_ID_LEN]) {
+bool ergo_tx_serializer_box_id_hash(ergo_tx_serializer_box_context_t* context,
+                                    uint8_t box_id[static BOX_ID_LEN]) {
     if (context->state != ERGO_TX_SERIALIZER_BOX_STATE_FINISHED) {
         return false;
     }

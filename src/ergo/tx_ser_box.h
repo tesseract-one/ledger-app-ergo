@@ -22,9 +22,10 @@ typedef enum {
     ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MANY_TOKENS = 0x03,
     ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MANY_REGISTERS = 0x04,
     ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MUCH_DATA = 0x05,
-    ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER = 0x06,
-    ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER = 0x07,
-    ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE = 0x08
+    ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW = 0x06,
+    ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER = 0x07,
+    ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER = 0x08,
+    ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE = 0x09
 } ergo_tx_serializer_box_result_e;
 
 typedef enum {
@@ -84,8 +85,8 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tx_id_and_index(
     uint8_t tx_id[static TRANSACTION_HASH_LEN],
     uint16_t box_index);
 
-bool ergo_tx_serializer_box_id_finalize(ergo_tx_serializer_box_context_t* context,
-                                        uint8_t box_id[static BOX_ID_LEN]);
+bool ergo_tx_serializer_box_id_hash(ergo_tx_serializer_box_context_t* context,
+                                    uint8_t box_id[static BOX_ID_LEN]);
 
 bool ergo_tx_serializer_box_id_hash_init(cx_blake2b_t* hash);
 
