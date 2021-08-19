@@ -23,7 +23,7 @@ include Makefile.env
 include $(BOLOS_SDK)/Makefile.defines
 
 APP_LOAD_PARAMS  = --curve secp256k1
-APP_LOAD_PARAMS += --appFlags 0x240
+APP_LOAD_PARAMS += --appFlags 0x40
 APP_LOAD_PARAMS += --path "44'/429'"
 APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
 

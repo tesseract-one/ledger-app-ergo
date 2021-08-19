@@ -1,5 +1,6 @@
 #include "tx_ser_input.h"
 #include <string.h>
+#include "../common/int_ops.h"
 
 ergo_tx_serializer_input_result_e ergo_tx_serializer_input_init(
     ergo_tx_serializer_input_context_t* context,
@@ -19,6 +20,8 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_init(
     context->frames_count = token_frames_count;
     context->frames_processed = 0;
     context->proof_data_size = proof_data_size;
+    context->tokens_table = tokens_table;
+    context->hash = hash;
 
     context->state = ERGO_TX_SERIALIZER_INPUT_STATE_FRAMES_STARTED;
 
@@ -99,7 +102,7 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_proof(
         context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_TOO_MUCH_PROOF_DATA;
     }
-    if (!blake2b_update(&context->hash, buffer_read_ptr(chunk), len)) {
+    if (!blake2b_update(context->hash, buffer_read_ptr(chunk), len)) {
         context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER;
     }
