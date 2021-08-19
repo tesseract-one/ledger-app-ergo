@@ -34,8 +34,12 @@ ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_init(
     uint8_t tokens_count,
     token_amount_table_t* tokens_table) {
     memset(context, 0, sizeof(ergo_tx_serializer_simple_context_t));
-    if (tokens_count > TOKEN_MAX_COUNT) {
-        return ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_TOO_MANY_TOKENS;
+    if (prefix_data_size == 0) {
+        return ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_BAD_PREFIX_LEN;
+    }
+
+    if (suffix_data_size == 0) {
+        return ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_BAD_SUFFIX_LEN;
     }
 
     if (!blake2b_256_init(&context->hash)) {
@@ -45,8 +49,8 @@ ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_init(
     context->prefix_data_size = prefix_data_size;
     context->suffix_data_size = suffix_data_size;
 
-    ergo_tx_serializer_table_init(&context->table_ctx, tokens_count, tokens_table);
-    return ERGO_TX_SERIALIZER_SIMPLE_RES_OK;
+    return map_table_result(
+        ergo_tx_serializer_table_init(&context->table_ctx, tokens_count, tokens_table));
 }
 
 ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_add_prefix(

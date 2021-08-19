@@ -21,12 +21,17 @@ static inline ergo_tx_serializer_table_result_e parse_token(buffer_t* tokens,
     return ERGO_TX_SERIALIZER_TABLE_RES_OK;
 }
 
-void ergo_tx_serializer_table_init(ergo_tx_serializer_table_context_t* context,
-                                   uint8_t tokens_count,
-                                   token_amount_table_t* tokens_table) {
+ergo_tx_serializer_table_result_e ergo_tx_serializer_table_init(
+    ergo_tx_serializer_table_context_t* context,
+    uint8_t tokens_count,
+    token_amount_table_t* tokens_table) {
+    if (tokens_count > TOKEN_MAX_COUNT) {
+        return ERGO_TX_SERIALIZER_TABLE_RES_ERR_TOO_MANY_TOKENS;
+    }
     context->tokens_count = tokens_count;
     context->tokens_table = tokens_table;
     context->tokens_table->count = 0;
+    return ERGO_TX_SERIALIZER_TABLE_RES_OK;
 }
 
 ergo_tx_serializer_table_result_e ergo_tx_serializer_table_add(
