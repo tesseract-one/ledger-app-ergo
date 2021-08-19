@@ -28,6 +28,38 @@ static inline ergo_tx_serializer_full_result_e map_table_result(
     }
 }
 
+static inline ergo_tx_serializer_full_result_e map_input_result(
+    ergo_tx_serializer_input_result_e res) {
+    switch (res) {
+        case ERGO_TX_SERIALIZER_INPUT_RES_OK:
+            return ERGO_TX_SERIALIZER_FULL_RES_OK;
+        case ERGO_TX_SERIALIZER_INPUT_RES_MORE_DATA:
+            return ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_PROOF_SIZE:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_PROOF_SIZE;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_INPUT_ID:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_INPUT_ID;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_FRAME_INDEX:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_FRAME_INDEX;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_TOKEN_ID;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_VALUE:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_TOKEN_VALUE;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_TOO_MANY_INPUT_FRAMES:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_INPUT_FRAMES;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_TOO_MUCH_PROOF_DATA:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MUCH_DATA;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_U64_OVERFLOW:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_U64_OVERFLOW;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_BUFFER:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER;
+        case ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_STATE:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
+    }
+}
+
 static inline ergo_tx_serializer_full_result_e map_box_result(ergo_tx_serializer_box_result_e res) {
     switch (res) {
         case ERGO_TX_SERIALIZER_BOX_RES_OK:
@@ -107,16 +139,20 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_init(
     context->data_inputs_count = data_inputs_count;
     context->outputs_count = outputs_count;
 
-    ergo_tx_serializer_full_result_e res = map_table_result(
-        ergo_tx_serializer_table_init(&context->table_ctx, tokens_count, &context->token_table));
+    if (tokens_count != 0) {
+        ergo_tx_serializer_full_result_e res =
+            map_table_result(ergo_tx_serializer_table_init(&context->table_ctx,
+                                                           tokens_count,
+                                                           &context->token_table));
 
-    if (res != ERGO_TX_SERIALIZER_FULL_RES_OK) {
-        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-        return res;
+        if (res != ERGO_TX_SERIALIZER_FULL_RES_OK) {
+            context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
+            return res;
+        }
+        context->state = ERGO_TX_SERIALIZER_FULL_STATE_TOKENS_STARTED;
+    } else {
+        context->state = ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED;
     }
-
-    context->state = tokens_count == 0 ? ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED
-                                       : ERGO_TX_SERIALIZER_FULL_STATE_TOKENS_STARTED;
 
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }
@@ -133,6 +169,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
     switch (res) {
         case ERGO_TX_SERIALIZER_FULL_RES_OK:
             context->state = ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED;
+            context->input_ctx.state = ERGO_TX_SERIALIZER_INPUT_STATE_FINISHED;
             return res;
         case ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA:
             return res;
@@ -152,24 +189,27 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
         return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
     }
+    if (!ergo_tx_serializer_input_is_finished(&context->input_ctx)) {
+        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
+        return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
+    }
     if (context->inputs_count == 0) {
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
         return ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_INPUTS;
     }
-    if (context->input_ctx.frames_count != context->input_ctx.frames_processed) {
-        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
-    }
-    if (proof_data_size == 0) {
-        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_PROOF_SIZE;
-    }
 
-    memset(&context->input_ctx, 0, sizeof(ergo_tx_serializer_input_context_t));
-    memcpy(context->input_ctx.box_id, box_id, BOX_ID_LEN);
-    context->input_ctx.frames_count = frames_count;
-    context->input_ctx.frames_processed = 0;
-    context->input_ctx.proof_data_size = proof_data_size;
+    ergo_tx_serializer_full_result_e res =
+        map_input_result(ergo_tx_serializer_input_init(&context->input_ctx,
+                                                       box_id,
+                                                       frames_count,
+                                                       proof_data_size,
+                                                       &context->token_table,
+                                                       &context->hash));
+
+    if (res != ERGO_TX_SERIALIZER_FULL_RES_OK) {
+        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
+        return res;
+    }
 
     if (!checked_add_u64(context->value, value, &context->value)) {
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
@@ -188,56 +228,12 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_tokens(
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
         return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
     }
-    if (memcmp(context->input_ctx.box_id, box_id, BOX_ID_LEN) != 0) {
+    ergo_tx_serializer_full_result_e res = map_input_result(
+        ergo_tx_serializer_input_add_tokens(&context->input_ctx, box_id, frame_index, tokens));
+    if (res != ERGO_TX_SERIALIZER_FULL_RES_OK && res != ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA) {
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
     }
-    if (frame_index >= context->input_ctx.frames_count) {
-        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_INPUT_FRAMES;
-    }
-    if (frame_index != context->input_ctx.frames_processed) {
-        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
-    }
-    while (buffer_data_len(tokens) > 0) {
-        uint8_t token_id[TOKEN_ID_LEN];
-        uint64_t token_value;
-        bool token_found = false;
-        if (!buffer_read_bytes(tokens, token_id, TOKEN_ID_LEN)) {
-            context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_TOKEN_ID;
-        }
-        if (!buffer_read_u64(tokens, &token_value, BE)) {
-            context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_TOKEN_VALUE;
-        }
-        for (int i = 0; i < context->token_table.count; i++) {
-            if (memcmp(token_id, context->token_table.tokens[i].id, TOKEN_ID_LEN) == 0) {
-                token_found = true;
-                if (!checked_add_u64(context->token_table.tokens[i].amount,
-                                     token_value,
-                                     &context->token_table.tokens[i].amount)) {
-                    context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-                    return ERGO_TX_SERIALIZER_FULL_RES_ERR_U64_OVERFLOW;
-                }
-                break;
-            }
-        }
-        if (!token_found) {
-            context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-            return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_TOKEN_ID;
-        }
-    }
-    context->input_ctx.frames_processed++;
-    if (context->input_ctx.frames_processed == context->input_ctx.frames_count) {
-        if (!blake2b_update(&context->hash, box_id, BOX_ID_LEN)) {
-            context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-            return ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER;
-        }
-        return ERGO_TX_SERIALIZER_FULL_RES_OK;
-    }
-    return ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA;
+    return res;
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_proof(
@@ -247,36 +243,29 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_proof(
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
         return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
     }
-    if (context->input_ctx.frames_count != context->input_ctx.frames_processed) {
-        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
-    }
-    size_t len = buffer_data_len(proof_chunk);
-    if (context->input_ctx.proof_data_size < len) {
-        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MUCH_DATA;
-    }
-    if (!blake2b_update(&context->hash, buffer_read_ptr(proof_chunk), len)) {
-        context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER;
-    }
-    context->input_ctx.proof_data_size -= len;
+    ergo_tx_serializer_full_result_e res =
+        map_input_result(ergo_tx_serializer_input_add_proof(&context->input_ctx, proof_chunk));
 
-    if (context->input_ctx.proof_data_size == 0) {
-        context->inputs_count--;
-        if (context->inputs_count == 0) {
-            if (!hash_u16(&context->hash, context->data_inputs_count)) {
-                context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
-                return ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER;
+    switch (res) {
+        case ERGO_TX_SERIALIZER_FULL_RES_OK:
+            context->inputs_count--;
+            if (context->inputs_count == 0) {
+                if (!hash_u16(&context->hash, context->data_inputs_count)) {
+                    context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
+                    return ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER;
+                }
+                context->state = ERGO_TX_SERIALIZER_FULL_STATE_DATA_INPUTS_STARTED;
+                if (context->data_inputs_count == 0) {
+                    return add_token_table_and_output_count(context);
+                }
             }
-            if (context->data_inputs_count == 0) {
-                return add_token_table_and_output_count(context);
-            }
-            context->state = ERGO_TX_SERIALIZER_FULL_STATE_DATA_INPUTS_STARTED;
-        }
-        return ERGO_TX_SERIALIZER_FULL_RES_OK;
+            return ERGO_TX_SERIALIZER_FULL_RES_OK;
+        case ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA:
+            return res;
+        default:
+            context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
+            return res;
     }
-    return ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA;
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_data_inputs(
