@@ -32,7 +32,7 @@ ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_init(
     uint32_t prefix_data_size,
     uint32_t suffix_data_size,
     uint8_t tokens_count,
-    token_amount_table_t* tokens_table) {
+    token_table_t* tokens_table) {
     memset(context, 0, sizeof(ergo_tx_serializer_simple_context_t));
     if (prefix_data_size == 0) {
         return ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_BAD_PREFIX_LEN;

@@ -39,7 +39,7 @@ ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_init(
     uint32_t prefix_data_size,
     uint32_t suffix_data_size,
     uint8_t tokens_count,
-    token_amount_table_t* tokens_table);
+    token_table_t* tokens_table);
 
 ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_add_prefix(
     ergo_tx_serializer_simple_context_t* context,

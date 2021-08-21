@@ -13,15 +13,17 @@
 #include "../common/buffer.h"
 #include "../helpers/blake2b.h"
 
-typedef struct {
-    uint8_t id[TOKEN_ID_LEN];
-    uint64_t amount;
-} token_amount_t;
+// typedef struct {
+//     uint8_t id[TOKEN_ID_LEN];
+//     uint64_t input;
+//     uint64_t output;
+//     uint64_t change;
+// } token_amount_t;
 
 typedef struct {
     uint8_t count;
-    token_amount_t tokens[TOKEN_MAX_COUNT];
-} token_amount_table_t;
+    uint8_t tokens[TOKEN_MAX_COUNT][TOKEN_ID_LEN];
+} token_table_t;
 
 typedef enum {
     ERGO_TX_SERIALIZER_TABLE_RES_OK = 0x7F,
@@ -33,14 +35,14 @@ typedef enum {
 } ergo_tx_serializer_table_result_e;
 
 typedef struct {
-    token_amount_table_t* tokens_table;
+    token_table_t* tokens_table;
     uint8_t tokens_count;
 } ergo_tx_serializer_table_context_t;
 
 ergo_tx_serializer_table_result_e ergo_tx_serializer_table_init(
     ergo_tx_serializer_table_context_t* context,
     uint8_t tokens_count,
-    token_amount_table_t* tokens_table);
+    token_table_t* tokens_table);
 
 ergo_tx_serializer_table_result_e ergo_tx_serializer_table_add(
     ergo_tx_serializer_table_context_t* context,

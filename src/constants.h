@@ -66,9 +66,14 @@
 #define PUBLIC_KEY_LEN 65
 
 /**
+ * Length of Compressed Public Key.
+ */
+#define COMPRESSED_PUBLIC_KEY_LEN 33
+
+/**
  * Length of Address in bytes.
  */
-#define ADDRESS_LEN 38
+#define ADDRESS_LEN (COMPRESSED_PUBLIC_KEY_LEN + 5)  // 4 bytes of checksum + 1 byte prefix
 
 /**
  * Length of Address string in chars.

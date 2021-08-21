@@ -115,7 +115,7 @@ int ui_display_address(bool send,
     memset(UI_CONTEXT(G_context).address, 0, MEMBER_SIZE(derive_address_ui_ctx_t, address));
     if (!send) {
         uint8_t address[ADDRESS_LEN] = {0};
-        if (!address_from_pubkey(network_id, raw_pub_key, address, sizeof(address))) {
+        if (!address_from_pubkey(network_id, raw_pub_key, address)) {
             return res_error(SW_DISPLAY_ADDRESS_FAIL);
         }
 

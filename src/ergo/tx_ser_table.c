@@ -10,12 +10,12 @@
 #include "../common/varint.h"
 
 static inline ergo_tx_serializer_table_result_e parse_token(buffer_t* tokens,
-                                                            token_amount_table_t* table,
+                                                            token_table_t* table,
                                                             uint8_t tokens_max) {
     if (table->count >= tokens_max) {
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_TOO_MANY_TOKENS;
     }
-    if (!buffer_read_bytes(tokens, table->tokens[table->count++].id, TOKEN_ID_LEN)) {
+    if (!buffer_read_bytes(tokens, table->tokens[table->count++], TOKEN_ID_LEN)) {
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_BAD_TOKEN_ID;
     }
     return ERGO_TX_SERIALIZER_TABLE_RES_OK;
@@ -24,13 +24,12 @@ static inline ergo_tx_serializer_table_result_e parse_token(buffer_t* tokens,
 ergo_tx_serializer_table_result_e ergo_tx_serializer_table_init(
     ergo_tx_serializer_table_context_t* context,
     uint8_t tokens_count,
-    token_amount_table_t* tokens_table) {
-    if (tokens_count > TOKEN_MAX_COUNT) {
+    token_table_t* tokens_table) {
+    if (tokens_count + tokens_table->count > TOKEN_MAX_COUNT) {
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_TOO_MANY_TOKENS;
     }
     context->tokens_count = tokens_count;
     context->tokens_table = tokens_table;
-    context->tokens_table->count = 0;
     return ERGO_TX_SERIALIZER_TABLE_RES_OK;
 }
 
@@ -61,7 +60,7 @@ ergo_tx_serializer_table_result_e ergo_tx_serializer_table_hash(
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_HASHER;
     }
     for (uint8_t i = 0; i < context->tokens_table->count; i++) {
-        if (!blake2b_update(hash, context->tokens_table->tokens[i].id, TOKEN_ID_LEN)) {
+        if (!blake2b_update(hash, context->tokens_table->tokens[i], TOKEN_ID_LEN)) {
             return ERGO_TX_SERIALIZER_TABLE_RES_ERR_HASHER;
         }
     }

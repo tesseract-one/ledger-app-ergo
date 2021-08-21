@@ -1,25 +1,24 @@
 #include "tx_ser_input.h"
 #include <string.h>
-#include "../common/int_ops.h"
 
 ergo_tx_serializer_input_result_e ergo_tx_serializer_input_init(
     ergo_tx_serializer_input_context_t* context,
     uint8_t box_id[BOX_ID_LEN],
     uint8_t token_frames_count,
-    uint32_t proof_data_size,
-    token_amount_table_t* tokens_table,
+    uint32_t context_extension_data_size,
+    token_table_t* tokens_table,
     cx_blake2b_t* hash) {
     memset(context, 0, sizeof(ergo_tx_serializer_input_context_t));
 
-    if (proof_data_size == 0) {
+    if (context_extension_data_size == 1) {
         context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
-        return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_PROOF_SIZE;
+        return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_CONTEXT_EXTENSION_SIZE;
     }
 
     memcpy(context->box_id, box_id, BOX_ID_LEN);
     context->frames_count = token_frames_count;
     context->frames_processed = 0;
-    context->proof_data_size = proof_data_size;
+    context->context_extension_data_size = context_extension_data_size;
     context->tokens_table = tokens_table;
     context->hash = hash;
 
@@ -52,7 +51,7 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
     while (buffer_data_len(tokens) > 0) {
         uint8_t token_id[TOKEN_ID_LEN];
         uint64_t token_value;
-        bool token_found = false;
+        uint8_t token_index = 0;
         if (!buffer_read_bytes(tokens, token_id, TOKEN_ID_LEN)) {
             context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
             return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID;
@@ -61,21 +60,24 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
             context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
             return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_VALUE;
         }
-        for (int i = 0; i < context->tokens_table->count; i++) {
-            if (memcmp(token_id, context->tokens_table->tokens[i].id, TOKEN_ID_LEN) == 0) {
-                token_found = true;
-                if (!checked_add_u64(context->tokens_table->tokens[i].amount,
-                                     token_value,
-                                     &context->tokens_table->tokens[i].amount)) {
-                    context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
-                    return ERGO_TX_SERIALIZER_INPUT_RES_ERR_U64_OVERFLOW;
-                }
+        for (token_index = 0; token_index < context->tokens_table->count; token_index++) {
+            if (memcmp(token_id, context->tokens_table->tokens[token_index], TOKEN_ID_LEN) == 0) {
                 break;
             }
         }
-        if (!token_found) {
+        if (token_index == context->tokens_table->count) {  // token not found
             context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
             return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID;
+        }
+        if (context->on_token_cb != NULL) {
+            ergo_tx_serializer_input_result_e res = context->on_token_cb(context->box_id,
+                                                                         token_index,
+                                                                         token_value,
+                                                                         context->callback_context);
+            if (res != ERGO_TX_SERIALIZER_INPUT_RES_OK) {
+                context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
+                return res;
+            }
         }
     }
     context->frames_processed++;
@@ -84,21 +86,32 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
             context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
             return ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER;
         }
-        context->state = ERGO_TX_SERIALIZER_INPUT_STATE_PROOF_STARTED;
+        if (context->context_extension_data_size == 0) {
+            uint16_t empty_extension = 0;
+            if (!blake2b_update(context->hash,
+                                (uint8_t*) &empty_extension,
+                                sizeof(empty_extension))) {
+                context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
+                return ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER;
+            }
+            context->state = ERGO_TX_SERIALIZER_INPUT_STATE_FINISHED;
+        } else {
+            context->state = ERGO_TX_SERIALIZER_INPUT_STATE_EXTENSION_STARTED;
+        }
         return ERGO_TX_SERIALIZER_INPUT_RES_OK;
     }
     return ERGO_TX_SERIALIZER_INPUT_RES_MORE_DATA;
 }
 
-ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_proof(
+ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_context_extension(
     ergo_tx_serializer_input_context_t* context,
     buffer_t* chunk) {
-    if (context->state != ERGO_TX_SERIALIZER_INPUT_STATE_PROOF_STARTED) {
+    if (context->state != ERGO_TX_SERIALIZER_INPUT_STATE_EXTENSION_STARTED) {
         context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_STATE;
     }
     size_t len = buffer_data_len(chunk);
-    if (context->proof_data_size < len) {
+    if (context->context_extension_data_size < len) {
         context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_TOO_MUCH_PROOF_DATA;
     }
@@ -106,9 +119,9 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_proof(
         context->state = ERGO_TX_SERIALIZER_INPUT_STATE_ERROR;
         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER;
     }
-    context->proof_data_size -= len;
+    context->context_extension_data_size -= len;
 
-    if (context->proof_data_size == 0) {
+    if (context->context_extension_data_size == 0) {
         context->state = ERGO_TX_SERIALIZER_INPUT_STATE_FINISHED;
         return ERGO_TX_SERIALIZER_INPUT_RES_OK;
     }

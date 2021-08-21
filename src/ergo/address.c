@@ -13,17 +13,17 @@
 
 bool address_from_pubkey(uint8_t network,
                          const uint8_t public_key[static PUBLIC_KEY_LEN],
-                         uint8_t *out,
-                         size_t out_len) {
-    BUFFER_FROM_ARRAY_EMPTY(buffer, out, out_len);
+                         uint8_t address[static ADDRESS_LEN]) {
+    BUFFER_FROM_ARRAY_EMPTY(buffer, address, ADDRESS_LEN);
 
-    if (network > 252 || out_len < ADDRESS_LEN) {
+    if (network > 252) {
         return false;
     }
     // P2PK + network id
     if (!buffer_write_u8(&buffer, 0x01 + network)) {
         return false;
     }
+
     // Compressed pubkey
     if (!buffer_write_u8(&buffer, ((public_key[64] & 1) ? 0x03 : 0x02))) {
         return false;

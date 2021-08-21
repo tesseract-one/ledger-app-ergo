@@ -19,11 +19,12 @@
     (BOX_ID_LEN + 3 * sizeof(uint8_t) + sizeof(uint64_t) + \
      FRAME_MAX_TOKENS_COUNT * FRAME_TOKEN_VALUE_PAIR_SIZE + FRAME_SIGNATURE_SIZE)
 
-#define TOKENS_COUNT(ctx)     ctx->box.tokens_count
-#define BOX_VALUE(ctx)        ctx->box.ctx.value
-#define BOX_ID(ctx)           ctx->box_id
-#define TOKEN_INFO_COUNT(ctx) ctx->tokens_table.count
-#define TOKEN_INFO(ctx, idx)  ctx->tokens_table.tokens[idx]
+#define TOKENS_COUNT(ctx)           ctx->box.tokens_count
+#define BOX_VALUE(ctx)              ctx->box.ctx.value
+#define BOX_ID(ctx)                 ctx->box_id
+#define TOKEN_INFO_COUNT(ctx)       ctx->tokens_table.count
+#define TOKEN_INFO_ID(ctx, idx)     ctx->tokens_table.tokens[idx]
+#define TOKEN_INFO_AMOUNT(ctx, idx) ctx->token_amounts[idx]
 
 static inline uint8_t get_frames_count(uint8_t tokens_count) {
     uint8_t frames_count = (tokens_count + (FRAME_MAX_TOKENS_COUNT - 1)) / FRAME_MAX_TOKENS_COUNT;
@@ -58,12 +59,12 @@ int send_response_attested_input_frame(attest_input_ctx_t *ctx,
     uint8_t offset = index * FRAME_MAX_TOKENS_COUNT;
     uint8_t non_empty = 0;
     for (uint8_t i = 0; i < TOKEN_INFO_COUNT(ctx); i++) {
-        if (TOKEN_INFO(ctx, i).amount > 0) non_empty++;
-        if (TOKEN_INFO(ctx, i).amount > 0 && non_empty >= offset) {
-            if (!buffer_write_bytes(&buffer, TOKEN_INFO(ctx, i).id, TOKEN_ID_LEN)) {
+        if (TOKEN_INFO_AMOUNT(ctx, i) > 0) non_empty++;
+        if (TOKEN_INFO_AMOUNT(ctx, i) > 0 && non_empty >= offset) {
+            if (!buffer_write_bytes(&buffer, TOKEN_INFO_ID(ctx, i), TOKEN_ID_LEN)) {
                 return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
             }
-            if (!buffer_write_u64(&buffer, TOKEN_INFO(ctx, i).amount, BE)) {
+            if (!buffer_write_u64(&buffer, TOKEN_INFO_AMOUNT(ctx, i), BE)) {
                 return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
             }
             if (non_empty - offset == FRAME_MAX_TOKENS_COUNT - 1) break;

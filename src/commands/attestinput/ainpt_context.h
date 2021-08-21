@@ -22,6 +22,10 @@ typedef struct {
     ergo_tx_serializer_box_context_t ctx;
 } _attest_input_box_ctx_t;
 
+typedef struct {
+    uint64_t amounts[TOKEN_MAX_COUNT];
+} _attest_input_tokens_amount_t;
+
 typedef enum {
     ATTEST_INPUT_STATE_INITIALIZED,
     ATTEST_INPUT_STATE_TX_STARTED,
@@ -37,7 +41,8 @@ typedef struct {
     uint8_t tx_id[TRANSACTION_HASH_LEN];
     uint8_t box_id[BOX_ID_LEN];
     uint8_t session;
-    token_amount_table_t tokens_table;
+    token_table_t tokens_table;
+    uint64_t token_amounts[TOKEN_MAX_COUNT];
     union {
         _attest_input_box_ctx_t box;
         ergo_tx_serializer_simple_context_t tx;

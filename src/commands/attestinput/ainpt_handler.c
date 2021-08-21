@@ -12,6 +12,7 @@
 #include "../../globals.h"
 #include "../../helpers/session_id.h"
 #include "../../helpers/response.h"
+#include "../../common/int_ops.h"
 
 #include <string.h>
 
@@ -44,6 +45,18 @@ static int check_box_finished(attest_input_ctx_t *ctx) {
     return send_response_attested_input_frame_count(ctx->box.tokens_count);
 }
 
+static ergo_tx_serializer_box_result_e box_token_cb(ergo_tx_serializer_box_type_e type,
+                                                    uint8_t index,
+                                                    uint64_t value,
+                                                    void *context) {
+    (void) (type);
+    attest_input_ctx_t *ctx = (attest_input_ctx_t *) context;
+    if (!checked_add_u64(ctx->token_amounts[index], value, &ctx->token_amounts[index])) {
+        return ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW;
+    }
+    return ERGO_TX_SERIALIZER_BOX_RES_OK;
+}
+
 static inline int handle_init(attest_input_ctx_t *ctx,
                               buffer_t *cdata,
                               bool has_token,
@@ -68,6 +81,8 @@ static inline int handle_init(attest_input_ctx_t *ctx,
     if (buffer_can_read(cdata, 1)) {
         return handler_err(ctx, SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED);
     }
+
+    ctx->tokens_table.count = 0;
 
     ergo_tx_serializer_simple_result_e res = ergo_tx_serializer_simple_init(&ctx->tx,
                                                                             prefix_size,
@@ -192,6 +207,8 @@ static inline int handle_box_init(attest_input_ctx_t *ctx, buffer_t *cdata) {
     if (res != ERGO_TX_SERIALIZER_BOX_RES_OK) {
         return handler_err(ctx, SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t) res);
     }
+
+    ergo_tx_serializer_box_set_callbacks(&ctx->box.ctx, NULL, &box_token_cb, (void *) ctx);
 
     ctx->box.box_index = box_index;
     ctx->box.tokens_count = tokens_count;
