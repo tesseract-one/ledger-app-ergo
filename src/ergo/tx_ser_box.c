@@ -9,11 +9,11 @@
     if (_ctx->state != _state) return res_error(_ctx, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE)
 
 #define CHECK_CALL_RESULT_OK(_ctx, _call)                                                        \
-    {                                                                                            \
+    do {                                                                                         \
         ergo_tx_serializer_box_result_e res = _call;                                             \
         if (res != ERGO_TX_SERIALIZER_BOX_RES_OK && res != ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA) \
             return res_error(_ctx, res);                                                         \
-    }
+    } while (0)
 
 static inline ergo_tx_serializer_box_result_e res_error(ergo_tx_serializer_box_context_t* context,
                                                         ergo_tx_serializer_box_result_e err) {

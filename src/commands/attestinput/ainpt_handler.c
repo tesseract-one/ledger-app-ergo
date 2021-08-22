@@ -27,22 +27,22 @@
     if (buffer_can_read(_buffer, 1)) return handler_err(_ctx, SW_TOO_MUCH_DATA)
 
 #define CHECK_TX_CALL_RESULT_OK(_ctx, _call)                \
-    {                                                       \
+    do {                                                    \
         ergo_tx_serializer_simple_result_e res = _call;     \
         if (res != ERGO_TX_SERIALIZER_SIMPLE_RES_OK &&      \
             res != ERGO_TX_SERIALIZER_SIMPLE_RES_MORE_DATA) \
             return handler_err(_ctx, sw_from_tx_res(res));  \
-    }
+    } while (0)
 
 #define CHECK_BOX_CALL_RESULT_OK(_ctx, _call)                                                    \
-    {                                                                                            \
+    do {                                                                                         \
         ergo_tx_serializer_box_result_e res = _call;                                             \
         if (res != ERGO_TX_SERIALIZER_BOX_RES_OK && res != ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA) \
             return handler_err(_ctx, sw_from_box_res(res));                                      \
-    }
+    } while (0)
 
 #define CHECK_BOX_CALL_TX_FINISHED(_ctx, _call)                \
-    {                                                          \
+    do {                                                       \
         ergo_tx_serializer_box_result_e res = _call;           \
         switch (res) {                                         \
             case ERGO_TX_SERIALIZER_BOX_RES_OK:                \
@@ -52,7 +52,7 @@
             default:                                           \
                 return handler_err(ctx, sw_from_box_res(res)); \
         }                                                      \
-    }
+    } while (0)
 
 static inline int handler_err(attest_input_ctx_t *ctx, uint16_t err) {
     ctx->state = ATTEST_INPUT_STATE_ERROR;

@@ -32,11 +32,11 @@
     if (buffer_can_read(_buffer, 1)) return handler_err(_ctx, SW_TOO_MUCH_DATA)
 
 #define CHECK_CALL_RESULT_OK(_ctx, _call)                                                          \
-    {                                                                                              \
+    do {                                                                                           \
         ergo_tx_serializer_full_result_e res = _call;                                              \
         if (res != ERGO_TX_SERIALIZER_FULL_RES_OK && res != ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA) \
             return handler_err(_ctx, sw_from_ser_res(res));                                        \
-    }
+    } while (0)
 
 static inline int handler_err(sign_transaction_ctx_t *ctx, uint16_t err) {
     ctx->state = SIGN_TRANSACTION_STATE_ERROR;
