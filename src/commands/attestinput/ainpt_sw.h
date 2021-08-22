@@ -1,18 +1,57 @@
 #pragma once
 
 #include "../../sw.h"
+#include "../../ergo/tx_ser_simple.h"
+#include "../../ergo/tx_ser_box.h"
 
-#define SW_ATTEST_UTXO_PREFIX 0x6900
+static inline uint16_t sw_from_tx_res(ergo_tx_serializer_simple_result_e res) {
+    switch (res) {
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_OK:
+            return SW_OK;
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_MORE_DATA:
+            return SW_OK;
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_BAD_TOKEN_ID:
+            return SW_BAD_TOKEN_ID;
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_BAD_PREFIX_LEN:
+            return SW_BAD_TRANSACTION_PREFIX_LEN;
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_BAD_SUFFIX_LEN:
+            return SW_BAD_TRANSACTION_SUFFIX_LEN;
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_TOO_MANY_TOKENS:
+            return SW_TOO_MANY_TOKENS;
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_TOO_MUCH_DATA:
+            return SW_TOO_MUCH_DATA;
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_HASHER:
+            return SW_HASHER_ERROR;
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_BUFFER:
+            return SW_BUFFER_ERROR;
+        case ERGO_TX_SERIALIZER_SIMPLE_RES_ERR_BAD_STATE:
+            return SW_BAD_STATE;
+    }
+}
 
-#define SW_ATTEST_UTXO_BAD_COMMAND           (SW_ATTEST_UTXO_PREFIX + 0x01)
-#define SW_ATTEST_UTXO_BAD_P2                (SW_ATTEST_UTXO_PREFIX + 0x02)
-#define SW_ATTEST_UTXO_BAD_SESSION           (SW_ATTEST_UTXO_PREFIX + 0x03)
-#define SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS     (SW_ATTEST_UTXO_PREFIX + 0x04)
-#define SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED (SW_ATTEST_UTXO_PREFIX + 0x05)
-#define SW_ATTEST_UTXO_BAD_FRAME_INDEX       (SW_ATTEST_UTXO_PREFIX + 0x06)
-#define SW_ATTEST_UTXO_HASHER_ERROR          (SW_ATTEST_UTXO_PREFIX + 0x07)
-#define SW_ATTEST_UTXO_BUFFER_ERROR          (SW_ATTEST_UTXO_PREFIX + 0x08)
-#define SW_ATTEST_UTXO_HMAC_ERROR            (SW_ATTEST_UTXO_PREFIX + 0x09)
-
-#define SW_ATTEST_UTXO_TX_ERROR_PREFIX  (SW_ATTEST_UTXO_PREFIX + 0x10)
-#define SW_ATTEST_UTXO_BOX_ERROR_PREFIX (SW_ATTEST_UTXO_PREFIX + 0x30)
+static inline uint16_t sw_from_box_res(ergo_tx_serializer_box_result_e res) {
+    switch (res) {
+        case ERGO_TX_SERIALIZER_BOX_RES_OK:
+            return SW_OK;
+        case ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA:
+            return SW_OK;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX:
+            return SW_BAD_TOKEN_INDEX;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_VALUE:
+            return SW_BAD_TOKEN_VALUE;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MANY_TOKENS:
+            return SW_TOO_MANY_TOKENS;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MANY_REGISTERS:
+            return SW_TOO_MANY_REGISTERS;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MUCH_DATA:
+            return SW_TOO_MUCH_DATA;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER:
+            return SW_HASHER_ERROR;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER:
+            return SW_BUFFER_ERROR;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE:
+            return SW_BAD_STATE;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW:
+            return SW_U64_OVERFLOW;
+    }
+}

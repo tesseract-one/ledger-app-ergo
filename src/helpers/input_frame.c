@@ -41,7 +41,7 @@ input_frame_read_result_e input_frame_read(buffer_t* input,
     cx_hmac_sha256_t hmac;
 
     if (cx_hmac_sha256_init_no_throw(&hmac, session_key, SESSION_KEY_LEN) != 0) {
-        return INPUT_FRAME_READ_RES_ERR_BAD_SIGNATURE;
+        return INPUT_FRAME_READ_RES_ERR_HMAC;
     }
     if (cx_hmac_no_throw((cx_hmac_t*) &hmac,
                          CX_LAST,
@@ -49,7 +49,7 @@ input_frame_read_result_e input_frame_read(buffer_t* input,
                          buffer_read_position(&temp) - INPUT_FRAME_SIGNATURE_LEN,
                          hash,
                          CX_SHA256_SIZE) != 0) {
-        return INPUT_FRAME_READ_RES_ERR_BAD_SIGNATURE;
+        return INPUT_FRAME_READ_RES_ERR_HMAC;
     }
 
     if (memcmp(signature, hash, INPUT_FRAME_SIGNATURE_LEN) != 0) {

@@ -120,10 +120,8 @@ int io_send_response(const buffer_t *rdata, uint16_t sw) {
             return io_send_sw(SW_WRONG_RESPONSE_LENGTH);
         }
         G_output_len = len;
-        PRINTF("<= SW=%04X | RData=%.*H\n", sw, rdata->write_offset, rdata->ptr);
     } else {
         G_output_len = 0;
-        PRINTF("<= SW=%04X | RData=\n", sw);
     }
 
     write_u16_be(G_io_apdu_buffer, G_output_len, sw);

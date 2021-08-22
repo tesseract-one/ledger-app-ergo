@@ -3,7 +3,7 @@
 
 #include "da_ui.h"
 #include "da_response.h"
-#include "da_sw.h"
+#include "../../sw.h"
 #include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../context.h"
@@ -98,7 +98,7 @@ int ui_display_address(bool send,
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
-        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_BIP32_BAD_PATH);
     }
 
     UI_CONTEXT(G_context).app_token_value = app_access_token;
@@ -109,14 +109,14 @@ int ui_display_address(bool send,
                            bip32_path_len,
                            UI_CONTEXT(G_context).bip32_path,
                            MEMBER_SIZE(derive_address_ui_ctx_t, bip32_path))) {
-        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_BIP32_FORMATTING_FAILED);
     }
 
     memset(UI_CONTEXT(G_context).address, 0, MEMBER_SIZE(derive_address_ui_ctx_t, address));
     if (!send) {
         uint8_t address[ADDRESS_LEN] = {0};
         if (!address_from_pubkey(network_id, raw_pub_key, address)) {
-            return res_error(SW_DISPLAY_ADDRESS_FAIL);
+            return res_error(SW_ADDRESS_GENERATION_FAILED);
         }
 
         int result = base58_encode(address,
@@ -125,7 +125,7 @@ int ui_display_address(bool send,
                                    MEMBER_SIZE(derive_address_ui_ctx_t, address));
 
         if (result == -1 || result >= ADDRESS_STRING_MAX_LEN) {
-            return res_error(SW_DISPLAY_ADDRESS_FAIL);
+            return res_error(SW_ADDRESS_FORMATTING_FAILED);
         }
     }
 

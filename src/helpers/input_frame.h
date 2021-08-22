@@ -16,6 +16,7 @@
 typedef enum {
     INPUT_FRAME_READ_RES_OK,
     INPUT_FRAME_READ_RES_ERR_BUFFER,
+    INPUT_FRAME_READ_RES_ERR_HMAC,
     INPUT_FRAME_READ_RES_ERR_BAD_SIGNATURE
 } input_frame_read_result_e;
 

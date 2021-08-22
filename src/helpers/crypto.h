@@ -19,13 +19,13 @@
  * @param[in]  bip32_path_len
  *   Number of path in BIP32 path.
  *
- * @throw INVALID_PARAMETER
+ * @returns 0 if ok, error_code on error
  *
  */
-void crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
-                               uint8_t chain_code[static CHAIN_CODE_LEN],
-                               const uint32_t *bip32_path,
-                               uint8_t bip32_path_len);
+uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
+                                   uint8_t chain_code[static CHAIN_CODE_LEN],
+                                   const uint32_t *bip32_path,
+                                   uint8_t bip32_path_len);
 
 /**
  * Initialize public key given private key.
@@ -37,14 +37,14 @@ void crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
  * @param[out] raw_public_key
  *   Pointer to raw public key.
  *
- * @throw INVALID_PARAMETER
+ * @returns 0 if ok, error_code on error.
  *
  */
-void crypto_init_public_key(cx_ecfp_private_key_t *private_key,
-                            cx_ecfp_public_key_t *public_key,
-                            uint8_t raw_public_key[static PUBLIC_KEY_LEN]);
+uint16_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
+                                cx_ecfp_public_key_t *public_key,
+                                uint8_t raw_public_key[static PUBLIC_KEY_LEN]);
 
-void crypto_generate_public_key(const uint32_t *bip32_path,
-                                uint8_t bip32_path_len,
-                                uint8_t raw_public_key[static PUBLIC_KEY_LEN],
-                                uint8_t chain_code[CHAIN_CODE_LEN]);
+uint16_t crypto_generate_public_key(const uint32_t *bip32_path,
+                                    uint8_t bip32_path_len,
+                                    uint8_t raw_public_key[static PUBLIC_KEY_LEN],
+                                    uint8_t chain_code[CHAIN_CODE_LEN]);

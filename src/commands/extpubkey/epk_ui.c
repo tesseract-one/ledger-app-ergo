@@ -72,7 +72,7 @@ int ui_display_account(uint32_t app_access_token,
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ACCOUNT_GE3)) {
-        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_BIP32_BAD_PATH);
     }
 
     UI_CONTEXT(G_context).app_token_value = app_access_token;

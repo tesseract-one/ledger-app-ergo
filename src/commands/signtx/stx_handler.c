@@ -17,7 +17,7 @@
 
 #define CHECK_SESSION(_session)                    \
     if (_session != G_context.sign_tx_ctx.session) \
-    return handler_err(&G_context.sign_tx_ctx, SW_ATTEST_UTXO_BAD_SESSION)
+    return handler_err(&G_context.sign_tx_ctx, SW_BAD_SESSION_ID)
 
 #define CHECK_PROPER_STATE(_ctx, _state) \
     if (_ctx->state != _state) return handler_err(_ctx, SW_BAD_STATE)
@@ -26,16 +26,16 @@
     if (_ctx->state != _state1 && _ctx->state != _state2) return handler_err(_ctx, SW_BAD_STATE)
 
 #define CHECK_READ_PARAM(_ctx, _call) \
-    if (!_call) return handler_err(_ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS)
+    if (!_call) return handler_err(_ctx, SW_NOT_ENOUGH_DATA)
 
 #define CHECK_PARAMS_FINISHED(_ctx, _buffer) \
-    if (buffer_can_read(_buffer, 1)) return handler_err(_ctx, SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED)
+    if (buffer_can_read(_buffer, 1)) return handler_err(_ctx, SW_TOO_MUCH_DATA)
 
 #define CHECK_CALL_RESULT_OK(_ctx, _call)                                                          \
     {                                                                                              \
         ergo_tx_serializer_full_result_e res = _call;                                              \
         if (res != ERGO_TX_SERIALIZER_FULL_RES_OK && res != ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA) \
-            return handler_err(_ctx, SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t) res);              \
+            return handler_err(_ctx, sw_from_ser_res(res));                                        \
     }
 
 static inline int handler_err(sign_transaction_ctx_t *ctx, uint16_t err) {
@@ -178,9 +178,11 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
                                                      session_key);
     switch (res) {
         case INPUT_FRAME_READ_RES_ERR_BUFFER:
-            return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
+            return handler_err(ctx, SW_NOT_ENOUGH_DATA);
+        case INPUT_FRAME_READ_RES_ERR_HMAC:
+            return handler_err(ctx, SW_HMAC_ERROR);
         case INPUT_FRAME_READ_RES_ERR_BAD_SIGNATURE:
-            return handler_err(ctx, 0xFFFF);  // TODO: provide error
+            return handler_err(ctx, SW_BAD_FRAME_SIGNATURE);
         case INPUT_FRAME_READ_RES_OK:
             break;
     }
@@ -193,7 +195,7 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
             ergo_tx_serializer_full_add_input(&ctx->tx, input_id, frames_count, extension_len));
 
         if (!checked_add_u64(ui_ctx->inputs_value, value, &ui_ctx->inputs_value)) {
-            return handler_err(ctx, 0xFFFF);
+            return handler_err(ctx, SW_U64_OVERFLOW);
         }
         if (ctx->state == SIGN_TRANSACTION_STATE_DATA_APPROVED) {
             CHECK_CALL_RESULT_OK(ctx,
@@ -268,7 +270,7 @@ static inline int handle_output_tree_chunk(sign_transaction_ctx_t *ctx, buffer_t
 
 static inline int handle_output_tree_fee(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_OUTPUTS_STARTED);
-    if (buffer_data_len(cdata) > 0) return handler_err(ctx, SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED);
+    if (buffer_data_len(cdata) > 0) return handler_err(ctx, SW_TOO_MUCH_DATA);
     CHECK_CALL_RESULT_OK(ctx, ergo_tx_serializer_full_add_box_miners_fee_tree(&ctx->tx));
     return res_ok();
 }
@@ -283,10 +285,12 @@ static inline int handle_output_tree_change(sign_transaction_ctx_t *ctx, buffer_
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
-        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_BIP32_BAD_PATH);
     }
     uint8_t public_key[PUBLIC_KEY_LEN];
-    crypto_generate_public_key(bip32_path, bip32_path_len, public_key, NULL);
+    if (crypto_generate_public_key(bip32_path, bip32_path_len, public_key, NULL) != 0) {
+        return res_error(SW_INTERNAL_CRYPTO_ERROR);
+    }
     CHECK_CALL_RESULT_OK(ctx, ergo_tx_serializer_full_add_box_change_tree(&ctx->tx, public_key));
     return res_ok();
 }
@@ -321,7 +325,7 @@ int handler_sign_transaction(buffer_t *cdata,
     switch (subcommand) {
         case SIGN_TRANSACTION_SUBCOMMAND_INIT:
             if (session_or_token != 0x01 && session_or_token != 0x02) {
-                return res_error(SW_ATTEST_UTXO_BAD_P2);
+                return res_error(SW_WRONG_P1P2);
             }
             clear_context(&G_context, CMD_SIGN_TRANSACTION);
             return handle_init(&G_context.sign_tx_ctx,
@@ -376,6 +380,6 @@ int handler_sign_transaction(buffer_t *cdata,
             CHECK_SESSION(session_or_token);
             return handle_sign_confirm(&G_context.sign_tx_ctx, &G_context.ui.sign_tx);
         default:
-            return res_error(SW_ATTEST_UTXO_BAD_COMMAND);
+            return res_error(SW_WRONG_SUBCOMMAND);
     }
 }

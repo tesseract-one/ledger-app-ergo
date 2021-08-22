@@ -9,7 +9,7 @@
 #include "da_handler.h"
 #include "da_ui.h"
 #include "da_response.h"
-#include "da_sw.h"
+#include "../../sw.h"
 #include "../../globals.h"
 #include "../../context.h"
 #include "../../types.h"
@@ -36,16 +36,20 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
     uint8_t network_type = 0;
 
     if (!buffer_read_u8(cdata, &network_type)) {
-        return res_error(SW_WRONG_DATA_LENGTH);
+        return res_error(SW_NOT_ENOUGH_DATA);
     }
 
     if (!buffer_read_u8(cdata, &bip32_path_len) ||
         !buffer_read_bip32_path(cdata, bip32_path, (size_t) bip32_path_len)) {
-        return res_error(SW_WRONG_DATA_LENGTH);
+        return res_error(SW_NOT_ENOUGH_DATA);
     }
 
     if (has_access_token && !buffer_read_u32(cdata, &access_token, BE)) {
-        return res_error(SW_WRONG_DATA_LENGTH);
+        return res_error(SW_NOT_ENOUGH_DATA);
+    }
+
+    if (buffer_can_read(cdata, 1)) {
+        return res_error(SW_TOO_MUCH_DATA);
     }
 
     if (!bip32_path_validate(bip32_path,
@@ -53,13 +57,15 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
-        return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
+        return res_error(SW_BIP32_BAD_PATH);
     }
 
-    crypto_generate_public_key(bip32_path,
-                               bip32_path_len,
-                               UI_CONTEXT(G_context).raw_public_key,
-                               NULL);
+    if (crypto_generate_public_key(bip32_path,
+                                   bip32_path_len,
+                                   UI_CONTEXT(G_context).raw_public_key,
+                                   NULL) != 0) {
+        return res_error(SW_INTERNAL_CRYPTO_ERROR);
+    }
 
     if (!display && is_known_application(access_token, G_context.app_session_id)) {
         return send_response_address(UI_CONTEXT(G_context).raw_public_key);

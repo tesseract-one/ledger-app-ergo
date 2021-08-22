@@ -15,43 +15,43 @@
 
 #define CHECK_SESSION(session_id)                  \
     if (session_id != G_context.input_ctx.session) \
-    return handler_err(&G_context.input_ctx, SW_ATTEST_UTXO_BAD_SESSION)
+    return handler_err(&G_context.input_ctx, SW_BAD_SESSION_ID)
 
 #define CHECK_PROPER_STATE(_ctx, _state) \
     if (_ctx->state != _state) return handler_err(_ctx, SW_BAD_STATE)
 
 #define CHECK_READ_PARAM(_ctx, _call) \
-    if (!_call) return handler_err(_ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS)
+    if (!_call) return handler_err(_ctx, SW_NOT_ENOUGH_DATA)
 
 #define CHECK_PARAMS_FINISHED(_ctx, _buffer) \
-    if (buffer_can_read(_buffer, 1)) return handler_err(_ctx, SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED)
+    if (buffer_can_read(_buffer, 1)) return handler_err(_ctx, SW_TOO_MUCH_DATA)
 
-#define CHECK_TX_CALL_RESULT_OK(_ctx, _call)                                          \
-    {                                                                                 \
-        ergo_tx_serializer_simple_result_e res = _call;                               \
-        if (res != ERGO_TX_SERIALIZER_SIMPLE_RES_OK &&                                \
-            res != ERGO_TX_SERIALIZER_SIMPLE_RES_MORE_DATA)                           \
-            return handler_err(_ctx, SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t) res); \
+#define CHECK_TX_CALL_RESULT_OK(_ctx, _call)                \
+    {                                                       \
+        ergo_tx_serializer_simple_result_e res = _call;     \
+        if (res != ERGO_TX_SERIALIZER_SIMPLE_RES_OK &&      \
+            res != ERGO_TX_SERIALIZER_SIMPLE_RES_MORE_DATA) \
+            return handler_err(_ctx, sw_from_tx_res(res));  \
     }
 
 #define CHECK_BOX_CALL_RESULT_OK(_ctx, _call)                                                    \
     {                                                                                            \
         ergo_tx_serializer_box_result_e res = _call;                                             \
         if (res != ERGO_TX_SERIALIZER_BOX_RES_OK && res != ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA) \
-            return handler_err(_ctx, SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t) res);           \
+            return handler_err(_ctx, sw_from_box_res(res));                                      \
     }
 
-#define CHECK_BOX_CALL_TX_FINISHED(_ctx, _call)                                           \
-    {                                                                                     \
-        ergo_tx_serializer_box_result_e res = _call;                                      \
-        switch (res) {                                                                    \
-            case ERGO_TX_SERIALIZER_BOX_RES_OK:                                           \
-                return check_box_finished(ctx);                                           \
-            case ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA:                                    \
-                break;                                                                    \
-            default:                                                                      \
-                return handler_err(ctx, SW_ATTEST_UTXO_BOX_ERROR_PREFIX + (uint8_t) res); \
-        }                                                                                 \
+#define CHECK_BOX_CALL_TX_FINISHED(_ctx, _call)                \
+    {                                                          \
+        ergo_tx_serializer_box_result_e res = _call;           \
+        switch (res) {                                         \
+            case ERGO_TX_SERIALIZER_BOX_RES_OK:                \
+                return check_box_finished(ctx);                \
+            case ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA:         \
+                break;                                         \
+            default:                                           \
+                return handler_err(ctx, sw_from_box_res(res)); \
+        }                                                      \
     }
 
 static inline int handler_err(attest_input_ctx_t *ctx, uint16_t err) {
@@ -68,7 +68,7 @@ static NOINLINE int check_box_finished(attest_input_ctx_t *ctx) {
         ergo_tx_serializer_box_add_tx_id_and_index(&ctx->box.ctx, ctx->tx_id, ctx->box.box_index));
 
     if (!ergo_tx_serializer_box_id_hash(&ctx->box.ctx, ctx->box_id)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_HASHER_ERROR);
+        return handler_err(ctx, SW_HASHER_ERROR);
     }
     ctx->state = ATTEST_INPUT_STATE_BOX_FINISHED;
     return send_response_attested_input_frame_count(ctx->box.tokens_count);
@@ -139,14 +139,14 @@ static inline int handle_tx_suffix_chunk(attest_input_ctx_t *ctx, buffer_t *cdat
     switch (res) {
         case ERGO_TX_SERIALIZER_SIMPLE_RES_OK:
             if (!ergo_tx_serializer_simple_hash(&ctx->tx, ctx->tx_id)) {
-                return handler_err(ctx, SW_ATTEST_UTXO_HASHER_ERROR);
+                return handler_err(ctx, SW_HASHER_ERROR);
             }
             ctx->state = ATTEST_INPUT_STATE_TX_FINISHED;
             return res_ok();
         case ERGO_TX_SERIALIZER_SIMPLE_RES_MORE_DATA:
             return res_ok();
         default:
-            return handler_err(ctx, SW_ATTEST_UTXO_TX_ERROR_PREFIX + (uint8_t) res);
+            return handler_err(ctx, sw_from_tx_res(res));
     }
 }
 
@@ -169,7 +169,7 @@ static inline int handle_box_init(attest_input_ctx_t *ctx, buffer_t *cdata) {
     memset(&ctx->box, 0, sizeof(_attest_input_box_ctx_t));
 
     if (!ergo_tx_serializer_box_id_hash_init(&ctx->box.hash)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_HASHER_ERROR);
+        return handler_err(ctx, SW_HASHER_ERROR);
     }
 
     CHECK_BOX_CALL_RESULT_OK(ctx,
@@ -229,7 +229,7 @@ int handler_attest_input(buffer_t *cdata,
     switch (subcommand) {
         case ATTEST_INPUT_SUBCOMMAND_INIT:
             if (session_or_token != 0x01 && session_or_token != 0x02) {
-                return res_error(SW_ATTEST_UTXO_BAD_P2);
+                return res_error(SW_WRONG_P1P2);
             }
             clear_context(&G_context, CMD_ATTEST_INPUT_BOX);
             return handle_init(&G_context.input_ctx,
@@ -269,6 +269,6 @@ int handler_attest_input(buffer_t *cdata,
             CHECK_SESSION(session_or_token);
             return handle_box_get_frame(&G_context.input_ctx, G_context.session_key, cdata);
         default:
-            return res_error(SW_ATTEST_UTXO_BAD_COMMAND);
+            return res_error(SW_WRONG_SUBCOMMAND);
     }
 }

@@ -24,12 +24,12 @@
 
 #define PRIVATE_KEY_SIZE 32
 
-void crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
-                               uint8_t chain_code[static CHAIN_CODE_LEN],
-                               const uint32_t *bip32_path,
-                               uint8_t bip32_path_len) {
+uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
+                                   uint8_t chain_code[static CHAIN_CODE_LEN],
+                                   const uint32_t *bip32_path,
+                                   uint8_t bip32_path_len) {
     uint8_t raw_private_key[PRIVATE_KEY_SIZE] = {0};
-
+    uint16_t result = 0;
     BEGIN_TRY {
         TRY {
             // derive the seed with bip32_path
@@ -45,28 +45,31 @@ void crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                                      private_key);
         }
         CATCH_OTHER(e) {
-            THROW(e);
+            result = e;
         }
         FINALLY {
             explicit_bzero(raw_private_key, sizeof(raw_private_key));
         }
     }
     END_TRY;
+    return result;
 }
 
-void crypto_init_public_key(cx_ecfp_private_key_t *private_key,
-                            cx_ecfp_public_key_t *public_key,
-                            uint8_t raw_public_key[static PUBLIC_KEY_LEN]) {
+uint16_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
+                                cx_ecfp_public_key_t *public_key,
+                                uint8_t raw_public_key[static PUBLIC_KEY_LEN]) {
     // generate corresponding public key
-    cx_ecfp_generate_pair(CX_CURVE_256K1, public_key, private_key, 1);
-
-    memmove(raw_public_key, public_key->W, PUBLIC_KEY_LEN);
+    cx_err_t result = cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1, public_key, private_key, 1);
+    if (result == 0) {
+        memmove(raw_public_key, public_key->W, PUBLIC_KEY_LEN);
+    }
+    return (uint16_t) result;
 }
 
-void crypto_generate_public_key(const uint32_t *bip32_path,
-                                uint8_t bip32_path_len,
-                                uint8_t raw_public_key[static PUBLIC_KEY_LEN],
-                                uint8_t chain_code[CHAIN_CODE_LEN]) {
+uint16_t crypto_generate_public_key(const uint32_t *bip32_path,
+                                    uint8_t bip32_path_len,
+                                    uint8_t raw_public_key[static PUBLIC_KEY_LEN],
+                                    uint8_t chain_code[CHAIN_CODE_LEN]) {
     bool has_chain_code = chain_code != NULL;
     uint8_t temp_chain_code[CHAIN_CODE_LEN];
     if (!has_chain_code) {
@@ -75,23 +78,17 @@ void crypto_generate_public_key(const uint32_t *bip32_path,
     cx_ecfp_private_key_t private_key = {0};
     cx_ecfp_public_key_t public_key = {0};
 
-    BEGIN_TRY {
-        TRY {
-            // derive private key according to BIP32 path
-            crypto_derive_private_key(&private_key, chain_code, bip32_path, bip32_path_len);
-            // generate corresponding public key
-            crypto_init_public_key(&private_key, &public_key, raw_public_key);
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-            // reset private key and chaincode
-            explicit_bzero(&private_key, sizeof(private_key));
-            if (!has_chain_code) {
-                explicit_bzero(chain_code, CHAIN_CODE_LEN);
-            }
-        }
+    // derive private key according to BIP32 path
+    uint16_t result =
+        crypto_derive_private_key(&private_key, chain_code, bip32_path, bip32_path_len);
+    if (result == 0) {
+        // generate corresponding public key
+        result = crypto_init_public_key(&private_key, &public_key, raw_public_key);
     }
-    END_TRY;
+    // reset private key and chaincode
+    explicit_bzero(&private_key, sizeof(private_key));
+    if (!has_chain_code) {
+        explicit_bzero(chain_code, CHAIN_CODE_LEN);
+    }
+    return result;
 }

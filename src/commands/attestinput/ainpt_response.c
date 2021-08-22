@@ -16,7 +16,7 @@ int send_response_attested_input_frame(attest_input_ctx_t *ctx,
                                        uint8_t index) {
     uint8_t frames_count = get_frames_count(ctx->box.tokens_count);
     if (index >= frames_count) {
-        return res_error(SW_ATTEST_UTXO_BAD_FRAME_INDEX);
+        return res_error(SW_BAD_FRAME_INDEX);
     }
 
     // Hack for stack overflow. Writing directly to the IO buffer.
@@ -24,19 +24,19 @@ int send_response_attested_input_frame(attest_input_ctx_t *ctx,
     BUFFER_FROM_ARRAY_EMPTY(output, G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 2);
 
     if (!buffer_write_bytes(&output, ctx->box_id, BOX_ID_LEN)) {
-        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
+        return res_error(SW_BUFFER_ERROR);
     }
     if (!buffer_write_u8(&output, frames_count)) {
-        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
+        return res_error(SW_BUFFER_ERROR);
     }
     if (!buffer_write_u8(&output, index)) {
-        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
+        return res_error(SW_BUFFER_ERROR);
     }
     if (!buffer_write_u8(&output, ctx->box.tokens_count)) {
-        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
+        return res_error(SW_BUFFER_ERROR);
     }
     if (!buffer_write_u64(&output, ctx->box.ctx.value, BE)) {
-        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
+        return res_error(SW_BUFFER_ERROR);
     }
 
     uint8_t offset = index * FRAME_MAX_TOKENS_COUNT;
@@ -45,17 +45,17 @@ int send_response_attested_input_frame(attest_input_ctx_t *ctx,
         if (ctx->token_amounts[i] > 0) non_empty++;
         if (ctx->token_amounts[i] > 0 && non_empty >= offset) {
             if (!buffer_write_bytes(&output, ctx->tokens_table.tokens[i], TOKEN_ID_LEN)) {
-                return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
+                return res_error(SW_BUFFER_ERROR);
             }
             if (!buffer_write_u64(&output, ctx->token_amounts[i], BE)) {
-                return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
+                return res_error(SW_BUFFER_ERROR);
             }
             if (non_empty - offset == FRAME_MAX_TOKENS_COUNT - 1) break;
         }
     }
     cx_hmac_sha256_t hmac;
     if (cx_hmac_sha256_init_no_throw(&hmac, session_key, SESSION_KEY_LEN) != 0) {
-        return res_error(SW_ATTEST_UTXO_HMAC_ERROR);
+        return res_error(SW_HMAC_ERROR);
     }
     if (cx_hmac_no_throw((cx_hmac_t *) &hmac,
                          CX_LAST,
@@ -63,11 +63,11 @@ int send_response_attested_input_frame(attest_input_ctx_t *ctx,
                          buffer_data_len(&output),
                          buffer_write_ptr(&output),
                          buffer_empty_space_len(&output)) != 0) {
-        return res_error(SW_ATTEST_UTXO_HMAC_ERROR);
+        return res_error(SW_HMAC_ERROR);
     }
 
     if (!buffer_seek_write_cur(&output, INPUT_FRAME_SIGNATURE_LEN)) {
-        return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
+        return res_error(SW_BUFFER_ERROR);
     }
 
     return res_ok_data(&output);
