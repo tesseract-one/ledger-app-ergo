@@ -1,7 +1,7 @@
 import argparse
 import binascii
 import random
-from typing import Optional
+from typing import List, Optional
 
 from ledgerblue.comm import getDongle
 from test_cmds_txs import *
@@ -59,6 +59,49 @@ def bip44(account: int, change: Optional[int] = None, address: Optional[int] = N
     return bytes([length]) + path
 
 
+def attest_box(tx_index: int, box_index: int) -> List[bytes]:
+    tx = TRANSACTIONS[tx_index]
+    box = tx["outputs"][box_index]
+    tokens = tx["tokens"]
+
+    tx_header = serialize_tx_header(
+        tx["prefix"], tx["suffix"], len(tokens))
+    tx_header += application_token
+    session_id = ledger_cmd(0x20, 0x01, 0x02, tx_header)[0]
+
+    prefix = binascii.unhexlify(tx["prefix"])
+    ledger_upload_data(0x20, 0x02, session_id, prefix)
+
+    token_chunks = [tokens[i:i+7] for i in range(0, len(tokens), 7)]
+
+    for chunk in token_chunks:
+        token_data = serialize_tx_tokens(chunk)
+        ledger_cmd(0x20, 0x03, session_id, token_data)
+
+    suffix = binascii.unhexlify(tx["suffix"])
+    ledger_upload_data(0x20, 0x04, session_id, suffix)
+
+    box_header = serialize_box_header(box)
+    ledger_cmd(0x20, 0x05, session_id, box_header)
+
+    box_tree = binascii.unhexlify(box["tree"])
+    ledger_upload_data(0x20, 0x06, session_id, box_tree)
+
+    box_tokens = serialize_box_tokens(box["tokens"])
+    ledger_cmd(0x20, 0x07, session_id, box_tokens)
+
+    frames = 0
+    for register in box["registers"]:
+        data = binascii.unhexlify(register)
+        res = ledger_cmd(0x20, 0x08, session_id, data)
+        frames = res[0] if len(res) > 0 else 0
+    response = []
+    for frame in range(0, frames):
+        data = ledger_cmd(0x20, 0x09, session_id, bytes([frame]))
+        response.append(data)
+    return response
+
+
 @subcommand()
 def name(args: argparse.Namespace):
     name = ledger_cmd(0x02, 0x00, 0x00, bytes())
@@ -103,45 +146,9 @@ def showaddr(args: argparse.Namespace):
 @subcommand([argument("tx", type=int, nargs="?", default=0),
              argument("box", type=int, nargs="?", default=0)])
 def attest(args: argparse.Namespace):
-    tx = TRANSACTIONS[args.tx]
-    box = tx["outputs"][args.box]
-    tokens = tx["tokens"]
-
-    tx_header = serialize_tx_header(
-        tx["prefix"], tx["suffix"], len(tokens))
-    tx_header += application_token
-    session_id = ledger_cmd(0x20, 0x01, 0x02, tx_header)[0]
-
-    prefix = binascii.unhexlify(tx["prefix"])
-    ledger_upload_data(0x20, 0x02, session_id, prefix)
-
-    token_chunks = [tokens[i:i+7] for i in range(0, len(tokens), 7)]
-
-    for chunk in token_chunks:
-        token_data = serialize_tx_tokens(chunk)
-        ledger_cmd(0x20, 0x03, session_id, token_data)
-
-    suffix = binascii.unhexlify(tx["suffix"])
-    ledger_upload_data(0x20, 0x04, session_id, suffix)
-
-    box_header = serialize_box_header(box)
-    ledger_cmd(0x20, 0x05, session_id, box_header)
-
-    box_tree = binascii.unhexlify(box["tree"])
-    ledger_upload_data(0x20, 0x06, session_id, box_tree)
-
-    box_tokens = serialize_box_tokens(box["tokens"])
-    ledger_cmd(0x20, 0x07, session_id, box_tokens)
-
-    frames = 0
-    for register in box["registers"]:
-        data = binascii.unhexlify(register)
-        res = ledger_cmd(0x20, 0x08, session_id, data)
-        frames = res[0] if len(res) > 0 else 0
-
-    for frame in range(0, frames):
-        data = ledger_cmd(0x20, 0x09, session_id, bytes([frame]))
-        print_input_frame(frame, data)
+    frames = attest_box(args.tx, args.box)
+    for frame in frames:
+        print_input_frame(frame)
 
 
 if __name__ == "__main__":

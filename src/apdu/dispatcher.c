@@ -13,6 +13,7 @@
 #include "../commands/extpubkey/epk_handler.h"
 #include "../commands/deriveaddress/da_handler.h"
 #include "../commands/attestinput/ainpt_handler.h"
+#include "../commands/signtx/stx_handler.h"
 
 int apdu_dispatcher(const command_t *cmd) {
     if (cmd->cla != CLA) {
@@ -20,6 +21,7 @@ int apdu_dispatcher(const command_t *cmd) {
     }
 
     buffer_t buf;
+    buffer_init(&buf, cmd->data, cmd->lc, cmd->lc);
 
     switch (cmd->ins) {
         case CMD_GET_APP_VERSION:
@@ -36,45 +38,22 @@ int apdu_dispatcher(const command_t *cmd) {
             if (cmd->p1 == 0 || cmd->p1 > 2 || cmd->p2 > 0) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
-            if (!cmd->data) {
-                return io_send_sw(SW_WRONG_DATA_LENGTH);
-            }
-            buffer_init(&buf, cmd->data, cmd->lc, cmd->lc);
             return handler_get_extended_public_key(&buf, cmd->p1 == 2);
         case CMD_DERIVE_ADDRESS:
             if (cmd->p1 == 0 || cmd->p1 > 2 || cmd->p2 == 0 || cmd->p2 > 2) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
-            if (!cmd->data) {
-                return io_send_sw(SW_WRONG_DATA_LENGTH);
-            }
-            buffer_init(&buf, cmd->data, cmd->lc, cmd->lc);
             return handler_derive_address(&buf, cmd->p1 == 2, cmd->p2 == 2);
         case CMD_ATTEST_INPUT_BOX:
             if (cmd->p1 == 0 || cmd->p2 == 0) {
                 return io_send_sw(SW_WRONG_P1P2);
             }
-            if (!cmd->data) {
-                return io_send_sw(SW_WRONG_DATA_LENGTH);
-            }
-            buffer_init(&buf, cmd->data, cmd->lc, cmd->lc);
             return handler_attest_input(&buf, cmd->p1, cmd->p2);
-        // case SIGN_TX:
-        //     if ((cmd->p1 == P1_START && cmd->p2 != P2_MORE) ||  //
-        //         cmd->p1 > P1_MAX ||                             //
-        //         (cmd->p2 != P2_LAST && cmd->p2 != P2_MORE)) {
-        //         return io_send_sw(SW_WRONG_P1P2);
-        //     }
-
-        //     if (!cmd->data) {
-        //         return io_send_sw(SW_WRONG_DATA_LENGTH);
-        //     }
-
-        //     buf.ptr = cmd->data;
-        //     buf.size = cmd->lc;
-        //     buf.offset = 0;
-
-        //     return handler_sign_tx(&buf, cmd->p1, (bool) (cmd->p2 & P2_MORE));
+        case CMD_SIGN_TRANSACTION:
+            if (cmd->p1 == 0 || cmd->p2 == 0) {
+                return io_send_sw(SW_WRONG_P1P2);
+            }
+            return handler_sign_transaction(&buf, cmd->p1, cmd->p2);
         default:
             return io_send_sw(SW_INS_NOT_SUPPORTED);
     }

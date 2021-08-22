@@ -16,36 +16,11 @@
 #include "../../helpers/crypto.h"
 #include "../../common/buffer.h"
 #include "../../common/bip32.h"
+#include "../../common/macros.h"
 #include "../../helpers/response.h"
 #include "../../helpers/session_id.h"
 
 #define UI_CONTEXT(gcxt) G_context.ui.derive_address
-
-static void genenerate_raw_public_key(uint32_t bip32_path[static MAX_BIP32_PATH],
-                                      uint8_t path_len,
-                                      uint8_t raw_key[static PUBLIC_KEY_LEN]) {
-    cx_ecfp_private_key_t private_key = {0};
-    cx_ecfp_public_key_t public_key = {0};
-    uint8_t chain_code[CHAIN_CODE_LEN];
-
-    BEGIN_TRY {
-        TRY {
-            // derive private key according to BIP32 path
-            crypto_derive_private_key(&private_key, chain_code, bip32_path, path_len);
-            // generate corresponding public key
-            crypto_init_public_key(&private_key, &public_key, raw_key);
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-            // reset private key and chaincode
-            explicit_bzero(&private_key, sizeof(private_key));
-            explicit_bzero(chain_code, CHAIN_CODE_LEN);
-        }
-    }
-    END_TRY;
-}
 
 int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token) {
     if (G_context.ui.is_busy) {
@@ -81,7 +56,10 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
         return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
     }
 
-    genenerate_raw_public_key(bip32_path, bip32_path_len, UI_CONTEXT(G_context).raw_public_key);
+    crypto_generate_public_key(bip32_path,
+                               bip32_path_len,
+                               UI_CONTEXT(G_context).raw_public_key,
+                               NULL);
 
     if (!display && is_known_application(access_token, G_context.app_session_id)) {
         return send_response_address(UI_CONTEXT(G_context).raw_public_key);

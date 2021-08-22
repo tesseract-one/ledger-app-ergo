@@ -9,22 +9,9 @@
 #include "ainpt_context.h"
 #include "ainpt_sw.h"
 #include "../../globals.h"
-#include "../../helpers/hmac.h"
 #include "../../helpers/response.h"
-
-#define FRAME_MAX_TOKENS_COUNT      4
-#define FRAME_TOKEN_VALUE_PAIR_SIZE (TOKEN_ID_LEN + sizeof(uint64_t))
-#define FRAME_SIGNATURE_SIZE        16
-#define FRAME_MAX_SIZE                                     \
-    (BOX_ID_LEN + 3 * sizeof(uint8_t) + sizeof(uint64_t) + \
-     FRAME_MAX_TOKENS_COUNT * FRAME_TOKEN_VALUE_PAIR_SIZE + FRAME_SIGNATURE_SIZE)
-
-#define TOKENS_COUNT(ctx)           ctx->box.tokens_count
-#define BOX_VALUE(ctx)              ctx->box.ctx.value
-#define BOX_ID(ctx)                 ctx->box_id
-#define TOKEN_INFO_COUNT(ctx)       ctx->tokens_table.count
-#define TOKEN_INFO_ID(ctx, idx)     ctx->tokens_table.tokens[idx]
-#define TOKEN_INFO_AMOUNT(ctx, idx) ctx->token_amounts[idx]
+#include "../../helpers/input_frame.h"
+#include "../../helpers/io.h"
 
 static inline uint8_t get_frames_count(uint8_t tokens_count) {
     uint8_t frames_count = (tokens_count + (FRAME_MAX_TOKENS_COUNT - 1)) / FRAME_MAX_TOKENS_COUNT;
@@ -34,54 +21,63 @@ static inline uint8_t get_frames_count(uint8_t tokens_count) {
 int send_response_attested_input_frame(attest_input_ctx_t *ctx,
                                        uint8_t session_key[static SESSION_KEY_LEN],
                                        uint8_t index) {
-    uint8_t frames_count = get_frames_count(TOKENS_COUNT(ctx));
+    uint8_t frames_count = get_frames_count(ctx->box.tokens_count);
     if (index >= frames_count) {
         return res_error(SW_ATTEST_UTXO_BAD_FRAME_INDEX);
     }
 
-    BUFFER_NEW_LOCAL_EMPTY(buffer, FRAME_MAX_SIZE);
+    // Hack for stack overflow. Writing directly to the IO buffer.
+    // Not elegant but works.
+    BUFFER_FROM_ARRAY_EMPTY(output, G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 2);
 
-    if (!buffer_write_bytes(&buffer, BOX_ID(ctx), BOX_ID_LEN)) {
+    if (!buffer_write_bytes(&output, ctx->box_id, BOX_ID_LEN)) {
         return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
-    if (!buffer_write_u8(&buffer, frames_count)) {
+    if (!buffer_write_u8(&output, frames_count)) {
         return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
-    if (!buffer_write_u8(&buffer, index)) {
+    if (!buffer_write_u8(&output, index)) {
         return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
-    if (!buffer_write_u8(&buffer, TOKENS_COUNT(ctx))) {
+    if (!buffer_write_u8(&output, ctx->box.tokens_count)) {
         return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
-    if (!buffer_write_u64(&buffer, BOX_VALUE(ctx), BE)) {
+    if (!buffer_write_u64(&output, ctx->box.ctx.value, BE)) {
         return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
+
     uint8_t offset = index * FRAME_MAX_TOKENS_COUNT;
     uint8_t non_empty = 0;
-    for (uint8_t i = 0; i < TOKEN_INFO_COUNT(ctx); i++) {
-        if (TOKEN_INFO_AMOUNT(ctx, i) > 0) non_empty++;
-        if (TOKEN_INFO_AMOUNT(ctx, i) > 0 && non_empty >= offset) {
-            if (!buffer_write_bytes(&buffer, TOKEN_INFO_ID(ctx, i), TOKEN_ID_LEN)) {
+    for (uint8_t i = 0; i < ctx->tokens_table.count; i++) {
+        if (ctx->token_amounts[i] > 0) non_empty++;
+        if (ctx->token_amounts[i] > 0 && non_empty >= offset) {
+            if (!buffer_write_bytes(&output, ctx->tokens_table.tokens[i], TOKEN_ID_LEN)) {
                 return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
             }
-            if (!buffer_write_u64(&buffer, TOKEN_INFO_AMOUNT(ctx, i), BE)) {
+            if (!buffer_write_u64(&output, ctx->token_amounts[i], BE)) {
                 return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
             }
             if (non_empty - offset == FRAME_MAX_TOKENS_COUNT - 1) break;
         }
     }
-
-    uint8_t hmac[CX_SHA256_SIZE] = {0};
-
-    if (!hmac_sha256(session_key, SESSION_KEY_LEN, buffer.ptr, buffer_data_len(&buffer), hmac)) {
+    cx_hmac_sha256_t hmac;
+    if (cx_hmac_sha256_init_no_throw(&hmac, session_key, SESSION_KEY_LEN) != 0) {
+        return res_error(SW_ATTEST_UTXO_HMAC_ERROR);
+    }
+    if (cx_hmac_no_throw((cx_hmac_t *) &hmac,
+                         CX_LAST,
+                         buffer_read_ptr(&output),
+                         buffer_data_len(&output),
+                         buffer_write_ptr(&output),
+                         buffer_empty_space_len(&output)) != 0) {
         return res_error(SW_ATTEST_UTXO_HMAC_ERROR);
     }
 
-    if (!buffer_write_bytes(&buffer, hmac, FRAME_SIGNATURE_SIZE)) {
+    if (!buffer_seek_write_cur(&output, INPUT_FRAME_SIGNATURE_LEN)) {
         return res_error(SW_ATTEST_UTXO_BUFFER_ERROR);
     }
 
-    return res_ok_data(&buffer);
+    return res_ok_data(&output);
 }
 
 int send_response_attested_input_frame_count(uint8_t tokens_count) {

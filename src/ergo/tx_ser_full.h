@@ -112,7 +112,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_change_tree(
     ergo_tx_serializer_full_context_t* context,
     uint8_t raw_pub_key[static PUBLIC_KEY_LEN]);
 
-ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_miners_change_tree(
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_miners_fee_tree(
     ergo_tx_serializer_full_context_t* context);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_tokens(
@@ -126,6 +126,10 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_register(
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
     ergo_tx_serializer_full_context_t* context,
     uint8_t tx_id[static TRANSACTION_HASH_LEN]);
+
+static inline bool ergo_tx_serializer_full_is_finished(ergo_tx_serializer_full_context_t* context) {
+    return context->state == ERGO_TX_SERIALIZER_FULL_STATE_FINISHED;
+}
 
 static inline ergo_tx_serializer_full_result_e ergo_tx_serializer_full_set_input_callback(
     ergo_tx_serializer_full_context_t* context,

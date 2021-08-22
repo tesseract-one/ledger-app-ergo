@@ -87,6 +87,17 @@ static inline uint8_t *buffer_read_ptr(const buffer_t *buffer) {
 }
 
 /**
+ * Return write pointer to the start of the empty space.
+ *
+ * @param[in] buffer
+ *   Pointer to input buffer struct.
+ *
+ */
+static inline uint8_t *buffer_write_ptr(const buffer_t *buffer) {
+    return buffer->ptr + buffer->write_offset;
+}
+
+/**
  * Tell whether buffer can read bytes or not.
  *
  * @param[in] buffer
@@ -140,6 +151,32 @@ static inline size_t buffer_empty_space_len(const buffer_t *buffer) {
  */
 static inline size_t buffer_data_len(const buffer_t *buffer) {
     return buffer->write_offset - buffer->read_offset;
+}
+
+/**
+ * Get current read position of the buffer.
+ *
+ * @param[in] buffer
+ *   Pointer to input buffer struct.
+ *
+ * @return current read position in the buffer.
+ *
+ */
+static inline size_t buffer_read_position(const buffer_t *buffer) {
+    return buffer->read_offset;
+}
+
+/**
+ * Get current write position of the buffer.
+ *
+ * @param[in] buffer
+ *   Pointer to input buffer struct.
+ *
+ * @return current write position in the buffer.
+ *
+ */
+static inline size_t buffer_write_position(const buffer_t *buffer) {
+    return buffer->write_offset;
 }
 
 /**

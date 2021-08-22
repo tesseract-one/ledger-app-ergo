@@ -63,45 +63,35 @@ void crypto_init_public_key(cx_ecfp_private_key_t *private_key,
     memmove(raw_public_key, public_key->W, PUBLIC_KEY_LEN);
 }
 
-// int crypto_sign_message() {
-//     cx_ecfp_private_key_t private_key = {0};
-//     uint8_t chain_code[32] = {0};
-//     uint32_t info = 0;
-//     int sig_len = 0;
+void crypto_generate_public_key(const uint32_t *bip32_path,
+                                uint8_t bip32_path_len,
+                                uint8_t raw_public_key[static PUBLIC_KEY_LEN],
+                                uint8_t chain_code[CHAIN_CODE_LEN]) {
+    bool has_chain_code = chain_code != NULL;
+    uint8_t temp_chain_code[CHAIN_CODE_LEN];
+    if (!has_chain_code) {
+        chain_code = temp_chain_code;
+    }
+    cx_ecfp_private_key_t private_key = {0};
+    cx_ecfp_public_key_t public_key = {0};
 
-//     // derive private key according to BIP32 path
-//     crypto_derive_private_key(&private_key,
-//                               chain_code,
-//                               G_context.bip32_path,
-//                               G_context.bip32_path_len);
-
-//     BEGIN_TRY {
-//         TRY {
-//             sig_len = cx_ecdsa_sign(&private_key,
-//                                     CX_RND_RFC6979 | CX_LAST,
-//                                     CX_SHA256,
-//                                     G_context.tx_info.m_hash,
-//                                     sizeof(G_context.tx_info.m_hash),
-//                                     G_context.tx_info.signature,
-//                                     sizeof(G_context.tx_info.signature),
-//                                     &info);
-//             PRINTF("Signature: %.*H\n", sig_len, G_context.tx_info.signature);
-//         }
-//         CATCH_OTHER(e) {
-//             THROW(e);
-//         }
-//         FINALLY {
-//             explicit_bzero(&private_key, sizeof(private_key));
-//         }
-//     }
-//     END_TRY;
-
-//     if (sig_len < 0) {
-//         return -1;
-//     }
-
-//     G_context.tx_info.signature_len = sig_len;
-//     G_context.tx_info.v = (uint8_t)(info & CX_ECCINFO_PARITY_ODD);
-
-//     return 0;
-// }
+    BEGIN_TRY {
+        TRY {
+            // derive private key according to BIP32 path
+            crypto_derive_private_key(&private_key, chain_code, bip32_path, bip32_path_len);
+            // generate corresponding public key
+            crypto_init_public_key(&private_key, &public_key, raw_public_key);
+        }
+        CATCH_OTHER(e) {
+            THROW(e);
+        }
+        FINALLY {
+            // reset private key and chaincode
+            explicit_bzero(&private_key, sizeof(private_key));
+            if (!has_chain_code) {
+                explicit_bzero(chain_code, CHAIN_CODE_LEN);
+            }
+        }
+    }
+    END_TRY;
+}

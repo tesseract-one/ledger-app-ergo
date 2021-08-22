@@ -7,6 +7,7 @@
 
 #include "tx_ser_full.h"
 #include "../common/varint.h"
+#include "../common/macros.h"
 #include <string.h>
 
 static inline ergo_tx_serializer_full_result_e map_table_result(
@@ -94,8 +95,8 @@ static inline bool hash_u16(cx_blake2b_t* hash, uint16_t u16) {
     return blake2b_update(hash, buffer_read_ptr(&buffer), buffer_data_len(&buffer));
 }
 
-static ergo_tx_serializer_full_result_e data_inputs_finished(
-    ergo_tx_serializer_full_context_t* context) {
+static NOINLINE ergo_tx_serializer_full_result_e
+data_inputs_finished(ergo_tx_serializer_full_context_t* context) {
     ergo_tx_serializer_full_result_e res =
         map_table_result(ergo_tx_serializer_table_init(&context->table_ctx,
                                                        context->tokens_count,
@@ -117,7 +118,8 @@ static ergo_tx_serializer_full_result_e data_inputs_finished(
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }
 
-static ergo_tx_serializer_full_result_e input_finished(ergo_tx_serializer_full_context_t* context) {
+static NOINLINE ergo_tx_serializer_full_result_e
+input_finished(ergo_tx_serializer_full_context_t* context) {
     context->inputs_count--;
     if (context->inputs_count == 0) {
         if (!hash_u16(&context->hash, context->data_inputs_count)) {
@@ -371,7 +373,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_change_tree(
     return res;
 }
 
-ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_miners_change_tree(
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_miners_fee_tree(
     ergo_tx_serializer_full_context_t* context) {
     if (context->state != ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED) {
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;

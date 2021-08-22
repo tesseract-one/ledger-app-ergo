@@ -16,6 +16,7 @@
 #include "../../helpers/response.h"
 #include "../../common/buffer.h"
 #include "../../common/bip32.h"
+#include "../../common/macros.h"
 #include "../../helpers/session_id.h"
 
 #define UI_CONTEXT(gctx) gctx.ui.ext_pub_key
@@ -26,9 +27,6 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
     }
 
     clear_context(&G_context, CMD_GET_EXTENDED_PUBLIC_KEY);
-
-    cx_ecfp_private_key_t private_key = {0};
-    cx_ecfp_public_key_t public_key = {0};
 
     uint8_t bip32_path_len;
     uint32_t bip32_path[MAX_BIP32_PATH];
@@ -51,25 +49,10 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
         return res_error(SW_DISPLAY_BIP32_PATH_FAIL);
     }
 
-    BEGIN_TRY {
-        TRY {
-            // derive private key according to BIP32 path
-            crypto_derive_private_key(&private_key,
-                                      UI_CONTEXT(G_context).chain_code,
-                                      bip32_path,
-                                      bip32_path_len);
-            // generate corresponding public key
-            crypto_init_public_key(&private_key, &public_key, UI_CONTEXT(G_context).raw_public_key);
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-            // clear private key
-            explicit_bzero(&private_key, sizeof(private_key));
-        }
-    }
-    END_TRY;
+    crypto_generate_public_key(bip32_path,
+                               bip32_path_len,
+                               UI_CONTEXT(G_context).raw_public_key,
+                               UI_CONTEXT(G_context).chain_code);
 
     if (is_known_application(access_token, G_context.app_session_id)) {
         return send_response_extended_pubkey(UI_CONTEXT(G_context).raw_public_key,

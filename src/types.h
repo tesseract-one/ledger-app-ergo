@@ -4,7 +4,6 @@
 #include <stdint.h>  // uint*_t
 
 #include "constants.h"
-#include "common/bip32.h"
 
 /**
  * Enumeration for the status of IO.
@@ -39,27 +38,3 @@ typedef struct {
     uint8_t lc;     /// Lenght of command data
     uint8_t *data;  /// Command data
 } command_t;
-
-typedef enum {
-    CMD_SIGN_TRANSACTION_NONE = 0x00,
-    CMD_SIGN_TRANSACTION_START = 0x01,
-    CMD_SIGN_TRANSACTION_ADD_TOKEN_IDS = 0x02,
-    CMD_SIGN_TRANSACTION_ADD_INPUT_BOX = 0x03,
-    CMD_SIGN_TRANSACTION_ADD_DATA_INPUTS = 0x04,
-    CMD_SIGN_TRANSACTION_ADD_OUTPUT_BOX = 0x05,
-    CMD_SIGN_TRANSACTION_CONFIRM = 0x06,
-    CMD_SIGN_TRANSACTION_SIGN_TX_HASH_WITH_KEY = 0x07
-} sign_transaction_step_e;
-
-typedef struct {
-    uint8_t session_id;
-    sign_transaction_step_e step;
-    uint16_t inputs_count;
-    uint16_t data_inputs_count;
-    uint8_t distinct_token_ids_count;
-    uint16_t output_count;
-    uint64_t amount;
-    // token_amount_table_t tokens;
-    bool approved;
-    uint8_t tx_hash[TRANSACTION_HASH_LEN];
-} sign_transaction_ctx_t;

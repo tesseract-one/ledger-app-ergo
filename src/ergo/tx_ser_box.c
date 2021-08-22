@@ -10,6 +10,7 @@
 #include <string.h>
 #include "ergo_tree.h"
 #include "../common/varint.h"
+#include "../common/macros.h"
 
 static inline ergo_tx_serializer_box_result_e parse_token(buffer_t* input,
                                                           uint32_t* index,
@@ -49,8 +50,8 @@ static inline ergo_tx_serializer_box_result_e add_height_and_token_count(
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
 }
 
-static inline ergo_tx_serializer_box_result_e add_registers_count(
-    ergo_tx_serializer_box_context_t* context) {
+static NOINLINE ergo_tx_serializer_box_result_e
+add_registers_count(ergo_tx_serializer_box_context_t* context) {
     BUFFER_NEW_LOCAL_EMPTY(buffer, 1);
     if (gve_put_u8(&buffer, context->registers_count) != GVE_OK) {
         context->state = ERGO_TX_SERIALIZER_BOX_STATE_ERROR;
@@ -64,8 +65,8 @@ static inline ergo_tx_serializer_box_result_e add_registers_count(
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
 }
 
-static inline ergo_tx_serializer_box_result_e ergo_tree_added(
-    ergo_tx_serializer_box_context_t* context) {
+static NOINLINE ergo_tx_serializer_box_result_e
+ergo_tree_added(ergo_tx_serializer_box_context_t* context) {
     ergo_tx_serializer_box_result_e res;
     if (context->callbacks.on_type != NULL) {
         res = context->callbacks.on_type(context->type, context->value, context->callbacks.context);

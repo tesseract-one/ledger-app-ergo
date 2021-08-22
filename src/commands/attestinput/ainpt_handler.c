@@ -13,8 +13,12 @@
 #include "../../helpers/session_id.h"
 #include "../../helpers/response.h"
 #include "../../common/int_ops.h"
+#include "../../common/macros.h"
 
 #include <string.h>
+
+#define CHECK_COMMAND(_cmd) \
+    if (_cmd != G_context.current_command) return handler_err(&G_context.input_ctx, SW_BAD_STATE)
 
 #define CHECK_SESSION(session_id)                  \
     if (session_id != G_context.input_ctx.session) \
@@ -25,7 +29,7 @@ static inline int handler_err(attest_input_ctx_t *ctx, uint16_t err) {
     return res_error(err);
 }
 
-static int check_box_finished(attest_input_ctx_t *ctx) {
+static NOINLINE int check_box_finished(attest_input_ctx_t *ctx) {
     if (!ergo_tx_serializer_box_is_registers_finished(&ctx->box.ctx)) {
         return res_ok();
     }
@@ -45,10 +49,10 @@ static int check_box_finished(attest_input_ctx_t *ctx) {
     return send_response_attested_input_frame_count(ctx->box.tokens_count);
 }
 
-static ergo_tx_serializer_box_result_e box_token_cb(ergo_tx_serializer_box_type_e type,
-                                                    uint8_t index,
-                                                    uint64_t value,
-                                                    void *context) {
+static NOINLINE ergo_tx_serializer_box_result_e box_token_cb(ergo_tx_serializer_box_type_e type,
+                                                             uint8_t index,
+                                                             uint64_t value,
+                                                             void *context) {
     (void) (type);
     attest_input_ctx_t *ctx = (attest_input_ctx_t *) context;
     if (!checked_add_u64(ctx->token_amounts[index], value, &ctx->token_amounts[index])) {
@@ -293,27 +297,35 @@ int handler_attest_input(buffer_t *cdata,
                                session_or_token == 0x02,
                                G_context.app_session_id);
         case ATTEST_INPUT_SUBCOMMAND_PREFIX_CHUNK:
+            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
             return handle_tx_prefix_chunk(&G_context.input_ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_TOKEN_IDS:
+            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
             return handle_tx_tokens(&G_context.input_ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_SUFFIX_CHUNK:
+            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
             return handle_tx_suffix_chunk(&G_context.input_ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_BOX:
+            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
             return handle_box_init(&G_context.input_ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_BOX_TREE_CHUNK:
+            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
             return handle_box_tree_chunk(&G_context.input_ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_BOX_TOKENS:
+            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
             return handle_box_tokens(&G_context.input_ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_BOX_REGISTER:
+            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
             return handle_box_register(&G_context.input_ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_GET_RESPONSE_FRAME:
+            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
             return handle_box_get_frame(&G_context.input_ctx, G_context.session_key, cdata);
         default:

@@ -14,6 +14,7 @@
 #include "../../ergo/tx_ser_simple.h"
 #include "../../ergo/tx_ser_box.h"
 #include "../../common/buffer.h"
+#include "../../helpers/input_frame.h"
 
 typedef struct {
     cx_blake2b_t hash;
@@ -21,10 +22,6 @@ typedef struct {
     uint8_t tokens_count;
     ergo_tx_serializer_box_context_t ctx;
 } _attest_input_box_ctx_t;
-
-typedef struct {
-    uint64_t amounts[TOKEN_MAX_COUNT];
-} _attest_input_tokens_amount_t;
 
 typedef enum {
     ATTEST_INPUT_STATE_INITIALIZED,
