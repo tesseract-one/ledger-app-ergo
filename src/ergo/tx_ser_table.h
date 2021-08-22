@@ -1,10 +1,3 @@
-//
-//  tx_ser_table.h
-//  ErgoTxSerializer
-//
-//  Created by Yehor Popovych on 17.08.2021.
-//
-
 #pragma once
 
 #include <stdint.h>
@@ -12,13 +5,6 @@
 #include "../constants.h"
 #include "../common/buffer.h"
 #include "../helpers/blake2b.h"
-
-// typedef struct {
-//     uint8_t id[TOKEN_ID_LEN];
-//     uint64_t input;
-//     uint64_t output;
-//     uint64_t change;
-// } token_amount_t;
 
 typedef struct {
     uint8_t count;

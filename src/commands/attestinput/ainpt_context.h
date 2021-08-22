@@ -1,10 +1,3 @@
-//
-//  autxo_context.h
-//  ErgoTxSerializer
-//
-//  Created by Yehor Popovych on 17.08.2021.
-//
-
 #pragma once
 
 #include <stdint.h>

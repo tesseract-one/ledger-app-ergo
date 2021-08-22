@@ -1,10 +1,3 @@
-//
-//  tx_ser_full.h
-//  ErgoTxSerializer
-//
-//  Created by Yehor Popovych on 18.08.2021.
-//
-
 #pragma once
 
 #include <stdint.h>

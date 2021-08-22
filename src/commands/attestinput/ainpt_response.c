@@ -1,10 +1,3 @@
-//
-//  autxo_response.c
-//  ErgoTxSerializer
-//
-//  Created by Yehor Popovych on 17.08.2021.
-//
-
 #include "ainpt_response.h"
 #include "ainpt_context.h"
 #include "ainpt_sw.h"

@@ -1,10 +1,3 @@
-//
-//  tx_ser_table.c
-//  ErgoTxSerializer
-//
-//  Created by Yehor Popovych on 17.08.2021.
-//
-
 #include "tx_ser_table.h"
 #include <os.h>
 #include "../common/varint.h"

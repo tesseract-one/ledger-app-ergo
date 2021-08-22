@@ -25,6 +25,12 @@
 #define CHECK_PROPER_STATES(_ctx, _state1, _state2) \
     if (_ctx->state != _state1 && _ctx->state != _state2) return handler_err(_ctx, SW_BAD_STATE)
 
+#define CHECK_READ_PARAM(_ctx, _call) \
+    if (!_call) return handler_err(_ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS)
+
+#define CHECK_PARAMS_FINISHED(_ctx, _buffer) \
+    if (buffer_can_read(_buffer, 1)) return handler_err(_ctx, SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED)
+
 #define CHECK_CALL_RESULT_OK(_ctx, _call)                                                          \
     {                                                                                              \
         ergo_tx_serializer_full_result_e res = _call;                                              \
@@ -43,8 +49,10 @@ static NOINLINE ergo_tx_serializer_input_result_e input_token_cb(uint8_t *box_id
                                                                  void *context) {
     (void) (box_id);
     sign_transaction_ui_ctx_t *ctx = (sign_transaction_ui_ctx_t *) context;
-    uint64_t *sum = &ctx->token_amounts[index].input;
-    if (!checked_add_u64(*sum, value, sum)) {  // calculating proper token sum
+    // calculating proper token sum
+    if (!checked_add_u64(ctx->token_amounts[index].input,
+                         value,
+                         &ctx->token_amounts[index].input)) {
         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_U64_OVERFLOW;
     }
     return ERGO_TX_SERIALIZER_INPUT_RES_OK;
@@ -53,8 +61,8 @@ static NOINLINE ergo_tx_serializer_input_result_e input_token_cb(uint8_t *box_id
 static NOINLINE ergo_tx_serializer_box_result_e output_type_cb(ergo_tx_serializer_box_type_e type,
                                                                uint64_t value,
                                                                void *context) {
-    sign_transaction_ui_ctx_t *ctx = (sign_transaction_ui_ctx_t *) context;
     uint64_t *sum;
+    sign_transaction_ui_ctx_t *ctx = (sign_transaction_ui_ctx_t *) context;
     switch (type) {
         case ERGO_TX_SERIALIZER_BOX_TYPE_CHANGE:
             sum = &ctx->change_value;
@@ -79,8 +87,8 @@ static NOINLINE ergo_tx_serializer_box_result_e output_token_cb(ergo_tx_serializ
                                                                 uint8_t index,
                                                                 uint64_t value,
                                                                 void *context) {
-    sign_transaction_ui_ctx_t *ctx = (sign_transaction_ui_ctx_t *) context;
     uint64_t *sum;
+    sign_transaction_ui_ctx_t *ctx = (sign_transaction_ui_ctx_t *) context;
     switch (type) {
         case ERGO_TX_SERIALIZER_BOX_TYPE_OUTPUT:
             sum = &ctx->token_amounts[index].output;
@@ -102,12 +110,9 @@ static NOINLINE ergo_tx_serializer_box_result_e output_token_cb(ergo_tx_serializ
 static NOINLINE ergo_tx_serializer_full_result_e read_bip32_path(buffer_t *input,
                                                                  uint32_t path[MAX_BIP32_PATH],
                                                                  uint8_t *path_len) {
-    if (!buffer_read_u8(input, path_len)) {
+    if (!buffer_read_u8(input, path_len)) return ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER;
+    if (!buffer_read_bip32_path(input, path, *path_len))
         return ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER;
-    }
-    if (!buffer_read_bip32_path(input, path, *path_len)) {
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER;
-    }
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }
 
@@ -115,30 +120,16 @@ static inline int handle_init(sign_transaction_ctx_t *ctx,
                               buffer_t *cdata,
                               bool has_token,
                               uint32_t app_session_id) {
-    uint16_t inputs_count;
-    uint16_t data_inputs_count;
+    uint16_t inputs_count, data_inputs_count, outputs_count;
     uint8_t tokens_count;
-    uint16_t outputs_count;
     uint32_t app_session_id_in = 0;
 
-    if (!buffer_read_u16(cdata, &inputs_count, BE)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (!buffer_read_u16(cdata, &data_inputs_count, BE)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (!buffer_read_u8(cdata, &tokens_count)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (!buffer_read_u16(cdata, &outputs_count, BE)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (has_token && !buffer_read_u32(cdata, &app_session_id_in, BE)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (buffer_can_read(cdata, 1)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED);
-    }
+    CHECK_READ_PARAM(ctx, buffer_read_u16(cdata, &inputs_count, BE));
+    CHECK_READ_PARAM(ctx, buffer_read_u16(cdata, &data_inputs_count, BE));
+    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &tokens_count));
+    CHECK_READ_PARAM(ctx, buffer_read_u16(cdata, &outputs_count, BE));
+    CHECK_READ_PARAM(ctx, !(has_token && !buffer_read_u32(cdata, &app_session_id_in, BE)));
+    CHECK_PARAMS_FINISHED(ctx, cdata);
 
     CHECK_CALL_RESULT_OK(ctx,
                          ergo_tx_serializer_full_init(&ctx->tx,
@@ -159,7 +150,7 @@ static inline int handle_init(sign_transaction_ctx_t *ctx,
 }
 
 static inline int handle_tokens(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
-    CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_INITIALIZED);
+    CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_DATA_APPROVED);
     CHECK_CALL_RESULT_OK(ctx, ergo_tx_serializer_full_add_tokens(&ctx->tx, cdata));
     return res_ok();
 }
@@ -169,13 +160,11 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
                                      uint8_t session_key[static SESSION_KEY_LEN],
                                      buffer_t *cdata) {
     CHECK_PROPER_STATES(ctx,
-                        SIGN_TRANSACTION_STATE_INITIALIZED,
+                        SIGN_TRANSACTION_STATE_DATA_APPROVED,
                         SIGN_TRANSACTION_STATE_INPUTS_STARTED);
 
     uint8_t input_id[BOX_ID_LEN];
-    uint8_t frames_count;
-    uint8_t frame_index;
-    uint8_t tokens_count;
+    uint8_t frames_count, frame_index, tokens_count;
     uint64_t value;
     buffer_t tokens;
 
@@ -198,9 +187,7 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
 
     if (frame_index == 0) {
         uint32_t extension_len;
-        if (!buffer_read_u32(cdata, &extension_len, BE)) {
-            return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-        }
+        CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &extension_len, BE));
         CHECK_CALL_RESULT_OK(
             ctx,
             ergo_tx_serializer_full_add_input(&ctx->tx, input_id, frames_count, extension_len));
@@ -208,7 +195,7 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
         if (!checked_add_u64(ui_ctx->inputs_value, value, &ui_ctx->inputs_value)) {
             return handler_err(ctx, 0xFFFF);
         }
-        if (ctx->state == SIGN_TRANSACTION_STATE_INITIALIZED) {
+        if (ctx->state == SIGN_TRANSACTION_STATE_DATA_APPROVED) {
             CHECK_CALL_RESULT_OK(ctx,
                                  ergo_tx_serializer_full_set_input_callback(&ctx->tx,
                                                                             &input_token_cb,
@@ -243,29 +230,15 @@ static inline int handle_output_init(sign_transaction_ctx_t *ctx,
                         SIGN_TRANSACTION_STATE_INPUTS_STARTED,
                         SIGN_TRANSACTION_STATE_OUTPUTS_STARTED);
     uint64_t value;
-    uint32_t ergo_tree_size;
-    uint32_t creation_height;
-    uint8_t tokens_count;
-    uint8_t registers_count;
+    uint32_t ergo_tree_size, creation_height;
+    uint8_t tokens_count, registers_count;
 
-    if (!buffer_read_u64(cdata, &value, BE)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (!buffer_read_u32(cdata, &ergo_tree_size, BE)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (!buffer_read_u32(cdata, &creation_height, BE)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (!buffer_read_u8(cdata, &tokens_count)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (!buffer_read_u8(cdata, &registers_count)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_NOT_ENOUGH_PARAMS);
-    }
-    if (buffer_can_read(cdata, 1)) {
-        return handler_err(ctx, SW_ATTEST_UTXO_MORE_DATA_THAN_NEEDED);
-    }
+    CHECK_READ_PARAM(ctx, buffer_read_u64(cdata, &value, BE));
+    CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &ergo_tree_size, BE));
+    CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &creation_height, BE));
+    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &tokens_count));
+    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &registers_count));
+    CHECK_PARAMS_FINISHED(ctx, cdata);
 
     CHECK_CALL_RESULT_OK(ctx,
                          ergo_tx_serializer_full_add_box(&ctx->tx,

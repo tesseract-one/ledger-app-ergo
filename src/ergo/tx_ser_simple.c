@@ -1,10 +1,3 @@
-//
-//  tx_ser_simple.c
-//  ErgoTxSerializer
-//
-//  Created by Yehor Popovych on 17.08.2021.
-//
-
 #include "tx_ser_simple.h"
 #include <os.h>
 #include <string.h>
