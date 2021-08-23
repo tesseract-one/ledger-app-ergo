@@ -31,7 +31,8 @@ typedef struct {
 } sign_transaction_ctx_t;
 
 typedef struct {
-    char app_token[11];  // hexified app token
+    char value[30];  // hexified app token
+    char fee[30];    // hexified app token
     uint64_t inputs_value;
     uint64_t fee_value;
     uint64_t change_value;

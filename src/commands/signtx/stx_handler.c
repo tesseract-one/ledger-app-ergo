@@ -346,13 +346,11 @@ static inline int handle_output_register(sign_transaction_ctx_t *ctx, buffer_t *
     return res_ok();
 }
 
-static inline int handle_sign_confirm(sign_transaction_ctx_t *ctx,
-                                      sign_transaction_ui_ctx_t *ui_ctx) {
+static inline int handle_sign_confirm(sign_transaction_ctx_t *ctx) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_OUTPUTS_STARTED);
     CHECK_CALL_RESULT_OK(ctx, ergo_tx_serializer_full_hash(&ctx->tx, ctx->tx_id));
-    ctx->state = SIGN_TRANSACTION_STATE_CONFIRMED;
-    BUFFER_FROM_ARRAY_FULL(out, ctx->tx_id, ERGO_ID_LEN);
-    return res_ok_data(&out);
+    ctx->state = SIGN_TRANSACTION_STATE_TX_FINISHED;
+    return ui_display_sign_tx_transaction();
 }
 
 static inline int handle_sign_pk(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
@@ -429,7 +427,7 @@ int handler_sign_transaction(buffer_t *cdata,
         case SIGN_TRANSACTION_SUBCOMMAND_CONFIRM:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_sign_confirm(&G_context.sign_tx_ctx, &G_context.ui.sign_tx);
+            return handle_sign_confirm(&G_context.sign_tx_ctx);
         case SIGN_TRANSACTION_SUBCOMMAND_SIGN_PK:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);

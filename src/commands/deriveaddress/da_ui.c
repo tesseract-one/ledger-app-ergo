@@ -17,7 +17,7 @@
 
 // Step with icon and text
 UX_STEP_NOCB(ux_da_display_confirm_addr_step, pn, {&C_icon_eye, "Confirm Address"});
-UX_STEP_NOCB(ux_da_display_confirm_send_step, pn, {&C_icon_eye, "Confirm Send Address"});
+UX_STEP_NOCB(ux_da_display_confirm_send_step, pn, {&C_icon_processing, "Confirm Send Address"});
 // Step with title/text for account number
 UX_STEP_NOCB(ux_da_display_path_step,
              bnnn_paging,

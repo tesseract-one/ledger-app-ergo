@@ -46,7 +46,7 @@
                 "PRINTF=screen_printf"
             ],
             "compilerPath": "${env:BOLOS_ENV}/gcc-arm-none-eabi-10-2020-q4-major/bin/arm-none-eabi-gcc",
-            "cStandard": "c11",
+            "cStandard": "c99",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-arm",
             "browse": {

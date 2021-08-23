@@ -16,7 +16,7 @@
 #define UI_CONTEXT(gctx) gctx.ui.ext_pub_key
 
 // Step with icon and text
-UX_STEP_NOCB(ux_epk_display_confirm_ext_pubkey_step, pn, {&C_icon_eye, "Confirm Ext PubKey"});
+UX_STEP_NOCB(ux_epk_display_confirm_ext_pubkey_step, pn, {&C_icon_warning, "Ext PubKey Export"});
 // Step with title/text for account number
 UX_STEP_NOCB(ux_epk_display_account_step,
              bn,

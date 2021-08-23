@@ -13,7 +13,7 @@
 #define UI_CONTEXT(gctx) gctx.ui.attest_inpt
 
 // Step with icon and text
-UX_STEP_NOCB(ux_ainpt_display_confirm_step, pn, {&C_icon_eye, "Confirm Attest Input"});
+UX_STEP_NOCB(ux_ainpt_display_confirm_step, pn, {&C_icon_processing, "Confirm Attest Input"});
 // Step with title/text for application token
 UX_STEP_NOCB(ux_ainpt_display_app_token_step,
              bn,
