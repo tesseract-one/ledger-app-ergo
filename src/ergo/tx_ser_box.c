@@ -201,7 +201,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
             // INPUT BOX ID has token ids instead of indexes
             if (!blake2b_update(context->hash,
                                 context->tokens_table->tokens[(uint8_t) index],
-                                TOKEN_ID_LEN)) {
+                                ERGO_ID_LEN)) {
                 return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
             }
         } else {
@@ -277,11 +277,11 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_register(
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tx_id_and_index(
     ergo_tx_serializer_box_context_t* context,
-    uint8_t tx_id[static TRANSACTION_HASH_LEN],
+    uint8_t tx_id[static ERGO_ID_LEN],
     uint16_t box_index) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_REGISTERS_ADDED);
 
-    if (!blake2b_update(context->hash, tx_id, TRANSACTION_HASH_LEN)) {
+    if (!blake2b_update(context->hash, tx_id, ERGO_ID_LEN)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
 
@@ -302,7 +302,7 @@ bool ergo_tx_serializer_box_id_hash_init(cx_blake2b_t* hash) {
 }
 
 bool ergo_tx_serializer_box_id_hash(ergo_tx_serializer_box_context_t* context,
-                                    uint8_t box_id[static BOX_ID_LEN]) {
+                                    uint8_t box_id[static ERGO_ID_LEN]) {
     if (context->state != ERGO_TX_SERIALIZER_BOX_STATE_FINISHED) {
         return false;
     }

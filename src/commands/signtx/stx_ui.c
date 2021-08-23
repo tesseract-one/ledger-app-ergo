@@ -50,7 +50,7 @@ UX_FLOW(ux_stx_display_app_token_flow,
         &ux_stx_display_token_reject_step,
         FLOW_LOOP);
 
-int ui_display_sing_tx_access_token(uint32_t app_access_token) {
+int ui_display_sign_tx_access_token(uint32_t app_access_token) {
     UI_CONTEXT(G_context).app_token_value = app_access_token;
 
     memset(UI_CONTEXT(G_context).app_token, 0, MEMBER_SIZE(sign_transaction_ui_ctx_t, app_token));

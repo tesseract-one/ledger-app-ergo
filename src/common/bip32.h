@@ -37,7 +37,7 @@ typedef enum {
  * @return true if success, false otherwise.
  *
  */
-bool bip32_path_read(const uint8_t *in, size_t in_len, uint32_t *out, size_t out_len);
+bool bip32_path_read(const uint8_t *in, size_t in_len, uint32_t *out, uint8_t out_len);
 
 /**
  * Format BIP32 path as string.
@@ -60,7 +60,7 @@ bool bip32_path_format(const uint32_t *bip32_path,
                        size_t out_len);
 
 bool bip32_path_validate(const uint32_t *bip32_path,
-                         size_t bip32_path_len,
+                         uint8_t bip32_path_len,
                          uint32_t type,
                          uint32_t coin,
                          bip32_path_validation_type_e vtype);

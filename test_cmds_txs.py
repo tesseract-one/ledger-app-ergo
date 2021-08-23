@@ -105,6 +105,14 @@ def serialize_box_header(info: dict) -> bytes:
         len(info["registers"]).to_bytes(1, 'big', signed=False)
 
 
+def serialize_box_header_sign(info: dict) -> bytes:
+    return info["value"].to_bytes(8, 'big', signed=False) + \
+        int(len(info["tree"]) / 2).to_bytes(4, 'big', signed=False) + \
+        info["height"].to_bytes(4, 'big', signed=False) + \
+        len(info["tokens"]).to_bytes(1, 'big', signed=False) + \
+        len(info["registers"]).to_bytes(1, 'big', signed=False)
+
+
 def serialize_tx_tokens(tokens: list) -> bytes:
     result = bytes()
     for token in tokens:

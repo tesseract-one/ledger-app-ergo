@@ -191,7 +191,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[BOX_ID_LEN],
+    uint8_t box_id[ERGO_ID_LEN],
     uint8_t frames_count,
     uint32_t context_extension_data_size) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED);
@@ -215,7 +215,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_tokens(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[BOX_ID_LEN],
+    uint8_t box_id[ERGO_ID_LEN],
     uint8_t frame_index,
     buffer_t* tokens) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED);
@@ -260,11 +260,11 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_data_inputs(
         if (context->data_inputs_count == 0) {
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_DATA_INPUTS);
         }
-        uint8_t box_id[BOX_ID_LEN];
-        if (!buffer_read_bytes(inputs, box_id, BOX_ID_LEN)) {
+        uint8_t box_id[ERGO_ID_LEN];
+        if (!buffer_read_bytes(inputs, box_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_DATA_INPUT);
         }
-        if (!blake2b_update(&context->hash, box_id, BOX_ID_LEN)) {
+        if (!blake2b_update(&context->hash, box_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER);
         }
         context->data_inputs_count--;
@@ -374,7 +374,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_register(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t tx_id[static TRANSACTION_HASH_LEN]) {
+    uint8_t tx_id[static ERGO_ID_LEN]) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_FINISHED);
     if (!blake2b_256_finalize(&context->hash, tx_id)) {
         return ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER;

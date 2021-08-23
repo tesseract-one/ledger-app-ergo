@@ -37,7 +37,7 @@ typedef ergo_tx_serializer_input_result_e (*ergo_tx_serializer_input_token_cb)(u
 
 typedef struct {
     ergo_tx_serializer_input_state_e state;
-    uint8_t box_id[BOX_ID_LEN];
+    uint8_t box_id[ERGO_ID_LEN];
     uint8_t frames_count;
     uint8_t frames_processed;
     uint32_t context_extension_data_size;
@@ -49,7 +49,7 @@ typedef struct {
 
 ergo_tx_serializer_input_result_e ergo_tx_serializer_input_init(
     ergo_tx_serializer_input_context_t* context,
-    uint8_t box_id[BOX_ID_LEN],
+    uint8_t box_id[ERGO_ID_LEN],
     uint8_t token_frames_count,
     uint32_t proof_data_size,
     token_table_t* tokens_table,
@@ -57,7 +57,7 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_init(
 
 ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
     ergo_tx_serializer_input_context_t* context,
-    uint8_t box_id[BOX_ID_LEN],
+    uint8_t box_id[ERGO_ID_LEN],
     uint8_t token_frame_index,
     buffer_t* tokens);
 

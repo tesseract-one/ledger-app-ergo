@@ -8,7 +8,7 @@
 
 typedef struct {
     uint8_t count;
-    uint8_t tokens[TOKEN_MAX_COUNT][TOKEN_ID_LEN];
+    uint8_t tokens[TOKEN_MAX_COUNT][ERGO_ID_LEN];
 } token_table_t;
 
 typedef enum {

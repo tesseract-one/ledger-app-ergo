@@ -24,7 +24,7 @@ typedef enum {
 
 typedef struct {
     sign_transaction_state_e state;
-    uint8_t tx_id[TRANSACTION_HASH_LEN];
+    uint8_t tx_id[ERGO_ID_LEN];
     uint8_t session;
     token_table_t tokens_table;
     ergo_tx_serializer_full_context_t tx;

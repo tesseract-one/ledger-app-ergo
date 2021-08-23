@@ -8,7 +8,7 @@ static inline ergo_tx_serializer_table_result_e parse_token(buffer_t* tokens,
     if (table->count >= tokens_max) {
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_TOO_MANY_TOKENS;
     }
-    if (!buffer_read_bytes(tokens, table->tokens[table->count++], TOKEN_ID_LEN)) {
+    if (!buffer_read_bytes(tokens, table->tokens[table->count++], ERGO_ID_LEN)) {
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_BAD_TOKEN_ID;
     }
     return ERGO_TX_SERIALIZER_TABLE_RES_OK;
@@ -53,7 +53,7 @@ ergo_tx_serializer_table_result_e ergo_tx_serializer_table_hash(
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_HASHER;
     }
     for (uint8_t i = 0; i < context->tokens_table->count; i++) {
-        if (!blake2b_update(hash, context->tokens_table->tokens[i], TOKEN_ID_LEN)) {
+        if (!blake2b_update(hash, context->tokens_table->tokens[i], ERGO_ID_LEN)) {
             return ERGO_TX_SERIALIZER_TABLE_RES_ERR_HASHER;
         }
     }

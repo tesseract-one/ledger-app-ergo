@@ -26,29 +26,14 @@
 #define BIP32_ERGO_COIN 429
 
 /**
- * Length of Transaction Id.
+ * Length of hashed ids in Ergo.
  */
-#define TRANSACTION_ID_LEN 32
-
-/**
- * Length of Token Id.
- */
-#define TOKEN_ID_LEN 32
+#define ERGO_ID_LEN 32
 
 /**
  * Maximum number of tokens in TX.
  */
 #define TOKEN_MAX_COUNT 10
-
-/**
- * Length of Transaction Hash.
- */
-#define TRANSACTION_HASH_LEN 32
-
-/**
- * Length of Box Id.
- */
-#define BOX_ID_LEN 32
 
 /**
  * Length of Session Key.
@@ -71,6 +56,11 @@
 #define COMPRESSED_PUBLIC_KEY_LEN 33
 
 /**
+ * Length of Private Key.
+ */
+#define PRIVATE_KEY_LEN 32
+
+/**
  * Length of Address in bytes.
  */
 #define ADDRESS_LEN (COMPRESSED_PUBLIC_KEY_LEN + 5)  // 4 bytes of checksum + 1 byte prefix
@@ -89,3 +79,8 @@
  * Length of Input Frame Signature.
  */
 #define INPUT_FRAME_SIGNATURE_LEN 16
+
+/**
+ * Length of the secp265k1 schnorr signature
+ */
+#define ERGO_SIGNATURE_LEN 56

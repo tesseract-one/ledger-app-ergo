@@ -37,10 +37,10 @@ typedef enum {
  * Struct for buffer with size and read+write offset.
  */
 typedef struct {
-    uint8_t *ptr;         /// Pointer to byte buffer
-    size_t size;          /// Size of byte buffer
-    size_t read_offset;   /// Read offset in byte buffer
-    size_t write_offset;  /// Write offset in byte buffer
+    uint8_t *ptr;           /// Pointer to byte buffer
+    uint16_t size;          /// Size of byte buffer
+    uint16_t read_offset;   /// Read offset in byte buffer
+    uint16_t write_offset;  /// Write offset in byte buffer
 } buffer_t;
 
 /**
@@ -56,7 +56,10 @@ typedef struct {
  *   Data size of the buffer.
  *
  */
-static inline void buffer_init(buffer_t *buffer, uint8_t *ptr, size_t buf_size, size_t data_size) {
+static inline void buffer_init(buffer_t *buffer,
+                               uint8_t *ptr,
+                               uint16_t buf_size,
+                               uint16_t data_size) {
     buffer->ptr = ptr;
     buffer->size = buf_size;
     buffer->read_offset = 0;
@@ -108,7 +111,7 @@ static inline uint8_t *buffer_write_ptr(const buffer_t *buffer) {
  * @return true if success, false otherwise.
  *
  */
-static inline bool buffer_can_read(const buffer_t *buffer, size_t n) {
+static inline bool buffer_can_read(const buffer_t *buffer, uint16_t n) {
     return (buffer->write_offset - buffer->read_offset) >= n;
 }
 
@@ -123,7 +126,7 @@ static inline bool buffer_can_read(const buffer_t *buffer, size_t n) {
  * @return true if success, false otherwise.
  *
  */
-static inline bool buffer_can_write(const buffer_t *buffer, size_t n) {
+static inline bool buffer_can_write(const buffer_t *buffer, uint16_t n) {
     return (buffer->size - buffer->write_offset) >= n;
 }
 
@@ -136,7 +139,7 @@ static inline bool buffer_can_write(const buffer_t *buffer, size_t n) {
  * @return length of the empty space in buffer.
  *
  */
-static inline size_t buffer_empty_space_len(const buffer_t *buffer) {
+static inline uint16_t buffer_empty_space_len(const buffer_t *buffer) {
     return buffer->size - buffer->write_offset;
 }
 
@@ -149,7 +152,7 @@ static inline size_t buffer_empty_space_len(const buffer_t *buffer) {
  * @return length of the data in buffer.
  *
  */
-static inline size_t buffer_data_len(const buffer_t *buffer) {
+static inline uint16_t buffer_data_len(const buffer_t *buffer) {
     return buffer->write_offset - buffer->read_offset;
 }
 
@@ -162,7 +165,7 @@ static inline size_t buffer_data_len(const buffer_t *buffer) {
  * @return current read position in the buffer.
  *
  */
-static inline size_t buffer_read_position(const buffer_t *buffer) {
+static inline uint16_t buffer_read_position(const buffer_t *buffer) {
     return buffer->read_offset;
 }
 
@@ -175,7 +178,7 @@ static inline size_t buffer_read_position(const buffer_t *buffer) {
  * @return current write position in the buffer.
  *
  */
-static inline size_t buffer_write_position(const buffer_t *buffer) {
+static inline uint16_t buffer_write_position(const buffer_t *buffer) {
     return buffer->write_offset;
 }
 
@@ -190,7 +193,7 @@ static inline size_t buffer_write_position(const buffer_t *buffer) {
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_read_set(buffer_t *buffer, size_t offset);
+bool buffer_seek_read_set(buffer_t *buffer, uint16_t offset);
 
 /**
  * Seek the buffer read position relatively to current offset.
@@ -203,7 +206,7 @@ bool buffer_seek_read_set(buffer_t *buffer, size_t offset);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_read_cur(buffer_t *buffer, size_t offset);
+bool buffer_seek_read_cur(buffer_t *buffer, uint16_t offset);
 
 /**
  * Seek the buffer read position relatively to the end of the data.
@@ -216,7 +219,7 @@ bool buffer_seek_read_cur(buffer_t *buffer, size_t offset);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_read_end(buffer_t *buffer, size_t offset);
+bool buffer_seek_read_end(buffer_t *buffer, uint16_t offset);
 
 /**
  * Seek the buffer write position to specific offset.
@@ -229,7 +232,7 @@ bool buffer_seek_read_end(buffer_t *buffer, size_t offset);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_write_set(buffer_t *buffer, size_t offset);
+bool buffer_seek_write_set(buffer_t *buffer, uint16_t offset);
 
 /**
  * Seek the buffer write position relatively to current offset.
@@ -242,7 +245,7 @@ bool buffer_seek_write_set(buffer_t *buffer, size_t offset);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_write_cur(buffer_t *buffer, size_t offset);
+bool buffer_seek_write_cur(buffer_t *buffer, uint16_t offset);
 
 /**
  * Seek the buffer write position relatively to the buffer end.
@@ -255,7 +258,7 @@ bool buffer_seek_write_cur(buffer_t *buffer, size_t offset);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_write_end(buffer_t *buffer, size_t offset);
+bool buffer_seek_write_end(buffer_t *buffer, uint16_t offset);
 
 /**
  * Read 1 byte from buffer into uint8_t.
@@ -328,7 +331,7 @@ bool buffer_read_u64(buffer_t *buffer, uint64_t *value, endianness_t endianness)
  * @return true if success, false otherwise.
  *
  */
-bool buffer_read_bip32_path(buffer_t *buffer, uint32_t *out, size_t out_len);
+bool buffer_read_bip32_path(buffer_t *buffer, uint32_t *out, uint8_t out_len);
 
 /**
  * Move bytes from buffer.
@@ -343,7 +346,7 @@ bool buffer_read_bip32_path(buffer_t *buffer, uint32_t *out, size_t out_len);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, size_t out_len);
+bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, uint16_t out_len);
 
 /**
  * Copy bytes from buffer without its modification.
@@ -358,7 +361,7 @@ bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, size_t out_len);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, size_t out_len);
+bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, uint16_t out_len);
 
 /**
  * Write 1 byte to buffer from uint8_t.
@@ -431,7 +434,7 @@ bool buffer_write_u64(buffer_t *buffer, uint64_t value, endianness_t endianness)
  * @return true if success, false otherwise.
  *
  */
-bool buffer_write_bytes(buffer_t *buffer, const uint8_t *from, size_t from_len);
+bool buffer_write_bytes(buffer_t *buffer, const uint8_t *from, uint16_t from_len);
 
 /**
  * Move all data to the start of the buffer.

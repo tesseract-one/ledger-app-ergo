@@ -9,6 +9,7 @@
 #include "../../common/macros.h"
 #include "../../helpers/crypto.h"
 #include "../../helpers/input_frame.h"
+#include "../../ergo/schnorr.h"
 
 #include <string.h>
 
@@ -107,13 +108,50 @@ static NOINLINE ergo_tx_serializer_box_result_e output_token_cb(ergo_tx_serializ
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
 }
 
-static NOINLINE ergo_tx_serializer_full_result_e read_bip32_path(buffer_t *input,
-                                                                 uint32_t path[MAX_BIP32_PATH],
-                                                                 uint8_t *path_len) {
-    if (!buffer_read_u8(input, path_len)) return ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER;
-    if (!buffer_read_bip32_path(input, path, *path_len))
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER;
-    return ERGO_TX_SERIALIZER_FULL_RES_OK;
+static inline uint16_t read_bip32_path(buffer_t *input,
+                                       uint32_t path[MAX_BIP32_PATH],
+                                       uint8_t *path_len) {
+    if (!buffer_read_u8(input, path_len)) return SW_BUFFER_ERROR;
+    if (!buffer_read_bip32_path(input, path, *path_len)) return SW_BUFFER_ERROR;
+    return 0;
+}
+
+static NOINLINE uint16_t bip32_public_key(buffer_t *input, uint8_t pub_key[static PUBLIC_KEY_LEN]) {
+    uint32_t bip32_path[MAX_BIP32_PATH];
+    uint8_t bip32_path_len;
+    uint16_t res = read_bip32_path(input, bip32_path, &bip32_path_len);
+    if (res != 0) return res;
+    if (!bip32_path_validate(bip32_path,
+                             bip32_path_len,
+                             BIP32_HARDENED(44),
+                             BIP32_HARDENED(BIP32_ERGO_COIN),
+                             BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
+        return SW_BIP32_BAD_PATH;
+    }
+    if (crypto_generate_public_key(bip32_path, bip32_path_len, pub_key, NULL) != 0) {
+        return SW_INTERNAL_CRYPTO_ERROR;
+    }
+    return 0;
+}
+
+static NOINLINE uint16_t bip32_private_key(buffer_t *input,
+                                           uint8_t priv_key[static PRIVATE_KEY_LEN]) {
+    uint32_t b32_path[MAX_BIP32_PATH];
+    uint8_t path_len;
+    uint16_t res = read_bip32_path(input, b32_path, &path_len);
+    if (res != 0) return res;
+    if (!bip32_path_validate(b32_path,
+                             path_len,
+                             BIP32_HARDENED(44),
+                             BIP32_HARDENED(BIP32_ERGO_COIN),
+                             BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
+        return SW_BIP32_BAD_PATH;
+    }
+    if (crypto_generate_private_key(b32_path, path_len, priv_key) != 0) {
+        explicit_bzero(priv_key, PRIVATE_KEY_LEN);
+        return SW_INTERNAL_CRYPTO_ERROR;
+    }
+    return 0;
 }
 
 static inline int handle_init(sign_transaction_ctx_t *ctx,
@@ -146,7 +184,7 @@ static inline int handle_init(sign_transaction_ctx_t *ctx,
         return send_response_sign_transaction_session_id(ctx->session);
     }
 
-    return ui_display_sing_tx_access_token(app_session_id_in);
+    return ui_display_sign_tx_access_token(app_session_id_in);
 }
 
 static inline int handle_tokens(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
@@ -163,52 +201,64 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
                         SIGN_TRANSACTION_STATE_DATA_APPROVED,
                         SIGN_TRANSACTION_STATE_INPUTS_STARTED);
 
-    uint8_t input_id[BOX_ID_LEN];
-    uint8_t frames_count, frame_index, tokens_count;
-    uint64_t value;
-    buffer_t tokens;
-
-    input_frame_read_result_e res = input_frame_read(cdata,
-                                                     input_id,
-                                                     &frames_count,
-                                                     &frame_index,
-                                                     &tokens_count,
-                                                     &value,
-                                                     &tokens,
-                                                     session_key);
-    switch (res) {
-        case INPUT_FRAME_READ_RES_ERR_BUFFER:
-            return handler_err(ctx, SW_NOT_ENOUGH_DATA);
-        case INPUT_FRAME_READ_RES_ERR_HMAC:
-            return handler_err(ctx, SW_HMAC_ERROR);
-        case INPUT_FRAME_READ_RES_ERR_BAD_SIGNATURE:
-            return handler_err(ctx, SW_BAD_FRAME_SIGNATURE);
-        case INPUT_FRAME_READ_RES_OK:
-            break;
+    // Check that frame all needed fields
+    uint8_t frame_data_len = input_frame_data_length(cdata);
+    if (frame_data_len == 0) {
+        return handler_err(ctx, SW_NOT_ENOUGH_DATA);
+    }
+    // Calculate signature. Will be stored in tx_id field in context (we don't need it now).
+    cx_hmac_sha256(session_key,
+                   SESSION_KEY_LEN,
+                   buffer_read_ptr(cdata),
+                   frame_data_len,
+                   ctx->tx_id,
+                   CX_SHA256_SIZE);
+    // Compare signature with frame signature
+    if (memcmp(ctx->tx_id, input_frame_signature_ptr(cdata), INPUT_FRAME_SIGNATURE_LEN) != 0) {
+        return handler_err(ctx, SW_BAD_FRAME_SIGNATURE);
     }
 
+    // Reading frame
+    uint64_t value;
+    buffer_t tokens;
+    uint8_t frames_count, frame_index, tokens_count;
+
+    CHECK_READ_PARAM(ctx, buffer_read_bytes(cdata, ctx->tx_id, ERGO_ID_LEN));
+    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &frames_count));
+    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &frame_index));
+    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &tokens_count));
+    CHECK_READ_PARAM(ctx, buffer_read_u64(cdata, &value, BE));
+
+    // Tokens sub buffer
+    uint8_t tokens_len = tokens_count * FRAME_TOKEN_VALUE_PAIR_SIZE;
+    buffer_init(&tokens, buffer_read_ptr(cdata), tokens_len, tokens_len);
+    // Seek to the frame end
+    if (!buffer_seek_read_cur(cdata, tokens_len + INPUT_FRAME_SIGNATURE_LEN)) {
+        return handler_err(ctx, SW_NOT_ENOUGH_DATA);
+    }
+    // New input
     if (frame_index == 0) {
         uint32_t extension_len;
         CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &extension_len, BE));
         CHECK_CALL_RESULT_OK(
             ctx,
-            ergo_tx_serializer_full_add_input(&ctx->tx, input_id, frames_count, extension_len));
+            ergo_tx_serializer_full_add_input(&ctx->tx, ctx->tx_id, frames_count, extension_len));
 
         if (!checked_add_u64(ui_ctx->inputs_value, value, &ui_ctx->inputs_value)) {
             return handler_err(ctx, SW_U64_OVERFLOW);
         }
-        if (ctx->state == SIGN_TRANSACTION_STATE_DATA_APPROVED) {
-            CHECK_CALL_RESULT_OK(ctx,
-                                 ergo_tx_serializer_full_set_input_callback(&ctx->tx,
-                                                                            &input_token_cb,
-                                                                            (void *) ui_ctx));
-            ctx->state = SIGN_TRANSACTION_STATE_INPUTS_STARTED;
-        }
     }
-
+    // Setup callbacks
+    if (ctx->state == SIGN_TRANSACTION_STATE_DATA_APPROVED) {
+        CHECK_CALL_RESULT_OK(
+            ctx,
+            ergo_tx_serializer_full_set_input_callback(&ctx->tx, &input_token_cb, (void *) ui_ctx));
+        ctx->state = SIGN_TRANSACTION_STATE_INPUTS_STARTED;
+    }
+    // Add tokens to the input
     CHECK_CALL_RESULT_OK(
         ctx,
-        ergo_tx_serializer_full_add_input_tokens(&ctx->tx, input_id, frame_index, &tokens));
+        ergo_tx_serializer_full_add_input_tokens(&ctx->tx, ctx->tx_id, frame_index, &tokens));
 
     return res_ok();
 }
@@ -277,20 +327,9 @@ static inline int handle_output_tree_fee(sign_transaction_ctx_t *ctx, buffer_t *
 
 static inline int handle_output_tree_change(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_OUTPUTS_STARTED);
-    uint32_t bip32_path[MAX_BIP32_PATH];
-    uint8_t bip32_path_len;
-    CHECK_CALL_RESULT_OK(ctx, read_bip32_path(cdata, bip32_path, &bip32_path_len));
-    if (!bip32_path_validate(bip32_path,
-                             bip32_path_len,
-                             BIP32_HARDENED(44),
-                             BIP32_HARDENED(BIP32_ERGO_COIN),
-                             BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
-        return res_error(SW_BIP32_BAD_PATH);
-    }
     uint8_t public_key[PUBLIC_KEY_LEN];
-    if (crypto_generate_public_key(bip32_path, bip32_path_len, public_key, NULL) != 0) {
-        return res_error(SW_INTERNAL_CRYPTO_ERROR);
-    }
+    uint16_t res = bip32_public_key(cdata, public_key);
+    if (res != 0) return handler_err(ctx, res);
     CHECK_CALL_RESULT_OK(ctx, ergo_tx_serializer_full_add_box_change_tree(&ctx->tx, public_key));
     return res_ok();
 }
@@ -311,8 +350,20 @@ static inline int handle_sign_confirm(sign_transaction_ctx_t *ctx,
                                       sign_transaction_ui_ctx_t *ui_ctx) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_OUTPUTS_STARTED);
     CHECK_CALL_RESULT_OK(ctx, ergo_tx_serializer_full_hash(&ctx->tx, ctx->tx_id));
-    ctx->state = SIGN_TRANSACTION_STATE_TX_FINISHED;
-    BUFFER_FROM_ARRAY_FULL(out, ctx->tx_id, TRANSACTION_HASH_LEN);
+    ctx->state = SIGN_TRANSACTION_STATE_CONFIRMED;
+    BUFFER_FROM_ARRAY_FULL(out, ctx->tx_id, ERGO_ID_LEN);
+    return res_ok_data(&out);
+}
+
+static inline int handle_sign_pk(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
+    CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_CONFIRMED);
+    uint8_t secret[PRIVATE_KEY_LEN];
+    uint16_t res = bip32_private_key(cdata, secret);
+    if (res != 0) return handler_err(ctx, res);
+    bool is_ok = ergo_secp256k1_schnorr_sign(G_io_apdu_buffer, ctx->tx_id, secret);
+    explicit_bzero(secret, PRIVATE_KEY_LEN);
+    if (!is_ok) return handler_err(ctx, SW_SCHNORR_SIGNING_FAILED);
+    BUFFER_FROM_ARRAY_FULL(out, G_io_apdu_buffer, ERGO_SIGNATURE_LEN);
     return res_ok_data(&out);
 }
 
@@ -379,6 +430,10 @@ int handler_sign_transaction(buffer_t *cdata,
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
             return handle_sign_confirm(&G_context.sign_tx_ctx, &G_context.ui.sign_tx);
+        case SIGN_TRANSACTION_SUBCOMMAND_SIGN_PK:
+            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(session_or_token);
+            return handle_sign_pk(&G_context.sign_tx_ctx, cdata);
         default:
             return res_error(SW_WRONG_SUBCOMMAND);
     }

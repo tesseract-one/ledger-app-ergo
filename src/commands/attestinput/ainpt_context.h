@@ -28,8 +28,8 @@ typedef enum {
 
 typedef struct {
     attest_input_state_e state;
-    uint8_t tx_id[TRANSACTION_HASH_LEN];
-    uint8_t box_id[BOX_ID_LEN];
+    uint8_t tx_id[ERGO_ID_LEN];
+    uint8_t box_id[ERGO_ID_LEN];
     uint8_t session;
     token_table_t tokens_table;
     uint64_t token_amounts[TOKEN_MAX_COUNT];

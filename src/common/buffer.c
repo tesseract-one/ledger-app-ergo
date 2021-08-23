@@ -8,7 +8,7 @@
 #include "write.h"
 #include "bip32.h"
 
-bool buffer_seek_read_set(buffer_t *buffer, size_t offset) {
+bool buffer_seek_read_set(buffer_t *buffer, uint16_t offset) {
     if (offset > buffer->write_offset) {
         return false;
     }
@@ -18,7 +18,7 @@ bool buffer_seek_read_set(buffer_t *buffer, size_t offset) {
     return true;
 }
 
-bool buffer_seek_read_cur(buffer_t *buffer, size_t offset) {
+bool buffer_seek_read_cur(buffer_t *buffer, uint16_t offset) {
     if (buffer->read_offset + offset < buffer->read_offset ||   // overflow
         buffer->read_offset + offset > buffer->write_offset) {  // exceed buffer size
         return false;
@@ -29,7 +29,7 @@ bool buffer_seek_read_cur(buffer_t *buffer, size_t offset) {
     return true;
 }
 
-bool buffer_seek_read_end(buffer_t *buffer, size_t offset) {
+bool buffer_seek_read_end(buffer_t *buffer, uint16_t offset) {
     if (offset > buffer->write_offset) {
         return false;
     }
@@ -39,7 +39,7 @@ bool buffer_seek_read_end(buffer_t *buffer, size_t offset) {
     return true;
 }
 
-bool buffer_seek_write_set(buffer_t *buffer, size_t offset) {
+bool buffer_seek_write_set(buffer_t *buffer, uint16_t offset) {
     if (offset > buffer->size) {
         return false;
     }
@@ -49,7 +49,7 @@ bool buffer_seek_write_set(buffer_t *buffer, size_t offset) {
     return true;
 }
 
-bool buffer_seek_write_cur(buffer_t *buffer, size_t offset) {
+bool buffer_seek_write_cur(buffer_t *buffer, uint16_t offset) {
     if (buffer->write_offset + offset < buffer->write_offset ||  // overflow
         buffer->write_offset + offset > buffer->size) {          // exceed buffer size
         return false;
@@ -60,7 +60,7 @@ bool buffer_seek_write_cur(buffer_t *buffer, size_t offset) {
     return true;
 }
 
-bool buffer_seek_write_end(buffer_t *buffer, size_t offset) {
+bool buffer_seek_write_end(buffer_t *buffer, uint16_t offset) {
     if (offset > buffer->size) {
         return false;
     }
@@ -128,7 +128,7 @@ bool buffer_read_u64(buffer_t *buffer, uint64_t *value, endianness_t endianness)
     return true;
 }
 
-bool buffer_read_bip32_path(buffer_t *buffer, uint32_t *out, size_t out_len) {
+bool buffer_read_bip32_path(buffer_t *buffer, uint32_t *out, uint8_t out_len) {
     if (!bip32_path_read(buffer->ptr + buffer->read_offset,
                          buffer->write_offset - buffer->read_offset,
                          out,
@@ -200,7 +200,7 @@ bool buffer_write_u64(buffer_t *buffer, uint64_t value, endianness_t endianness)
     return true;
 }
 
-bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, size_t out_len) {
+bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, uint16_t out_len) {
     if (buffer_data_len(buffer) < out_len) {
         return false;
     }
@@ -212,7 +212,7 @@ bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, size_t out_len) {
     return true;
 }
 
-bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, size_t out_len) {
+bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, uint16_t out_len) {
     if (buffer_data_len(buffer) > out_len) {
         return false;
     }
@@ -220,7 +220,7 @@ bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, size_t out_len) {
     return true;
 }
 
-bool buffer_write_bytes(buffer_t *buffer, const uint8_t *from, size_t from_len) {
+bool buffer_write_bytes(buffer_t *buffer, const uint8_t *from, uint16_t from_len) {
     if (!buffer_can_write(buffer, from_len)) {
         return false;
     }

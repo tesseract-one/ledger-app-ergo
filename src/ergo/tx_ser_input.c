@@ -13,7 +13,7 @@ static inline ergo_tx_serializer_input_result_e res_error(
 
 ergo_tx_serializer_input_result_e ergo_tx_serializer_input_init(
     ergo_tx_serializer_input_context_t* context,
-    uint8_t box_id[BOX_ID_LEN],
+    uint8_t box_id[ERGO_ID_LEN],
     uint8_t token_frames_count,
     uint32_t context_extension_data_size,
     token_table_t* tokens_table,
@@ -24,7 +24,7 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_init(
         return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_CONTEXT_EXTENSION_SIZE);
     }
 
-    memcpy(context->box_id, box_id, BOX_ID_LEN);
+    memcpy(context->box_id, box_id, ERGO_ID_LEN);
     context->frames_count = token_frames_count;
     context->frames_processed = 0;
     context->context_extension_data_size = context_extension_data_size;
@@ -38,11 +38,11 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_init(
 
 ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
     ergo_tx_serializer_input_context_t* context,
-    uint8_t box_id[BOX_ID_LEN],
+    uint8_t box_id[ERGO_ID_LEN],
     uint8_t token_frame_index,
     buffer_t* tokens) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_INPUT_STATE_FRAMES_STARTED);
-    if (memcmp(context->box_id, box_id, BOX_ID_LEN) != 0) {
+    if (memcmp(context->box_id, box_id, ERGO_ID_LEN) != 0) {
         return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_INPUT_ID);
     }
     if (token_frame_index >= context->frames_count) {
@@ -52,17 +52,17 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
         return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_FRAME_INDEX);
     }
     while (buffer_data_len(tokens) > 0) {
-        uint8_t token_id[TOKEN_ID_LEN];
+        uint8_t token_id[ERGO_ID_LEN];
         uint64_t token_value;
         uint8_t token_index = 0;
-        if (!buffer_read_bytes(tokens, token_id, TOKEN_ID_LEN)) {
+        if (!buffer_read_bytes(tokens, token_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID);
         }
         if (!buffer_read_u64(tokens, &token_value, BE)) {
             return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_VALUE);
         }
         for (token_index = 0; token_index < context->tokens_table->count; token_index++) {
-            if (memcmp(token_id, context->tokens_table->tokens[token_index], TOKEN_ID_LEN) == 0) {
+            if (memcmp(token_id, context->tokens_table->tokens[token_index], ERGO_ID_LEN) == 0) {
                 break;
             }
         }
@@ -81,7 +81,7 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
     }
     context->frames_processed++;
     if (context->frames_processed == context->frames_count) {
-        if (!blake2b_update(context->hash, box_id, BOX_ID_LEN)) {
+        if (!blake2b_update(context->hash, box_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER);
         }
         if (context->context_extension_data_size == 0) {

@@ -71,13 +71,13 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[BOX_ID_LEN],
+    uint8_t box_id[ERGO_ID_LEN],
     uint8_t token_frames_count,
     uint32_t context_extension_data_size);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_tokens(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[BOX_ID_LEN],
+    uint8_t box_id[ERGO_ID_LEN],
     uint8_t token_frame_index,
     buffer_t* tokens);
 
@@ -118,7 +118,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_register(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t tx_id[static TRANSACTION_HASH_LEN]);
+    uint8_t tx_id[static ERGO_ID_LEN]);
 
 static inline bool ergo_tx_serializer_full_is_finished(ergo_tx_serializer_full_context_t* context) {
     return context->state == ERGO_TX_SERIALIZER_FULL_STATE_FINISHED;

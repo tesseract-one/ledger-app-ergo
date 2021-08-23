@@ -9,7 +9,7 @@
  * @return 0 if success, negative integer otherwise.
  *
  */
-int ui_display_sing_tx_access_token(uint32_t app_access_token);
+int ui_display_sign_tx_access_token(uint32_t app_access_token);
 
 /**
  * Action for attest input approval.

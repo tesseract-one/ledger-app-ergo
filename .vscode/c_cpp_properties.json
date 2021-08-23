@@ -26,6 +26,7 @@
                 "HAVE_RNG",
                 "HAVE_HMAC",
                 "HAVE_SHA256",
+                "HAVE_MATH",
                 "HAVE_IO_USB",
                 "HAVE_L4_USBLIB",
                 "IO_USB_MAX_ENDPOINTS=6",

@@ -44,6 +44,10 @@ uint16_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
                                 cx_ecfp_public_key_t *public_key,
                                 uint8_t raw_public_key[static PUBLIC_KEY_LEN]);
 
+uint16_t crypto_generate_private_key(const uint32_t *bip32_path,
+                                     uint8_t bip32_path_len,
+                                     uint8_t private_key[static PRIVATE_KEY_LEN]);
+
 uint16_t crypto_generate_public_key(const uint32_t *bip32_path,
                                     uint8_t bip32_path_len,
                                     uint8_t raw_public_key[static PUBLIC_KEY_LEN],

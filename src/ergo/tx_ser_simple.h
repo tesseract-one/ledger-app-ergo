@@ -47,4 +47,4 @@ ergo_tx_serializer_simple_result_e ergo_tx_serializer_simple_add_suffix(
     buffer_t* chunk);
 
 bool ergo_tx_serializer_simple_hash(ergo_tx_serializer_simple_context_t* context,
-                                    uint8_t tx_id[static TRANSACTION_HASH_LEN]);
+                                    uint8_t tx_id[static ERGO_ID_LEN]);

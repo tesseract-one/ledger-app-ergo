@@ -55,6 +55,24 @@ uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
     return result;
 }
 
+uint16_t crypto_generate_private_key(const uint32_t *bip32_path,
+                                     uint8_t bip32_path_len,
+                                     uint8_t private_key[static PRIVATE_KEY_LEN]) {
+    uint8_t chain_code[CHAIN_CODE_LEN];
+    cx_ecfp_private_key_t ecfp_private_key = {0};
+
+    // derive private key according to BIP32 path
+    uint16_t result =
+        crypto_derive_private_key(&ecfp_private_key, chain_code, bip32_path, bip32_path_len);
+    if (result == 0) {
+        memmove(private_key, ecfp_private_key.d, PRIVATE_KEY_LEN);
+    }
+    // reset private key and chaincode
+    explicit_bzero(&ecfp_private_key, sizeof(ecfp_private_key));
+    explicit_bzero(chain_code, CHAIN_CODE_LEN);
+    return result;
+}
+
 uint16_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
                                 cx_ecfp_public_key_t *public_key,
                                 uint8_t raw_public_key[static PUBLIC_KEY_LEN]) {

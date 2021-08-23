@@ -41,7 +41,7 @@
             return handler_err(_ctx, sw_from_box_res(res));                                      \
     } while (0)
 
-#define CHECK_BOX_CALL_TX_FINISHED(_ctx, _call)                \
+#define CHECK_BOX_CALL_BOX_FINISHED(_ctx, _call)               \
     do {                                                       \
         ergo_tx_serializer_box_result_e res = _call;           \
         switch (res) {                                         \
@@ -194,19 +194,19 @@ static inline int handle_box_init(attest_input_ctx_t *ctx, buffer_t *cdata) {
 
 static inline int handle_box_tree_chunk(attest_input_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, ATTEST_INPUT_STATE_BOX_STARTED);
-    CHECK_BOX_CALL_TX_FINISHED(ctx, ergo_tx_serializer_box_add_tree(&ctx->box.ctx, cdata));
+    CHECK_BOX_CALL_BOX_FINISHED(ctx, ergo_tx_serializer_box_add_tree(&ctx->box.ctx, cdata));
     return res_ok();
 }
 
 static inline int handle_box_tokens(attest_input_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, ATTEST_INPUT_STATE_BOX_STARTED);
-    CHECK_BOX_CALL_TX_FINISHED(ctx, ergo_tx_serializer_box_add_tokens(&ctx->box.ctx, cdata));
+    CHECK_BOX_CALL_BOX_FINISHED(ctx, ergo_tx_serializer_box_add_tokens(&ctx->box.ctx, cdata));
     return res_ok();
 }
 
 static inline int handle_box_register(attest_input_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, ATTEST_INPUT_STATE_BOX_STARTED);
-    CHECK_BOX_CALL_TX_FINISHED(ctx, ergo_tx_serializer_box_add_register(&ctx->box.ctx, cdata));
+    CHECK_BOX_CALL_BOX_FINISHED(ctx, ergo_tx_serializer_box_add_register(&ctx->box.ctx, cdata));
     return res_ok();
 }
 

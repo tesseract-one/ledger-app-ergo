@@ -23,7 +23,7 @@ int send_response_attested_input_frame(attest_input_ctx_t *ctx,
     // Not elegant but works.
     BUFFER_FROM_ARRAY_EMPTY(output, G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 2);
 
-    if (!buffer_write_bytes(&output, ctx->box_id, BOX_ID_LEN)) {
+    if (!buffer_write_bytes(&output, ctx->box_id, ERGO_ID_LEN)) {
         return res_error(SW_BUFFER_ERROR);
     }
     if (!buffer_write_u8(&output, frames_count)) {
@@ -44,7 +44,7 @@ int send_response_attested_input_frame(attest_input_ctx_t *ctx,
     for (uint8_t i = 0; i < ctx->tokens_table.count; i++) {
         if (ctx->token_amounts[i] > 0) non_empty++;
         if (ctx->token_amounts[i] > 0 && non_empty >= offset) {
-            if (!buffer_write_bytes(&output, ctx->tokens_table.tokens[i], TOKEN_ID_LEN)) {
+            if (!buffer_write_bytes(&output, ctx->tokens_table.tokens[i], ERGO_ID_LEN)) {
                 return res_error(SW_BUFFER_ERROR);
             }
             if (!buffer_write_u64(&output, ctx->token_amounts[i], BE)) {
@@ -53,19 +53,16 @@ int send_response_attested_input_frame(attest_input_ctx_t *ctx,
             if (non_empty - offset == FRAME_MAX_TOKENS_COUNT - 1) break;
         }
     }
-    cx_hmac_sha256_t hmac;
-    if (cx_hmac_sha256_init_no_throw(&hmac, session_key, SESSION_KEY_LEN) != 0) {
-        return res_error(SW_HMAC_ERROR);
-    }
-    if (cx_hmac_no_throw((cx_hmac_t *) &hmac,
-                         CX_LAST,
-                         buffer_read_ptr(&output),
-                         buffer_data_len(&output),
-                         buffer_write_ptr(&output),
-                         buffer_empty_space_len(&output)) != 0) {
-        return res_error(SW_HMAC_ERROR);
-    }
 
+    if (!buffer_can_write(&output, CX_SHA256_SIZE)) {
+        return res_error(SW_BUFFER_ERROR);
+    }
+    cx_hmac_sha256(session_key,
+                   SESSION_KEY_LEN,
+                   buffer_read_ptr(&output),
+                   buffer_data_len(&output),
+                   buffer_write_ptr(&output),
+                   CX_SHA256_SIZE);
     if (!buffer_seek_write_cur(&output, INPUT_FRAME_SIGNATURE_LEN)) {
         return res_error(SW_BUFFER_ERROR);
     }

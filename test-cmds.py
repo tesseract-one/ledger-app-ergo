@@ -151,6 +151,51 @@ def attest(args: argparse.Namespace):
         print_input_frame(frame)
 
 
+@subcommand([argument("tx", type=int, nargs="?", default=0),
+             argument("box", type=int, nargs="?", default=0)])
+def sign(args: argparse.Namespace):
+    frames = attest_box(args.tx, args.box)
+    tx = TRANSACTIONS[args.tx]
+    box = tx["outputs"][args.box]
+
+    tokens = tx["tokens"]
+
+    data = int(1).to_bytes(2, "big", signed=False) + \
+        int(0).to_bytes(2, "big", signed=False) + \
+        len(tokens).to_bytes(1, "big", signed=False) + \
+        int(1).to_bytes(2, "big", signed=False) + application_token
+    session_id = ledger_cmd(0x21, 0x01, 0x02, data)[0]
+
+    token_chunks = [tokens[i:i+7] for i in range(0, len(tokens), 7)]
+
+    for chunk in token_chunks:
+        token_data = serialize_tx_tokens(chunk)
+        ledger_cmd(0x21, 0x02, session_id, token_data)
+
+    ledger_cmd(0x21, 0x03, session_id,
+               frames[0] + int(0).to_bytes(4, "big", signed=False))
+
+    box_header = serialize_box_header_sign(box)
+    ledger_cmd(0x21, 0x06, session_id, box_header)
+
+    box_tree = binascii.unhexlify(box["tree"])
+    ledger_upload_data(0x21, 0x07, session_id, box_tree)
+
+    box_tokens = serialize_box_tokens(box["tokens"])
+    ledger_cmd(0x21, 0x0A, session_id, box_tokens)
+
+    for register in box["registers"]:
+        data = binascii.unhexlify(register)
+        ledger_cmd(0x21, 0x0B, session_id, data)
+
+    tx_id = ledger_cmd(0x21, 0x0C, session_id, box_tokens)
+    print("TXID: " + binascii.hexlify(tx_id).decode())
+
+    account = bip44(0, 0, 0)
+    signature = ledger_cmd(0x21, 0x0D, session_id, account)
+    print("Signature: " + binascii.hexlify(signature).decode())
+
+
 if __name__ == "__main__":
     args = cli.parse_args()
     if args.subcommand is None:

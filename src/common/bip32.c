@@ -23,14 +23,14 @@
 #include "bip32.h"
 #include "read.h"
 
-bool bip32_path_read(const uint8_t *in, size_t in_len, uint32_t *out, size_t out_len) {
+bool bip32_path_read(const uint8_t *in, size_t in_len, uint32_t *out, uint8_t out_len) {
     if (out_len == 0 || out_len > MAX_BIP32_PATH) {
         return false;
     }
 
-    size_t offset = 0;
+    uint8_t offset = 0;
 
-    for (size_t i = 0; i < out_len; i++) {
+    for (uint8_t i = 0; i < out_len; i++) {
         if (offset > in_len) {
             return false;
         }
@@ -90,7 +90,7 @@ bool bip32_path_format(const uint32_t *bip32_path,
 }
 
 bool bip32_path_validate(const uint32_t *bip32_path,
-                         size_t bip32_path_len,
+                         uint8_t bip32_path_len,
                          uint32_t type,
                          uint32_t coin,
                          bip32_path_validation_type_e vtype) {
@@ -101,7 +101,7 @@ bool bip32_path_validate(const uint32_t *bip32_path,
         case BIP32_PATH_VALIDATE_COIN:
             return true;
         case BIP32_PATH_VALIDATE_COIN_GE2_HARD:
-            for (size_t i = 2; i < bip32_path_len; i++) {
+            for (uint8_t i = 2; i < bip32_path_len; i++) {
                 if (bip32_path[i] < BIP32_HARDENED_CONSTANT) {
                     return false;
                 }
@@ -113,7 +113,7 @@ bool bip32_path_validate(const uint32_t *bip32_path,
             if (bip32_path_len < 3) {
                 return false;
             }
-            for (size_t i = 2; i < bip32_path_len; i++) {
+            for (uint8_t i = 2; i < bip32_path_len; i++) {
                 if (bip32_path[i] < BIP32_HARDENED_CONSTANT) {
                     return false;
                 }
@@ -133,7 +133,7 @@ bool bip32_path_validate(const uint32_t *bip32_path,
             if (bip32_path[3] != 0 && bip32_path[3] != 1) {
                 return false;
             }
-            for (size_t i = 4; i < bip32_path_len; i++) {
+            for (uint8_t i = 4; i < bip32_path_len; i++) {
                 if (bip32_path[i] >= BIP32_HARDENED_CONSTANT) {
                     return false;
                 }
