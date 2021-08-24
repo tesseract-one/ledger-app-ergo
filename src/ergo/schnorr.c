@@ -7,12 +7,9 @@
 #define ERGO_SOUNDNESS_BYTES 24
 #define MAX_ITERATIONS       100
 
-// G0: 0x04
 // Gx: 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
 // Gy: 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
-static uint8_t const SECP256K1_G_PT[] = {
-    0x04,
-
+static uint8_t const SECP256K1_G[] = {
     0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0, 0x62, 0x95, 0xce, 0x87, 0x0b, 0x07,
     0x02, 0x9b, 0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9, 0x59, 0xf2, 0x81, 0x5b, 0x16, 0xf8, 0x17, 0x98,
 
@@ -50,7 +47,8 @@ bool ergo_secp256k1_schnorr_sign(uint8_t signature[static ERGO_SIGNATURE_LEN],
                 break;
 
             // pk = G * secret
-            memcpy(buf, PIC(SECP256K1_G_PT), sizeof(SECP256K1_G_PT));
+            buf[0] = 0x04;
+            memcpy(buf + 1, PIC(SECP256K1_G), sizeof(SECP256K1_G));
             if (cx_ecfp_scalar_mult_no_throw(CX_CURVE_SECP256K1, buf, secret, PRIVATE_KEY_LEN) != 0)
                 break;
             // compress pk
@@ -71,7 +69,8 @@ bool ergo_secp256k1_schnorr_sign(uint8_t signature[static ERGO_SIGNATURE_LEN],
                 break;
 
             // w = G * y
-            memcpy(buf, PIC(SECP256K1_G_PT), sizeof(SECP256K1_G_PT));
+            buf[0] = 0x04;
+            memcpy(buf + 1, PIC(SECP256K1_G), sizeof(SECP256K1_G));
             if (cx_ecfp_scalar_mult_no_throw(CX_CURVE_SECP256K1, buf, y, PRIVATE_KEY_LEN) != 0)
                 break;
             // compress w
