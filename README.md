@@ -1,6 +1,6 @@
-# Ledger Boilerplate Application
+# Ledger Ergo Application
 
-This is a boilerplate application which can be forked to start a new project for the Ledger Nano S/X.
+This is a Ergo application for the Ledger Nano S/X.
 
 ## Prerequisite
 
@@ -15,7 +15,7 @@ BOLOS_ENV=/opt/bolos-devenv
 and do the same with `BOLOS_SDK` environment variable
 
 ```
-BOLOS_SDK=/opt/nanos-secure-sdk
+BOLOS_SDK=/opt/bolos-sdk/nanos-secure-sdk
 ```
 
 ## Compilation
