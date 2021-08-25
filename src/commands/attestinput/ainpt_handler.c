@@ -80,9 +80,7 @@ static NOINLINE ergo_tx_serializer_box_result_e box_token_cb(ergo_tx_serializer_
                                                              void *context) {
     (void) (type);
     attest_input_ctx_t *ctx = (attest_input_ctx_t *) context;
-    if (!checked_add_u64(ctx->token_amounts[index], value, &ctx->token_amounts[index])) {
-        return ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW;
-    }
+    ctx->token_amounts[index] = value;
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
 }
 
@@ -167,6 +165,9 @@ static inline int handle_box_init(attest_input_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PARAMS_FINISHED(ctx, cdata);
 
     memset(&ctx->box, 0, sizeof(_attest_input_box_ctx_t));
+    for (uint8_t i = 0; i < ctx->tokens_table.count; i++) {
+        ctx->token_amounts[i] = 0;
+    }
 
     if (!ergo_tx_serializer_box_id_hash_init(&ctx->box.hash)) {
         return handler_err(ctx, SW_HASHER_ERROR);
