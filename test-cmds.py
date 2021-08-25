@@ -189,8 +189,7 @@ def sign(args: argparse.Namespace):
         data = binascii.unhexlify(register)
         ledger_cmd(0x21, 0x0B, session_id, data)
 
-    tx_id = ledger_cmd(0x21, 0x0C, session_id, box_tokens)
-    print("TXID: " + binascii.hexlify(tx_id).decode())
+    ledger_cmd(0x21, 0x0C, session_id, box_tokens)
 
     account = bip44(0, 0, 0)
     signature = ledger_cmd(0x21, 0x0D, session_id, account)

@@ -32,10 +32,12 @@ int send_response_attested_input_frame(attest_input_ctx_t *ctx,
     if (!buffer_write_u8(&output, index)) {
         return res_error(SW_BUFFER_ERROR);
     }
-    if (!buffer_write_u8(&output, ctx->box.tokens_count)) {
+    if (!buffer_write_u64(&output, ctx->box.ctx.value, BE)) {
         return res_error(SW_BUFFER_ERROR);
     }
-    if (!buffer_write_u64(&output, ctx->box.ctx.value, BE)) {
+    uint8_t tokens_count = (ctx->box.tokens_count - index * FRAME_MAX_TOKENS_COUNT);
+    tokens_count = tokens_count > FRAME_MAX_TOKENS_COUNT ? FRAME_MAX_TOKENS_COUNT : tokens_count;
+    if (!buffer_write_u8(&output, tokens_count)) {
         return res_error(SW_BUFFER_ERROR);
     }
 
