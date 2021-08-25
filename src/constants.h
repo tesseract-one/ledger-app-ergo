@@ -11,9 +11,9 @@
 #define APPNAME_LEN (sizeof(APPNAME) - 1)
 
 /**
- * Maximum length of MAJOR_VERSION || MINOR_VERSION || PATCH_VERSION.
+ * Maximum length of MAJOR_VERSION || MINOR_VERSION || PATCH_VERSION || DEBUG.
  */
-#define APPVERSION_LEN 3
+#define APPVERSION_LEN 4
 
 /**
  * Maximum length of application name.

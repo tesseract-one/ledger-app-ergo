@@ -68,6 +68,7 @@ endif
 
 DEBUG = 0
 ifneq ($(DEBUG),0)
+    DEFINES += DEBUG_BUILD
     DEFINES += HAVE_PRINTF
     ifeq ($(TARGET_NAME),TARGET_NANOX)
         DEFINES += PRINTF=mcu_usb_printf

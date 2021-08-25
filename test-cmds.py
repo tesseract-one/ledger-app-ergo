@@ -111,7 +111,8 @@ def name(args: argparse.Namespace):
 @subcommand()
 def version(args: argparse.Namespace):
     version = ledger_cmd(0x01, 0x00, 0x00, bytes())
-    print(f"Version: {version[0]}.{version[1]}.{version[2]}\n")
+    print(
+        f"Version: {version[0]}.{version[1]}.{version[2]}, DEBUG: {version[3] != 0}\n")
 
 
 @subcommand([argument("account", type=int, nargs="?", default=0)])
