@@ -20,10 +20,10 @@
 #include "../../common/macros.h"
 #include "../../helpers/session_id.h"
 
-#define UI_CONTEXT(gctx) gctx.ui.ext_pub_key
+#define CONTEXT(gctx) gctx.ctx.ext_pub_key
 
 int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
-    if (G_context.ui.is_busy) {
+    if (G_context.is_ui_busy) {
         return res_ui_busy();
     }
 
@@ -56,19 +56,19 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
 
     if (crypto_generate_public_key(bip32_path,
                                    bip32_path_len,
-                                   UI_CONTEXT(G_context).raw_public_key,
-                                   UI_CONTEXT(G_context).chain_code) != 0) {
+                                   CONTEXT(G_context).raw_public_key,
+                                   CONTEXT(G_context).chain_code) != 0) {
         return res_error(SW_INTERNAL_CRYPTO_ERROR);
     }
 
     if (is_known_application(access_token, G_context.app_session_id)) {
-        return send_response_extended_pubkey(UI_CONTEXT(G_context).raw_public_key,
-                                             UI_CONTEXT(G_context).chain_code);
+        return send_response_extended_pubkey(CONTEXT(G_context).raw_public_key,
+                                             CONTEXT(G_context).chain_code);
     }
 
     return ui_display_account(access_token,
                               bip32_path,
                               bip32_path_len,
-                              UI_CONTEXT(G_context).raw_public_key,
-                              UI_CONTEXT(G_context).chain_code);
+                              CONTEXT(G_context).raw_public_key,
+                              CONTEXT(G_context).chain_code);
 }

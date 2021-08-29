@@ -13,12 +13,14 @@
 
 #include <string.h>
 
-#define CHECK_COMMAND(_cmd) \
-    if (_cmd != G_context.current_command) return handler_err(&G_context.sign_tx_ctx, SW_BAD_STATE)
+#define CONTEXT(gctx) gctx.ctx.sign_tx
 
-#define CHECK_SESSION(_session)                    \
-    if (_session != G_context.sign_tx_ctx.session) \
-    return handler_err(&G_context.sign_tx_ctx, SW_BAD_SESSION_ID)
+#define CHECK_COMMAND(_cmd) \
+    if (_cmd != G_context.current_command) return handler_err(&CONTEXT(G_context), SW_BAD_STATE)
+
+#define CHECK_SESSION(_session)                 \
+    if (_session != CONTEXT(G_context).session) \
+    return handler_err(&CONTEXT(G_context), SW_BAD_SESSION_ID)
 
 #define CHECK_PROPER_STATE(_ctx, _state) \
     if (_ctx->state != _state) return handler_err(_ctx, SW_BAD_STATE)
@@ -49,11 +51,9 @@ static NOINLINE ergo_tx_serializer_input_result_e input_token_cb(uint8_t *box_id
                                                                  uint64_t value,
                                                                  void *context) {
     (void) (box_id);
-    sign_transaction_ui_ctx_t *ctx = (sign_transaction_ui_ctx_t *) context;
+    _sign_transaction_amounts_ctx_t *ctx = (_sign_transaction_amounts_ctx_t *) context;
     // calculating proper token sum
-    if (!checked_add_u64(ctx->token_amounts[index].input,
-                         value,
-                         &ctx->token_amounts[index].input)) {
+    if (!checked_add_u64(ctx->tokens[index].input, value, &ctx->tokens[index].input)) {
         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_U64_OVERFLOW;
     }
     return ERGO_TX_SERIALIZER_INPUT_RES_OK;
@@ -63,13 +63,13 @@ static NOINLINE ergo_tx_serializer_box_result_e output_type_cb(ergo_tx_serialize
                                                                uint64_t value,
                                                                void *context) {
     uint64_t *sum;
-    sign_transaction_ui_ctx_t *ctx = (sign_transaction_ui_ctx_t *) context;
+    _sign_transaction_amounts_ctx_t *ctx = (_sign_transaction_amounts_ctx_t *) context;
     switch (type) {
         case ERGO_TX_SERIALIZER_BOX_TYPE_CHANGE:
-            sum = &ctx->change_value;
+            sum = &ctx->change;
             break;
         case ERGO_TX_SERIALIZER_BOX_TYPE_FEE:
-            sum = &ctx->fee_value;
+            sum = &ctx->fee;
             break;
         case ERGO_TX_SERIALIZER_BOX_TYPE_OUTPUT:
             // we don't need to calculate outputs. We will calc sum from other values
@@ -89,13 +89,13 @@ static NOINLINE ergo_tx_serializer_box_result_e output_token_cb(ergo_tx_serializ
                                                                 uint64_t value,
                                                                 void *context) {
     uint64_t *sum;
-    sign_transaction_ui_ctx_t *ctx = (sign_transaction_ui_ctx_t *) context;
+    _sign_transaction_amounts_ctx_t *ctx = (_sign_transaction_amounts_ctx_t *) context;
     switch (type) {
         case ERGO_TX_SERIALIZER_BOX_TYPE_OUTPUT:
-            sum = &ctx->token_amounts[index].output;
+            sum = &ctx->tokens[index].output;
             break;
         case ERGO_TX_SERIALIZER_BOX_TYPE_CHANGE:
-            sum = &ctx->token_amounts[index].change;
+            sum = &ctx->tokens[index].change;
             break;
         default:
             // we shouldn't send tokens to miners fee
@@ -194,7 +194,6 @@ static inline int handle_tokens(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
 }
 
 static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
-                                     sign_transaction_ui_ctx_t *ui_ctx,
                                      uint8_t session_key[static SESSION_KEY_LEN],
                                      buffer_t *cdata) {
     CHECK_PROPER_STATES(ctx,
@@ -244,15 +243,16 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
             ctx,
             ergo_tx_serializer_full_add_input(&ctx->tx, ctx->tx_id, frames_count, extension_len));
 
-        if (!checked_add_u64(ui_ctx->inputs_value, value, &ui_ctx->inputs_value)) {
+        if (!checked_add_u64(ctx->amounts.inputs, value, &ctx->amounts.inputs)) {
             return handler_err(ctx, SW_U64_OVERFLOW);
         }
     }
     // Setup callbacks
     if (ctx->state == SIGN_TRANSACTION_STATE_DATA_APPROVED) {
-        CHECK_CALL_RESULT_OK(
-            ctx,
-            ergo_tx_serializer_full_set_input_callback(&ctx->tx, &input_token_cb, (void *) ui_ctx));
+        CHECK_CALL_RESULT_OK(ctx,
+                             ergo_tx_serializer_full_set_input_callback(&ctx->tx,
+                                                                        &input_token_cb,
+                                                                        (void *) &ctx->amounts));
         ctx->state = SIGN_TRANSACTION_STATE_INPUTS_STARTED;
     }
     // Add tokens to the input
@@ -275,9 +275,7 @@ static inline int handle_data_inputs(sign_transaction_ctx_t *ctx, buffer_t *cdat
     return res_ok();
 }
 
-static inline int handle_output_init(sign_transaction_ctx_t *ctx,
-                                     sign_transaction_ui_ctx_t *ui_ctx,
-                                     buffer_t *cdata) {
+static inline int handle_output_init(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATES(ctx,
                         SIGN_TRANSACTION_STATE_INPUTS_STARTED,
                         SIGN_TRANSACTION_STATE_OUTPUTS_STARTED);
@@ -305,7 +303,7 @@ static inline int handle_output_init(sign_transaction_ctx_t *ctx,
                              ergo_tx_serializer_full_set_box_callbacks(&ctx->tx,
                                                                        &output_type_cb,
                                                                        &output_token_cb,
-                                                                       (void *) ui_ctx));
+                                                                       (void *) &ctx->amounts));
         ctx->state = SIGN_TRANSACTION_STATE_OUTPUTS_STARTED;
     }
 
@@ -368,7 +366,7 @@ static inline int handle_sign_pk(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
 int handler_sign_transaction(buffer_t *cdata,
                              sign_transaction_subcommand_e subcommand,
                              uint8_t session_or_token) {
-    if (G_context.ui.is_busy) {
+    if (G_context.is_ui_busy) {
         return res_ui_busy();
     }
     switch (subcommand) {
@@ -377,61 +375,58 @@ int handler_sign_transaction(buffer_t *cdata,
                 return res_error(SW_WRONG_P1P2);
             }
             clear_context(&G_context, CMD_SIGN_TRANSACTION);
-            return handle_init(&G_context.sign_tx_ctx,
+            return handle_init(&CONTEXT(G_context),
                                cdata,
                                session_or_token == 0x02,
                                G_context.app_session_id);
         case SIGN_TRANSACTION_SUBCOMMAND_TOKEN_IDS:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_tokens(&G_context.sign_tx_ctx, cdata);
+            return handle_tokens(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_INPUT_FRAME:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_input_frame(&G_context.sign_tx_ctx,
-                                      &G_context.ui.sign_tx,
-                                      G_context.session_key,
-                                      cdata);
+            return handle_input_frame(&CONTEXT(G_context), G_context.session_key, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_INPUT_CONTEXT_EXTENSION:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_input_context_extension(&G_context.sign_tx_ctx, cdata);
+            return handle_input_context_extension(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_DATA_INPUT:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_data_inputs(&G_context.sign_tx_ctx, cdata);
+            return handle_data_inputs(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_output_init(&G_context.sign_tx_ctx, &G_context.ui.sign_tx, cdata);
+            return handle_output_init(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_TREE_CHUNK:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_output_tree_chunk(&G_context.sign_tx_ctx, cdata);
+            return handle_output_tree_chunk(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_MINERS_FEE_TREE:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_output_tree_fee(&G_context.sign_tx_ctx, cdata);
+            return handle_output_tree_fee(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_CHANGE_TREE:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_output_tree_change(&G_context.sign_tx_ctx, cdata);
+            return handle_output_tree_change(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_TOKENS:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_output_tokens(&G_context.sign_tx_ctx, cdata);
+            return handle_output_tokens(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_REGISTER:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_output_register(&G_context.sign_tx_ctx, cdata);
+            return handle_output_register(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_CONFIRM:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_sign_confirm(&G_context.sign_tx_ctx);
+            return handle_sign_confirm(&CONTEXT(G_context));
         case SIGN_TRANSACTION_SUBCOMMAND_SIGN_PK:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_sign_pk(&G_context.sign_tx_ctx, cdata);
+            return handle_sign_pk(&CONTEXT(G_context), cdata);
         default:
             return res_error(SW_WRONG_SUBCOMMAND);
     }
