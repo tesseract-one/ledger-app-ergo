@@ -34,8 +34,8 @@ typedef enum {
 } sign_transaction_ui_state_e;
 
 typedef struct {
-    char title[17];  // dynamic screen title
-    char text[67];   // dynamic screen text
+    char title[20];  // dynamic screen title
+    char text[70];   // dynamic screen text
     sign_transaction_ui_state_e state;
     uint8_t token_idx;
 } _sign_transaction_confirm_ui_ctx_t;

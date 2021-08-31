@@ -85,20 +85,6 @@ bool u64toa(uint64_t value, char string[], uint8_t size) {
     return true;
 }
 
-char* u8toa(uint8_t value, char string[]) {
-    uint8_t idx = 0;
-    if (value >= 100) {
-        string[idx++] = value / 100 + '0';
-        value %= 100;
-    }
-    if (value >= 10) {
-        string[idx++] = value / 10 + '0';
-        value %= 10;
-    }
-    string[idx++] = value + '0';
-    return string + idx;
-}
-
 static NOINLINE void ui_stx_display_state() {
     char* title = CONFIRM_UI_CONTEXT(G_context).title;
     char* text = CONFIRM_UI_CONTEXT(G_context).text;
@@ -108,7 +94,7 @@ static NOINLINE void ui_stx_display_state() {
     memset(text, 0, text_len);
     switch (CONFIRM_UI_CONTEXT(G_context).state) {
         case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
-            strncpy(title, "ERG sending", title_len);
+            strncpy(title, "Transaction Amount", title_len);
             uint64_t value = CONTEXT(G_context).amounts.inputs;
             checked_sub_u64(value, CONTEXT(G_context).amounts.fee, &value);
             checked_sub_u64(value, CONTEXT(G_context).amounts.change, &value);
@@ -120,9 +106,8 @@ static NOINLINE void ui_stx_display_state() {
             u64toa(CONTEXT(G_context).amounts.fee, text, text_len);
             break;
         case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
-            strncpy(title, "Token ", title_len);
             uint8_t token_idx = CONFIRM_UI_CONTEXT(G_context).token_idx;
-            u8toa(token_idx + 1, title + sizeof("Token "));
+            snprintf(title, title_len, "Token %u", (unsigned int) token_idx + 1);
             base58_encode(CONTEXT(G_context).tokens_table.tokens[token_idx],
                           ERGO_ID_LEN,
                           text,
@@ -130,9 +115,8 @@ static NOINLINE void ui_stx_display_state() {
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {
-            strncpy(title, "Token ", title_len);
             uint8_t token_idx = CONFIRM_UI_CONTEXT(G_context).token_idx;
-            u8toa(token_idx + 1, title + sizeof("Token "));
+            snprintf(title, title_len, "Token %u", (unsigned int) token_idx + 1);
             u64toa(CONTEXT(G_context).amounts.tokens[token_idx].output, text, text_len);
             break;
         }
@@ -141,61 +125,7 @@ static NOINLINE void ui_stx_display_state() {
     }
 }
 
-static inline void ui_stx_next_state_forward() {
-    switch (CONFIRM_UI_CONTEXT(G_context).state) {
-        case SIGN_TRANSACTION_UI_STATE_NONE:
-            // Show TX ERG value
-            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
-            // Fill screen with data
-            ui_stx_display_state();
-            // Move to the next step, which will display the screen.
-            ux_flow_next();
-            break;
-        case SIGN_TRANSACTION_UI_STATE_TX_VALUE:
-            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_FEE;
-            // Fill screen with data
-            ui_stx_display_state();
-            // Display it.
-            ux_flow_next();
-            break;
-        case SIGN_TRANSACTION_UI_STATE_TX_FEE:
-            if (CONTEXT(G_context).tokens_table.count > 0) {
-                CONFIRM_UI_CONTEXT(G_context).token_idx = 0;
-                CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
-                // Fill screen with data
-                ui_stx_display_state();
-                // Display it.
-                ux_flow_next();
-            } else {
-                CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_NONE;
-                // go to the static screen
-                ux_flow_prev();
-            }
-            break;
-        case SIGN_TRANSACTION_UI_STATE_TOKEN_ID:
-            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE;
-            // Fill screen with data
-            ui_stx_display_state();
-            // Display it.
-            ux_flow_next();
-        case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE:
-            if (CONFIRM_UI_CONTEXT(G_context).token_idx <
-                CONTEXT(G_context).tokens_table.count - 1) {
-                CONFIRM_UI_CONTEXT(G_context).token_idx++;
-                CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
-                // Fill screen with data
-                ui_stx_display_state();
-                // Display it.
-                ux_flow_next();
-            } else {
-                CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_NONE;
-                // go to the static screen
-                ux_flow_prev();
-            }
-    }
-}
-
-static inline void ui_stx_next_state_backward() {
+static inline void ui_stx_dynamic_step_right() {
     switch (CONFIRM_UI_CONTEXT(G_context).state) {
         case SIGN_TRANSACTION_UI_STATE_NONE:
             if (CONTEXT(G_context).tokens_table.count > 0) {
@@ -209,21 +139,80 @@ static inline void ui_stx_next_state_backward() {
             }
             // Fill screen with data
             ui_stx_display_state();
-            // Move to the prev step, which will display the screen.
-            ux_flow_prev();
+            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
+            // behaviour.
+            bnnn_paging_edgecase();
             break;
         case SIGN_TRANSACTION_UI_STATE_TX_VALUE:
-            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_NONE;
-            // Display it.
-            ux_flow_next();
-            break;
-        case SIGN_TRANSACTION_UI_STATE_TX_FEE:
-            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
+            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_FEE;
             // Fill screen with data
             ui_stx_display_state();
             // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
             // behaviour.
             bnnn_paging_edgecase();
+            break;
+        case SIGN_TRANSACTION_UI_STATE_TX_FEE:
+            if (CONTEXT(G_context).tokens_table.count > 0) {
+                CONFIRM_UI_CONTEXT(G_context).token_idx = 0;
+                CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
+                // Fill screen with data
+                ui_stx_display_state();
+                // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
+                // weird behaviour.
+                bnnn_paging_edgecase();
+            } else {
+                CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_NONE;
+                // go to the next static screen
+                ux_flow_next();
+            }
+            break;
+        case SIGN_TRANSACTION_UI_STATE_TOKEN_ID:
+            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE;
+            // Fill screen with data
+            ui_stx_display_state();
+            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
+            // behaviour.
+            bnnn_paging_edgecase();
+        case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE:
+            if (CONFIRM_UI_CONTEXT(G_context).token_idx <
+                CONTEXT(G_context).tokens_table.count - 1) {
+                CONFIRM_UI_CONTEXT(G_context).token_idx++;
+                CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
+                // Fill screen with data
+                ui_stx_display_state();
+                // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
+                // weird behaviour.
+                bnnn_paging_edgecase();
+            } else {
+                CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_NONE;
+                // go to the next static screen
+                ux_flow_next();
+            }
+    }
+}
+
+static inline void ui_stx_dynamic_step_left() {
+    switch (CONFIRM_UI_CONTEXT(G_context).state) {
+        case SIGN_TRANSACTION_UI_STATE_NONE:
+            // Show TX ERG value
+            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
+            // Fill screen with data
+            ui_stx_display_state();
+            // Move to the next step, which will display the screen.
+            ux_flow_next();
+            break;
+        case SIGN_TRANSACTION_UI_STATE_TX_VALUE:
+            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_NONE;
+            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
+            // behaviour.
+            bnnn_paging_edgecase();
+            break;
+        case SIGN_TRANSACTION_UI_STATE_TX_FEE:
+            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
+            // Fill screen with data
+            ui_stx_display_state();
+            // Move to the next step, which will display the screen.
+            ux_flow_next();
             break;
         case SIGN_TRANSACTION_UI_STATE_TOKEN_ID:
             if (CONFIRM_UI_CONTEXT(G_context).token_idx == 0) {
@@ -234,25 +223,23 @@ static inline void ui_stx_next_state_backward() {
             }
             // Fill screen with data
             ui_stx_display_state();
-            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
-            // behaviour.
-            bnnn_paging_edgecase();
+            // Move to the next step, which will display the screen.
+            ux_flow_next();
             break;
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE:
             CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
             // Fill screen with data
             ui_stx_display_state();
-            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
-            // behaviour.
-            bnnn_paging_edgecase();
+            // Move to the next step, which will display the screen.
+            ux_flow_next();
             break;
     }
 }
 
 // Step with icon and text
 UX_STEP_NOCB(ux_stx_display_tx_confirm_step, pn, {&C_icon_warning, "Confirm Transaction"});
-UX_STEP_INIT(ux_stx_dynamic_upper_delimiter_step, NULL, NULL, { ui_stx_next_state_forward(); });
-UX_STEP_INIT(ux_stx_dynamic_lower_delimiter_step, NULL, NULL, { ui_stx_next_state_backward(); });
+UX_STEP_INIT(ux_stx_dynamic_upper_delimiter_step, NULL, NULL, { ui_stx_dynamic_step_left(); });
+UX_STEP_INIT(ux_stx_dynamic_lower_delimiter_step, NULL, NULL, { ui_stx_dynamic_step_right(); });
 UX_STEP_NOCB(ux_stx_dynamic_step,
              bnnn_paging,
              {.title = CONFIRM_UI_CONTEXT(G_context).title,
