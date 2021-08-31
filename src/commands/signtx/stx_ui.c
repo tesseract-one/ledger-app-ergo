@@ -33,7 +33,7 @@ int ui_display_sign_tx_access_token(uint32_t app_access_token) {
 
     const ux_flow_step_t** approve = &G_ux_flow[screen++];
     const ux_flow_step_t** reject = &G_ux_flow[screen++];
-    ui_approve_reject_screens(&ui_action_sign_tx_token, approve, reject);
+    ui_approve_reject_screens(ui_action_sign_tx_token, approve, reject);
 
     G_ux_flow[screen++] = FLOW_LOOP;
     G_ux_flow[screen++] = FLOW_END_STEP;
@@ -45,10 +45,10 @@ int ui_display_sign_tx_access_token(uint32_t app_access_token) {
     return 0;
 }
 
-void ui_action_sign_tx_token(bool choice) {
+void ui_action_sign_tx_token(bool approved) {
     G_context.is_ui_busy = false;
 
-    if (choice) {
+    if (approved) {
         G_context.app_session_id = APP_ID_UI_CONTEXT(G_context).app_token_value;
         CONTEXT(G_context).state = SIGN_TRANSACTION_STATE_DATA_APPROVED;
         send_response_sign_transaction_session_id(CONTEXT(G_context).session);
@@ -294,7 +294,7 @@ int ui_display_sign_tx_transaction(void) {
 
     const ux_flow_step_t** approve = &G_ux_flow[screen++];
     const ux_flow_step_t** reject = &G_ux_flow[screen++];
-    ui_approve_reject_screens(&ui_action_sign_tx_transaction, approve, reject);
+    ui_approve_reject_screens(ui_action_sign_tx_transaction, approve, reject);
 
     G_ux_flow[screen++] = FLOW_LOOP;
     G_ux_flow[screen++] = FLOW_END_STEP;

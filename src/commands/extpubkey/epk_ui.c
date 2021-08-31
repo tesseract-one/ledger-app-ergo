@@ -54,7 +54,7 @@ int ui_display_account(uint32_t app_access_token,
 
     const ux_flow_step_t** approve = &G_ux_flow[screen++];
     const ux_flow_step_t** reject = &G_ux_flow[screen++];
-    ui_approve_reject_screens(&ui_action_get_extended_pubkey, approve, reject);
+    ui_approve_reject_screens(ui_action_get_extended_pubkey, approve, reject);
 
     G_ux_flow[screen++] = FLOW_LOOP;
     G_ux_flow[screen++] = FLOW_END_STEP;
@@ -70,10 +70,10 @@ int ui_display_account(uint32_t app_access_token,
     return 0;
 }
 
-void ui_action_get_extended_pubkey(bool choice) {
+void ui_action_get_extended_pubkey(bool approved) {
     G_context.is_ui_busy = false;
 
-    if (choice) {
+    if (approved) {
         G_context.app_session_id = CONTEXT(G_context).app_token_value;
         send_response_extended_pubkey(CONTEXT(G_context).raw_public_key,
                                       CONTEXT(G_context).chain_code);

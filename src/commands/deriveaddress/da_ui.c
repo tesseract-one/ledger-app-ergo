@@ -86,7 +86,7 @@ int ui_display_address(bool send,
 
     const ux_flow_step_t** approve = &G_ux_flow[screen++];
     const ux_flow_step_t** reject = &G_ux_flow[screen++];
-    ui_approve_reject_screens(&ui_action_derive_address, approve, reject);
+    ui_approve_reject_screens(ui_action_derive_address, approve, reject);
 
     G_ux_flow[screen++] = FLOW_LOOP;
     G_ux_flow[screen++] = FLOW_END_STEP;
@@ -101,10 +101,10 @@ int ui_display_address(bool send,
 }
 
 // Action
-void ui_action_derive_address(bool choice) {
+void ui_action_derive_address(bool approved) {
     G_context.is_ui_busy = true;
 
-    if (choice) {
+    if (approved) {
         G_context.app_session_id = CONTEXT(G_context).app_token_value;
         if (CONTEXT(G_context).send) {
             send_response_address(CONTEXT(G_context).raw_public_key);
