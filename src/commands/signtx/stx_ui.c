@@ -69,10 +69,10 @@ void bnnn_paging_edgecase() {
     ux_flow_relayout();
 }
 
-bool u64toa(uint64_t value, char string[], uint8_t size) {
+char* u64toa(uint64_t value, char string[], uint8_t size) {
     uint8_t indx = 0;
     do {
-        if (indx == size - 2) return false;
+        if (indx == size - 2) return NULL;
         string[indx++] = value % 10 + '0';
     } while ((value /= 10) > 0);
     string[indx] = '\0';
@@ -82,7 +82,7 @@ bool u64toa(uint64_t value, char string[], uint8_t size) {
         string[i] = string[j];
         string[j] = c;
     }
-    return true;
+    return string + indx;
 }
 
 static NOINLINE void ui_stx_display_state() {
@@ -96,9 +96,12 @@ static NOINLINE void ui_stx_display_state() {
         case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
             strncpy(title, "Transaction Amount", title_len);
             uint64_t value = CONTEXT(G_context).amounts.inputs;
-            checked_sub_u64(value, CONTEXT(G_context).amounts.fee, &value);
-            checked_sub_u64(value, CONTEXT(G_context).amounts.change, &value);
-            u64toa(value, text, text_len);
+            if (!checked_sub_u64(value, CONTEXT(G_context).amounts.fee, &value) ||
+                !checked_sub_u64(value, CONTEXT(G_context).amounts.change, &value)) {
+                strncpy(text, "Bad TX. Outputs is bigger than inputs", text_len);
+            } else {
+                u64toa(value, text, text_len);
+            }
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TX_FEE:
@@ -117,7 +120,41 @@ static NOINLINE void ui_stx_display_state() {
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {
             uint8_t token_idx = CONFIRM_UI_CONTEXT(G_context).token_idx;
             snprintf(title, title_len, "Token %u", (unsigned int) token_idx + 1);
-            u64toa(CONTEXT(G_context).amounts.tokens[token_idx].output, text, text_len);
+            _sign_transaction_token_amount_t* amount =
+                &CONTEXT(G_context).amounts.tokens[token_idx];
+            uint64_t value = 0;
+            bool minting;
+            if (!checked_sub_u64(amount->input, amount->output, &value)) {
+                minting = true;
+                checked_sub_u64(amount->output, amount->input, &value);
+                checked_add_u64(value, amount->change, &value);
+            } else if (amount->change > value) {
+                minting = true;
+                checked_sub_u64(amount->change, value, &value);
+            } else {
+                minting = false;
+                checked_sub_u64(value, amount->change, &value);
+            }
+            if (minting || value != 0) {  // Minting or Burning
+                if (minting) {
+                    strncpy(text, "Minting: ", text_len);
+                    text_len -= sizeof("Minting: ") - 1;
+                    text += sizeof("Minting: ");
+                } else {
+                    strncpy(text, "Burning: ", text_len);
+                    text_len -= sizeof("Burning: ") - 1;
+                    text += sizeof("Burning: ");
+                }
+                char* u64 = u64toa(value, text, text_len);
+                text_len -= (u64 - text) - 1;
+                strncpy(u64, ";\n", text_len);
+                text = u64 + 2;
+                text_len -= 2;
+            }
+            strncpy(text, "Sending: ", text_len);
+            text_len -= sizeof("Sending: ") - 1;
+            text += sizeof("Sending: ");
+            u64toa(amount->output, text, text_len);
             break;
         }
         default:
