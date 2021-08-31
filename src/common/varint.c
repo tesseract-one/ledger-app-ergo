@@ -42,7 +42,7 @@ gve_result_e gve_get_u32(buffer_t *buffer, uint32_t *val) {
     gve_result_e res;
     *val = 0;
     if ((res = gve_get_u64(buffer, &u64)) != GVE_OK) return res;
-    if (u64 > UINT32_MAX) return false;
+    if (u64 > UINT32_MAX) return GVE_ERR_INT_TO_BIG;
     *val = (uint32_t) u64;
     return GVE_OK;
 }
