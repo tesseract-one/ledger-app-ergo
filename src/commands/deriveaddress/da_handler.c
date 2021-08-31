@@ -20,10 +20,10 @@
 #include "../../helpers/response.h"
 #include "../../helpers/session_id.h"
 
-#define UI_CONTEXT(gcxt) G_context.ui.derive_address
+#define CONTEXT(gcxt) G_context.ctx.derive_address
 
 int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token) {
-    if (G_context.ui.is_busy) {
+    if (G_context.is_ui_busy) {
         return res_ui_busy();
     }
 
@@ -62,13 +62,13 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
 
     if (crypto_generate_public_key(bip32_path,
                                    bip32_path_len,
-                                   UI_CONTEXT(G_context).raw_public_key,
+                                   CONTEXT(G_context).raw_public_key,
                                    NULL) != 0) {
         return res_error(SW_INTERNAL_CRYPTO_ERROR);
     }
 
     if (!display && is_known_application(access_token, G_context.app_session_id)) {
-        return send_response_address(UI_CONTEXT(G_context).raw_public_key);
+        return send_response_address(CONTEXT(G_context).raw_public_key);
     }
 
     return ui_display_address(!display,
@@ -76,5 +76,5 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
                               access_token,
                               bip32_path,
                               bip32_path_len,
-                              UI_CONTEXT(G_context).raw_public_key);
+                              CONTEXT(G_context).raw_public_key);
 }

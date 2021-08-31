@@ -24,8 +24,8 @@
 
 #include "types.h"
 #include "globals.h"
-#include "menu.h"
 #include "sw.h"
+#include "ui/ui_menu.h"
 #include "apdu/parser.h"
 #include "apdu/dispatcher.h"
 #include "common/macros.h"
@@ -36,6 +36,7 @@ io_state_e G_io_state;
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
 global_ctx_t G_context;
+ux_flow_step_t const *G_ux_flow[MAX_NUMBER_OF_SCREENS + 1];
 
 /**
  * Handle APDU command received and send back APDU response using handlers.

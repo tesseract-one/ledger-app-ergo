@@ -10,12 +10,14 @@
 
 #include <string.h>
 
-#define CHECK_COMMAND(_cmd) \
-    if (_cmd != G_context.current_command) return handler_err(&G_context.input_ctx, SW_BAD_STATE)
+#define CONTEXT(gctx) gctx.ctx.attest_input
 
-#define CHECK_SESSION(session_id)                  \
-    if (session_id != G_context.input_ctx.session) \
-    return handler_err(&G_context.input_ctx, SW_BAD_SESSION_ID)
+#define CHECK_COMMAND(_cmd) \
+    if (_cmd != G_context.current_command) return handler_err(&CONTEXT(G_context), SW_BAD_STATE)
+
+#define CHECK_SESSION(session_id)                 \
+    if (session_id != CONTEXT(G_context).session) \
+    return handler_err(&CONTEXT(G_context), SW_BAD_SESSION_ID)
 
 #define CHECK_PROPER_STATE(_ctx, _state) \
     if (_ctx->state != _state) return handler_err(_ctx, SW_BAD_STATE)
@@ -224,7 +226,7 @@ static inline int handle_box_get_frame(attest_input_ctx_t *ctx,
 int handler_attest_input(buffer_t *cdata,
                          attest_input_subcommand_e subcommand,
                          uint8_t session_or_token) {
-    if (G_context.ui.is_busy) {
+    if (G_context.is_ui_busy) {
         return res_ui_busy();
     }
     switch (subcommand) {
@@ -233,42 +235,42 @@ int handler_attest_input(buffer_t *cdata,
                 return res_error(SW_WRONG_P1P2);
             }
             clear_context(&G_context, CMD_ATTEST_INPUT_BOX);
-            return handle_init(&G_context.input_ctx,
+            return handle_init(&CONTEXT(G_context),
                                cdata,
                                session_or_token == 0x02,
                                G_context.app_session_id);
         case ATTEST_INPUT_SUBCOMMAND_PREFIX_CHUNK:
             CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
-            return handle_tx_prefix_chunk(&G_context.input_ctx, cdata);
+            return handle_tx_prefix_chunk(&CONTEXT(G_context), cdata);
         case ATTEST_INPUT_SUBCOMMAND_TOKEN_IDS:
             CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
-            return handle_tx_tokens(&G_context.input_ctx, cdata);
+            return handle_tx_tokens(&CONTEXT(G_context), cdata);
         case ATTEST_INPUT_SUBCOMMAND_SUFFIX_CHUNK:
             CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
-            return handle_tx_suffix_chunk(&G_context.input_ctx, cdata);
+            return handle_tx_suffix_chunk(&CONTEXT(G_context), cdata);
         case ATTEST_INPUT_SUBCOMMAND_BOX:
             CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
-            return handle_box_init(&G_context.input_ctx, cdata);
+            return handle_box_init(&CONTEXT(G_context), cdata);
         case ATTEST_INPUT_SUBCOMMAND_BOX_TREE_CHUNK:
             CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
-            return handle_box_tree_chunk(&G_context.input_ctx, cdata);
+            return handle_box_tree_chunk(&CONTEXT(G_context), cdata);
         case ATTEST_INPUT_SUBCOMMAND_BOX_TOKENS:
             CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
-            return handle_box_tokens(&G_context.input_ctx, cdata);
+            return handle_box_tokens(&CONTEXT(G_context), cdata);
         case ATTEST_INPUT_SUBCOMMAND_BOX_REGISTER:
             CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
-            return handle_box_register(&G_context.input_ctx, cdata);
+            return handle_box_register(&CONTEXT(G_context), cdata);
         case ATTEST_INPUT_SUBCOMMAND_GET_RESPONSE_FRAME:
             CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(session_or_token);
-            return handle_box_get_frame(&G_context.input_ctx, G_context.session_key, cdata);
+            return handle_box_get_frame(&CONTEXT(G_context), G_context.session_key, cdata);
         default:
             return res_error(SW_WRONG_SUBCOMMAND);
     }

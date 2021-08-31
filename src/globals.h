@@ -38,3 +38,8 @@ extern io_state_e G_io_state;
  * Global context for user requests.
  */
 extern global_ctx_t G_context;
+
+/**
+ * Global array for UI screen flow
+ */
+extern ux_flow_step_t const *G_ux_flow[MAX_NUMBER_OF_SCREENS + 1];

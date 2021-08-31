@@ -84,3 +84,8 @@
  * Length of the secp265k1 schnorr signature
  */
 #define ERGO_SIGNATURE_LEN 56
+
+/**
+ * Max number of screens
+ */
+#define MAX_NUMBER_OF_SCREENS 8
