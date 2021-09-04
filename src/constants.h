@@ -89,3 +89,8 @@
  * Max number of screens
  */
 #define MAX_NUMBER_OF_SCREENS 8
+
+/**
+ * Max length of TX data part
+ */
+#define MAX_TX_DATA_PART_LEN 32768

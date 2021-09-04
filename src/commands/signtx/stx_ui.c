@@ -18,6 +18,11 @@
 #define APP_ID_UI_CONTEXT(gctx)  CONTEXT(gctx).ui_app_id
 #define CONFIRM_UI_CONTEXT(gctx) CONTEXT(gctx).ui_confirm
 
+#define STRING_ADD_STATIC_TEXT(str, slen, text) \
+    strncpy(str, text, slen);                   \
+    slen -= sizeof(text) - 1;                   \
+    str += sizeof(text) - 1
+
 // Step with icon and text
 UX_STEP_NOCB(ux_stx_display_token_confirm_step, pn, {&C_icon_processing, "Accept Tx Data"});
 
@@ -110,8 +115,8 @@ static NOINLINE void ui_stx_display_state() {
             break;
         case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
             uint8_t token_idx = CONFIRM_UI_CONTEXT(G_context).token_idx;
-            snprintf(title, title_len, "Token %u", (unsigned int) token_idx + 1);
-            base58_encode(CONTEXT(G_context).tokens_table.tokens[token_idx],
+            snprintf(title, title_len, "Token [%d]", (int) token_idx + 1);
+            base58_encode(CONTEXT(G_context).amounts.tokens_table.tokens[token_idx],
                           ERGO_ID_LEN,
                           text,
                           text_len);
@@ -119,7 +124,7 @@ static NOINLINE void ui_stx_display_state() {
         }
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {
             uint8_t token_idx = CONFIRM_UI_CONTEXT(G_context).token_idx;
-            snprintf(title, title_len, "Token %u", (unsigned int) token_idx + 1);
+            snprintf(title, title_len, "Token [%d]", (int) token_idx + 1);
             _sign_transaction_token_amount_t* amount =
                 &CONTEXT(G_context).amounts.tokens[token_idx];
             uint64_t value = 0;
@@ -137,23 +142,16 @@ static NOINLINE void ui_stx_display_state() {
             }
             if (minting || value != 0) {  // Minting or Burning
                 if (minting) {
-                    strncpy(text, "Minting: ", text_len);
-                    text_len -= sizeof("Minting: ") - 1;
-                    text += sizeof("Minting: ");
+                    STRING_ADD_STATIC_TEXT(text, text_len, "Minting: ");
                 } else {
-                    strncpy(text, "Burning: ", text_len);
-                    text_len -= sizeof("Burning: ") - 1;
-                    text += sizeof("Burning: ");
+                    STRING_ADD_STATIC_TEXT(text, text_len, "Burning: ");
                 }
                 char* u64 = u64toa(value, text, text_len);
                 text_len -= (u64 - text) - 1;
-                strncpy(u64, ";\n", text_len);
-                text = u64 + 2;
-                text_len -= 2;
+                text = u64;
+                STRING_ADD_STATIC_TEXT(text, text_len, "; ");
             }
-            strncpy(text, "Sending: ", text_len);
-            text_len -= sizeof("Sending: ") - 1;
-            text += sizeof("Sending: ");
+            STRING_ADD_STATIC_TEXT(text, text_len, "Sending: ");
             u64toa(amount->output, text, text_len);
             break;
         }
@@ -165,10 +163,11 @@ static NOINLINE void ui_stx_display_state() {
 static inline void ui_stx_dynamic_step_right() {
     switch (CONFIRM_UI_CONTEXT(G_context).state) {
         case SIGN_TRANSACTION_UI_STATE_NONE:
-            if (CONTEXT(G_context).tokens_table.count > 0) {
+            if (CONTEXT(G_context).amounts.tokens_table.count > 0) {
                 // TX has tokens. Show last token value
                 CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE;
-                CONFIRM_UI_CONTEXT(G_context).token_idx = CONTEXT(G_context).tokens_table.count - 1;
+                CONFIRM_UI_CONTEXT(G_context).token_idx =
+                    CONTEXT(G_context).amounts.tokens_table.count - 1;
             } else {
                 // TX doesn't have tokens. Show TX fee value
                 CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_FEE;
@@ -189,7 +188,7 @@ static inline void ui_stx_dynamic_step_right() {
             bnnn_paging_edgecase();
             break;
         case SIGN_TRANSACTION_UI_STATE_TX_FEE:
-            if (CONTEXT(G_context).tokens_table.count > 0) {
+            if (CONTEXT(G_context).amounts.tokens_table.count > 0) {
                 CONFIRM_UI_CONTEXT(G_context).token_idx = 0;
                 CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
                 // Fill screen with data
@@ -212,7 +211,7 @@ static inline void ui_stx_dynamic_step_right() {
             bnnn_paging_edgecase();
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE:
             if (CONFIRM_UI_CONTEXT(G_context).token_idx <
-                CONTEXT(G_context).tokens_table.count - 1) {
+                CONTEXT(G_context).amounts.tokens_table.count - 1) {
                 CONFIRM_UI_CONTEXT(G_context).token_idx++;
                 CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
                 // Fill screen with data
