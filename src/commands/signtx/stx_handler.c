@@ -46,12 +46,26 @@ static inline int handler_err(sign_transaction_ctx_t *ctx, uint16_t err) {
     return res_error(err);
 }
 
-static NOINLINE ergo_tx_serializer_input_result_e input_token_cb(uint8_t *box_id,
-                                                                 uint8_t index,
-                                                                 uint64_t value,
-                                                                 void *context) {
+static inline uint8_t find_token_index(const token_table_t *table,
+                                       const uint8_t id[static ERGO_ID_LEN]) {
+    for (uint8_t i = 0; i < table->count; i++) {
+        if (memcmp(table->tokens[i], id, ERGO_ID_LEN) == 0) return i;
+    }
+    return 0xFF;
+}
+
+static NOINLINE ergo_tx_serializer_input_result_e
+input_token_cb(const uint8_t box_id[static ERGO_ID_LEN],
+               const uint8_t tn_id[static ERGO_ID_LEN],
+               uint64_t value,
+               void *context) {
     (void) (box_id);
     _sign_transaction_amounts_ctx_t *ctx = (_sign_transaction_amounts_ctx_t *) context;
+    // searching for token in table
+    uint8_t index = 0;
+    if ((index = find_token_index(&ctx->tokens_table, tn_id)) == 0xFF) {
+        return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID;
+    }
     // calculating proper token sum
     if (!checked_add_u64(ctx->tokens[index].input, value, &ctx->tokens[index].input)) {
         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_U64_OVERFLOW;
@@ -71,12 +85,9 @@ static NOINLINE ergo_tx_serializer_box_result_e output_type_cb(ergo_tx_serialize
         case ERGO_TX_SERIALIZER_BOX_TYPE_FEE:
             sum = &ctx->fee;
             break;
-        case ERGO_TX_SERIALIZER_BOX_TYPE_OUTPUT:
+        case ERGO_TX_SERIALIZER_BOX_TYPE_TREE:
             // we don't need to calculate outputs. We will calc sum from other values
             return ERGO_TX_SERIALIZER_BOX_RES_OK;
-        default:
-            // shouldn't be input box
-            return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE;
     }
     if (!checked_add_u64(*sum, value, sum)) {  // calculating proper sum
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW;
@@ -84,14 +95,19 @@ static NOINLINE ergo_tx_serializer_box_result_e output_type_cb(ergo_tx_serialize
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
 }
 
-static NOINLINE ergo_tx_serializer_box_result_e output_token_cb(ergo_tx_serializer_box_type_e type,
-                                                                uint8_t index,
-                                                                uint64_t value,
-                                                                void *context) {
+static NOINLINE ergo_tx_serializer_box_result_e
+output_token_cb(ergo_tx_serializer_box_type_e type,
+                const uint8_t id[static ERGO_ID_LEN],
+                uint64_t value,
+                void *context) {
     uint64_t *sum;
     _sign_transaction_amounts_ctx_t *ctx = (_sign_transaction_amounts_ctx_t *) context;
+    uint8_t index = 0;
+    if ((index = find_token_index(&ctx->tokens_table, id)) == 0xFF) {
+        return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_ID;
+    }
     switch (type) {
-        case ERGO_TX_SERIALIZER_BOX_TYPE_OUTPUT:
+        case ERGO_TX_SERIALIZER_BOX_TYPE_TREE:
             sum = &ctx->tokens[index].output;
             break;
         case ERGO_TX_SERIALIZER_BOX_TYPE_CHANGE:
@@ -174,7 +190,8 @@ static inline int handle_init(sign_transaction_ctx_t *ctx,
                                                       inputs_count,
                                                       data_inputs_count,
                                                       outputs_count,
-                                                      tokens_count));
+                                                      tokens_count,
+                                                      &ctx->amounts.tokens_table));
 
     ctx->state = SIGN_TRANSACTION_STATE_INITIALIZED;
     ctx->session = session_id_new_random(ctx->session);
@@ -280,14 +297,14 @@ static inline int handle_output_init(sign_transaction_ctx_t *ctx, buffer_t *cdat
                         SIGN_TRANSACTION_STATE_INPUTS_STARTED,
                         SIGN_TRANSACTION_STATE_OUTPUTS_STARTED);
     uint64_t value;
-    uint32_t ergo_tree_size, creation_height;
-    uint8_t tokens_count, registers_count;
+    uint32_t ergo_tree_size, creation_height, registers_size;
+    uint8_t tokens_count;
 
     CHECK_READ_PARAM(ctx, buffer_read_u64(cdata, &value, BE));
     CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &ergo_tree_size, BE));
     CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &creation_height, BE));
     CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &tokens_count));
-    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &registers_count));
+    CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &registers_size, BE));
     CHECK_PARAMS_FINISHED(ctx, cdata);
 
     CHECK_CALL_RESULT_OK(ctx,
@@ -296,7 +313,7 @@ static inline int handle_output_init(sign_transaction_ctx_t *ctx, buffer_t *cdat
                                                          ergo_tree_size,
                                                          creation_height,
                                                          tokens_count,
-                                                         registers_count));
+                                                         registers_size));
 
     if (ctx->state == SIGN_TRANSACTION_STATE_INPUTS_STARTED) {
         CHECK_CALL_RESULT_OK(ctx,
@@ -338,9 +355,9 @@ static inline int handle_output_tokens(sign_transaction_ctx_t *ctx, buffer_t *cd
     return res_ok();
 }
 
-static inline int handle_output_register(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
+static inline int handle_output_registers(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_OUTPUTS_STARTED);
-    CHECK_CALL_RESULT_OK(ctx, ergo_tx_serializer_full_add_box_register(&ctx->tx, cdata));
+    CHECK_CALL_RESULT_OK(ctx, ergo_tx_serializer_full_add_box_registers(&ctx->tx, cdata));
     return res_ok();
 }
 
@@ -415,10 +432,10 @@ int handler_sign_transaction(buffer_t *cdata,
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
             return handle_output_tokens(&CONTEXT(G_context), cdata);
-        case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_REGISTER:
+        case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_REGISTERS:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);
-            return handle_output_register(&CONTEXT(G_context), cdata);
+            return handle_output_registers(&CONTEXT(G_context), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_CONFIRM:
             CHECK_COMMAND(CMD_SIGN_TRANSACTION);
             CHECK_SESSION(session_or_token);

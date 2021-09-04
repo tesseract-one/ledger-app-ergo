@@ -20,7 +20,7 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_init(
     cx_blake2b_t* hash) {
     memset(context, 0, sizeof(ergo_tx_serializer_input_context_t));
 
-    if (context_extension_data_size == 1) {
+    if (context_extension_data_size == 1 || context_extension_data_size > MAX_TX_DATA_PART_LEN) {
         return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_CONTEXT_EXTENSION_SIZE);
     }
 
@@ -54,24 +54,15 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
     while (buffer_data_len(tokens) > 0) {
         uint8_t token_id[ERGO_ID_LEN];
         uint64_t token_value;
-        uint8_t token_index = 0;
         if (!buffer_read_bytes(tokens, token_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID);
         }
         if (!buffer_read_u64(tokens, &token_value, BE)) {
             return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_VALUE);
         }
-        for (token_index = 0; token_index < context->tokens_table->count; token_index++) {
-            if (memcmp(token_id, context->tokens_table->tokens[token_index], ERGO_ID_LEN) == 0) {
-                break;
-            }
-        }
-        if (token_index == context->tokens_table->count) {  // token not found
-            return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID);
-        }
         if (context->on_token_cb != NULL) {
             ergo_tx_serializer_input_result_e res = context->on_token_cb(context->box_id,
-                                                                         token_index,
+                                                                         token_id,
                                                                          token_value,
                                                                          context->callback_context);
             if (res != ERGO_TX_SERIALIZER_INPUT_RES_OK) {

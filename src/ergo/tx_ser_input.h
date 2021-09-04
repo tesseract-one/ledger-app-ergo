@@ -30,10 +30,11 @@ typedef enum {
     ERGO_TX_SERIALIZER_INPUT_STATE_ERROR
 } ergo_tx_serializer_input_state_e;
 
-typedef ergo_tx_serializer_input_result_e (*ergo_tx_serializer_input_token_cb)(uint8_t*,
-                                                                               uint8_t,
-                                                                               uint64_t,
-                                                                               void*);
+typedef ergo_tx_serializer_input_result_e (*ergo_tx_serializer_input_token_cb)(
+    const uint8_t[static ERGO_ID_LEN],
+    const uint8_t[static ERGO_ID_LEN],
+    uint64_t,
+    void*);
 
 typedef struct {
     ergo_tx_serializer_input_state_e state;

@@ -111,7 +111,7 @@ static NOINLINE void ui_stx_display_state() {
         case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
             uint8_t token_idx = CONFIRM_UI_CONTEXT(G_context).token_idx;
             snprintf(title, title_len, "Token %u", (unsigned int) token_idx + 1);
-            base58_encode(CONTEXT(G_context).tokens_table.tokens[token_idx],
+            base58_encode(CONTEXT(G_context).amounts.tokens_table.tokens[token_idx],
                           ERGO_ID_LEN,
                           text,
                           text_len);
@@ -165,10 +165,11 @@ static NOINLINE void ui_stx_display_state() {
 static inline void ui_stx_dynamic_step_right() {
     switch (CONFIRM_UI_CONTEXT(G_context).state) {
         case SIGN_TRANSACTION_UI_STATE_NONE:
-            if (CONTEXT(G_context).tokens_table.count > 0) {
+            if (CONTEXT(G_context).amounts.tokens_table.count > 0) {
                 // TX has tokens. Show last token value
                 CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE;
-                CONFIRM_UI_CONTEXT(G_context).token_idx = CONTEXT(G_context).tokens_table.count - 1;
+                CONFIRM_UI_CONTEXT(G_context).token_idx =
+                    CONTEXT(G_context).amounts.tokens_table.count - 1;
             } else {
                 // TX doesn't have tokens. Show TX fee value
                 CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_FEE;
@@ -189,7 +190,7 @@ static inline void ui_stx_dynamic_step_right() {
             bnnn_paging_edgecase();
             break;
         case SIGN_TRANSACTION_UI_STATE_TX_FEE:
-            if (CONTEXT(G_context).tokens_table.count > 0) {
+            if (CONTEXT(G_context).amounts.tokens_table.count > 0) {
                 CONFIRM_UI_CONTEXT(G_context).token_idx = 0;
                 CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
                 // Fill screen with data
@@ -212,7 +213,7 @@ static inline void ui_stx_dynamic_step_right() {
             bnnn_paging_edgecase();
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE:
             if (CONFIRM_UI_CONTEXT(G_context).token_idx <
-                CONTEXT(G_context).tokens_table.count - 1) {
+                CONTEXT(G_context).amounts.tokens_table.count - 1) {
                 CONFIRM_UI_CONTEXT(G_context).token_idx++;
                 CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
                 // Fill screen with data

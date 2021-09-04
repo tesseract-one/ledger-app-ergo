@@ -23,6 +23,7 @@ typedef struct {
     uint64_t fee;
     uint64_t change;
     _sign_transaction_token_amount_t tokens[TOKEN_MAX_COUNT];
+    token_table_t tokens_table;
 } _sign_transaction_amounts_ctx_t;
 
 typedef enum {
@@ -57,7 +58,6 @@ typedef struct {
     };
     sign_transaction_state_e state;
     uint8_t session;
-    token_table_t tokens_table;
     _sign_transaction_amounts_ctx_t amounts;
     union {
         ergo_tx_serializer_full_context_t tx;

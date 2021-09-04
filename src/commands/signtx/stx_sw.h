@@ -37,8 +37,6 @@ static inline uint16_t sw_from_ser_res(ergo_tx_serializer_full_result_e res) {
             return SW_TOO_MANY_INPUT_FRAMES;
         case ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_OUTPUTS:
             return SW_TOO_MANY_OUTPUTS;
-        case ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_REGISTERS:
-            return SW_TOO_MANY_REGISTERS;
         case ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MUCH_DATA:
             return SW_TOO_MUCH_DATA;
         case ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER:

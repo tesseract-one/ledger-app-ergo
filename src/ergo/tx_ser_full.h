@@ -26,12 +26,11 @@ typedef enum {
     ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_DATA_INPUTS = 0x0C,
     ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_INPUT_FRAMES = 0x0D,
     ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_OUTPUTS = 0x0E,
-    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_REGISTERS = 0x0F,
-    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MUCH_DATA = 0x10,
-    ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER = 0x11,
-    ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER = 0x12,
-    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE = 0x13,
-    ERGO_TX_SERIALIZER_FULL_RES_ERR_U64_OVERFLOW = 0x14
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MUCH_DATA = 0x0F,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER = 0x10,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER = 0x11,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE = 0x12,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_U64_OVERFLOW = 0x13
 } ergo_tx_serializer_full_result_e;
 
 typedef enum {
@@ -48,9 +47,8 @@ typedef struct {
     uint16_t inputs_count;
     uint16_t data_inputs_count;
     uint16_t outputs_count;
-    uint8_t tokens_count;
     cx_blake2b_t hash;
-    token_table_t token_table;
+    token_table_t* tokens_table;
     union {
         ergo_tx_serializer_table_context_t table_ctx;
         ergo_tx_serializer_box_context_t box_ctx;
@@ -63,7 +61,8 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_init(
     uint16_t inputs_count,
     uint16_t data_inputs_count,
     uint16_t outputs_count,
-    uint8_t tokens_count);
+    uint8_t tokens_count,
+    token_table_t* tokens_table);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
     ergo_tx_serializer_full_context_t* context,
@@ -95,7 +94,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box(
     uint32_t ergo_tree_size,
     uint32_t creation_height,
     uint8_t tokens_count,
-    uint8_t registers_count);
+    uint32_t registers_size);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_ergo_tree(
     ergo_tx_serializer_full_context_t* context,
@@ -112,9 +111,9 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_tokens(
     ergo_tx_serializer_full_context_t* context,
     buffer_t* tokens);
 
-ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_register(
+ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_registers(
     ergo_tx_serializer_full_context_t* context,
-    buffer_t* value);
+    buffer_t* registers_chunk);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
     ergo_tx_serializer_full_context_t* context,

@@ -21,18 +21,6 @@ static inline ergo_tx_serializer_box_result_e res_error(ergo_tx_serializer_box_c
     return err;
 }
 
-static inline ergo_tx_serializer_box_result_e parse_token(buffer_t* input,
-                                                          uint32_t* index,
-                                                          uint64_t* value) {
-    if (!buffer_read_u32(input, index, BE)) {
-        return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX;
-    }
-    if (!buffer_read_u64(input, value, BE)) {
-        return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_VALUE;
-    }
-    return ERGO_TX_SERIALIZER_BOX_RES_OK;
-}
-
 static inline ergo_tx_serializer_box_result_e add_height_and_token_count(
     ergo_tx_serializer_box_context_t* context) {
     BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
@@ -54,9 +42,9 @@ static inline ergo_tx_serializer_box_result_e add_height_and_token_count(
 }
 
 static NOINLINE ergo_tx_serializer_box_result_e
-add_registers_count(ergo_tx_serializer_box_context_t* context) {
+add_empty_registers_count(ergo_tx_serializer_box_context_t* context) {
     BUFFER_NEW_LOCAL_EMPTY(buffer, 1);
-    if (gve_put_u8(&buffer, context->registers_count) != GVE_OK) {
+    if (gve_put_u8(&buffer, 0) != GVE_OK) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
     }
     if (!blake2b_update(context->hash, buffer_read_ptr(&buffer), buffer_data_len(&buffer))) {
@@ -75,13 +63,9 @@ ergo_tree_added(ergo_tx_serializer_box_context_t* context) {
     CHECK_CALL_RESULT_OK(context, add_height_and_token_count(context));
     if (context->tokens_count == 0) {
         context->state = ERGO_TX_SERIALIZER_BOX_STATE_TOKENS_ADDED;
-        if (context->registers_count == 0) {
-            CHECK_CALL_RESULT_OK(context, add_registers_count(context));
-            if (context->type == ERGO_TX_SERIALIZER_BOX_TYPE_INPUT) {
-                context->state = ERGO_TX_SERIALIZER_BOX_STATE_REGISTERS_ADDED;
-            } else {
-                context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
-            }
+        if (context->registers_size == 0) {
+            CHECK_CALL_RESULT_OK(context, add_empty_registers_count(context));
+            context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
         }
     } else {
         context->state = ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED;
@@ -95,14 +79,20 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_init(
     uint32_t ergo_tree_size,
     uint32_t creation_height,
     uint8_t tokens_count,
-    uint8_t registers_count,
-    bool is_input,
-    token_table_t* tokens_table,
+    uint32_t registers_size,
     cx_blake2b_t* hash) {
     memset(context, 0, sizeof(ergo_tx_serializer_box_context_t));
 
-    if (tokens_count > tokens_table->count) {
+    if (tokens_count > TOKEN_MAX_COUNT) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MANY_TOKENS);
+    }
+
+    if (ergo_tree_size > MAX_TX_DATA_PART_LEN) {
+        return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MUCH_DATA);
+    }
+
+    if (registers_size > MAX_TX_DATA_PART_LEN) {
+        return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MUCH_DATA);
     }
 
     BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
@@ -116,12 +106,10 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_init(
     context->ergo_tree_size = ergo_tree_size;
     context->creation_height = creation_height;
     context->tokens_count = tokens_count;
-    context->registers_count = registers_count;
-    context->tokens_table = tokens_table;
+    context->registers_size = registers_size;
     context->hash = hash;
-    context->type =
-        is_input ? ERGO_TX_SERIALIZER_BOX_TYPE_INPUT : ERGO_TX_SERIALIZER_BOX_TYPE_OUTPUT;
     context->value = value;
+    context->type = ERGO_TX_SERIALIZER_BOX_TYPE_TREE;
     context->state = ERGO_TX_SERIALIZER_BOX_STATE_INITIALIZED;
 
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
@@ -143,9 +131,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tree(
     }
     context->ergo_tree_size -= len;
     if (context->ergo_tree_size == 0) {
-        if (context->type != ERGO_TX_SERIALIZER_BOX_TYPE_INPUT) {
-            context->type = ERGO_TX_SERIALIZER_BOX_TYPE_OUTPUT;
-        }
+        context->type = ERGO_TX_SERIALIZER_BOX_TYPE_TREE;
         return ergo_tree_added(context);
     }
     return ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA;
@@ -165,7 +151,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_miners_fee_tree(
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_change_tree(
     ergo_tx_serializer_box_context_t* context,
-    uint8_t raw_public_key[static PUBLIC_KEY_LEN]) {
+    const uint8_t raw_public_key[static PUBLIC_KEY_LEN]) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_INITIALIZED);
 
     uint8_t tree[ERGO_TREE_P2PK_LEN];
@@ -179,34 +165,41 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_change_tree(
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
     ergo_tx_serializer_box_context_t* context,
-    buffer_t* input) {
+    buffer_t* input,
+    const token_table_t* table) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED);
     BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
 
     while (buffer_data_len(input) > 0) {
-        uint32_t index;
+        union {
+            uint32_t index;
+            uint8_t id[ERGO_ID_LEN];
+        } token_id;
         uint64_t value;
 
         if (context->tokens_count == 0) {
             return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MANY_TOKENS);
         }
 
-        CHECK_CALL_RESULT_OK(context, parse_token(input, &index, &value));
-
-        if (index >= context->tokens_table->count) {
-            return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX);
-        }
-
-        if (context->type == ERGO_TX_SERIALIZER_BOX_TYPE_INPUT) {
-            // INPUT BOX ID has token ids instead of indexes
-            if (!blake2b_update(context->hash,
-                                context->tokens_table->tokens[(uint8_t) index],
-                                ERGO_ID_LEN)) {
+        if (table == NULL) {  // no token table. working with full ids.
+            if (!buffer_read_bytes(input, token_id.id, ERGO_ID_LEN)) {
+                return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_ID);
+            }
+            // hashing input id
+            if (!blake2b_update(context->hash, token_id.id, ERGO_ID_LEN)) {
                 return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
             }
         } else {
+            if (!buffer_read_u32(input, &token_id.index, BE)) {
+                return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX;
+            }
+            // index should be inside table
+            if (token_id.index >= table->count) {
+                return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX);
+            }
+            // hashing index
             buffer_empty(&buffer);
-            if (gve_put_u32(&buffer, index) != GVE_OK) {
+            if (gve_put_u32(&buffer, token_id.index) != GVE_OK) {
                 return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
             }
             if (!blake2b_update(context->hash,
@@ -216,6 +209,10 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
             }
         }
 
+        // reading value
+        if (!buffer_read_u64(input, &value, BE)) {
+            return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_VALUE);
+        }
         buffer_empty(&buffer);
         if (gve_put_u64(&buffer, value) != GVE_OK) {
             return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
@@ -225,22 +222,17 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
         }
 
         if (context->callbacks.on_token != NULL) {
-            CHECK_CALL_RESULT_OK(context,
-                                 context->callbacks.on_token(context->type,
-                                                             (uint8_t) index,
-                                                             value,
-                                                             context->callbacks.context));
+            const uint8_t* tid = table == NULL ? token_id.id : table->tokens[token_id.index];
+            CHECK_CALL_RESULT_OK(
+                context,
+                context->callbacks.on_token(context->type, tid, value, context->callbacks.context));
         }
         context->tokens_count--;
     }
     if (context->tokens_count == 0) {
-        CHECK_CALL_RESULT_OK(context, add_registers_count(context));
-        if (context->registers_count == 0) {
-            if (context->type == ERGO_TX_SERIALIZER_BOX_TYPE_INPUT) {
-                context->state = ERGO_TX_SERIALIZER_BOX_STATE_REGISTERS_ADDED;
-            } else {
-                context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
-            }
+        if (context->registers_size == 0) {
+            CHECK_CALL_RESULT_OK(context, add_empty_registers_count(context));
+            context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
         } else {
             context->state = ERGO_TX_SERIALIZER_BOX_STATE_TOKENS_ADDED;
         }
@@ -249,37 +241,38 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
     return ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA;
 }
 
-ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_register(
+ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_registers(
     ergo_tx_serializer_box_context_t* context,
-    buffer_t* value) {
+    buffer_t* registers_chunk) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_TOKENS_ADDED);
-    if (context->registers_count == 0) {
-        return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MANY_REGISTERS);
+    size_t len = buffer_data_len(registers_chunk);
+    if (context->registers_size < len) {
+        return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MUCH_DATA);
     }
-    size_t len = buffer_data_len(value);
-    if (!blake2b_update(context->hash, buffer_read_ptr(value), len)) {
+    if (!blake2b_update(context->hash, buffer_read_ptr(registers_chunk), len)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
-    if (!buffer_seek_read_cur(value, len)) {
+    if (!buffer_seek_read_cur(registers_chunk, len)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
     }
-    context->registers_count--;
-    if (context->registers_count == 0) {
-        if (context->type == ERGO_TX_SERIALIZER_BOX_TYPE_INPUT) {
-            context->state = ERGO_TX_SERIALIZER_BOX_STATE_REGISTERS_ADDED;
-        } else {
-            context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
-        }
+    context->registers_size -= len;
+    if (context->registers_size == 0) {
+        context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
         return ERGO_TX_SERIALIZER_BOX_RES_OK;
     }
     return ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA;
 }
 
-ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tx_id_and_index(
+bool ergo_tx_serializer_box_id_hash_init(cx_blake2b_t* hash) {
+    return blake2b_256_init(hash);
+}
+
+ergo_tx_serializer_box_result_e ergo_tx_serializer_box_id_hash(
     ergo_tx_serializer_box_context_t* context,
-    uint8_t tx_id[static ERGO_ID_LEN],
-    uint16_t box_index) {
-    CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_REGISTERS_ADDED);
+    const uint8_t tx_id[static ERGO_ID_LEN],
+    uint16_t box_index,
+    uint8_t box_id[static ERGO_ID_LEN]) {
+    CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_FINISHED);
 
     if (!blake2b_update(context->hash, tx_id, ERGO_ID_LEN)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
@@ -293,18 +286,11 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tx_id_and_index(
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
 
-    context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
-    return ERGO_TX_SERIALIZER_BOX_RES_OK;
-}
-
-bool ergo_tx_serializer_box_id_hash_init(cx_blake2b_t* hash) {
-    return blake2b_256_init(hash);
-}
-
-bool ergo_tx_serializer_box_id_hash(ergo_tx_serializer_box_context_t* context,
-                                    uint8_t box_id[static ERGO_ID_LEN]) {
-    if (context->state != ERGO_TX_SERIALIZER_BOX_STATE_FINISHED) {
-        return false;
+    if (!blake2b_256_finalize(context->hash, box_id)) {
+        return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
-    return blake2b_256_finalize(context->hash, box_id);
+
+    context->state = ERGO_TX_SERIALIZER_BOX_STATE_HASH_FINALIZED;
+
+    return ERGO_TX_SERIALIZER_BOX_RES_OK;
 }
