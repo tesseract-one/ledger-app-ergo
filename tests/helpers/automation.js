@@ -5,32 +5,38 @@ class SpeculosAutomation {
     constructor(host, port) {
         this.host = host || "127.0.0.1";
         this.port = port;
-        const events = new EventEmitter();
-        const req = http.request(
-            { port, host: this.host, path: "/events?stream=true" },
-            (res) => {
-                res.on('error', err => events.emit('error', err));
-                res.on('data', data => {
-                    const split = data.toString("ascii").split("\n");
-                    split
-                        .filter(ascii => !!ascii)
-                        .map(str => str.slice(str.indexOf("{")))
-                        .forEach((ascii) => {
-                            const json = JSON.parse(ascii);
-                            if (json.text) {
-                                this.events.emit('text', json);
-                            }
-                            this.events.emit('any', json);
-                        });
-                });
-            }
-        );
-        req.on('error', err => events.emit('error', err));
-        req.setSocketKeepAlive(true);
-        req.setHeader("Accept", "text/event-stream");
-        req.end();
-        this.events = events;
-        this.eventsReq = req;
+        this.events = new EventEmitter();
+        this.eventsReq = null;
+    }
+
+    connect() {
+        return new Promise((resolve, reject) => {
+            const req = http.request(
+                { port: this.port, host: this.host, path: "/events?stream=true" },
+                (res) => {
+                    resolve();
+                    res.on('error', err => events.emit('error', err));
+                    res.on('data', data => {
+                        const split = data.toString("ascii").split("\n");
+                        split
+                            .filter(ascii => !!ascii)
+                            .map(str => str.slice(str.indexOf("{")))
+                            .forEach((ascii) => {
+                                const json = JSON.parse(ascii);
+                                if (json.text) {
+                                    this.events.emit('text', json);
+                                }
+                                this.events.emit('any', json);
+                            });
+                    });
+                }
+            );
+            req.on('error', err => reject(err));
+            req.setSocketKeepAlive(true);
+            req.setHeader("Accept", "text/event-stream");
+            req.end();
+            this.eventsReq = req;
+        });
     }
 
     pressButton(button) {
@@ -58,7 +64,7 @@ class SpeculosAutomation {
     }
 
     close() {
-        this.eventsReq.close();
+        this.eventsReq.destroy();
     }
 }
 

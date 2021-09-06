@@ -1,9 +1,8 @@
 const SpeculosTransport = require('@ledgerhq/hw-transport-node-speculos').default;
 const HidTransport = require('@ledgerhq/hw-transport-node-hid').default;
-const chai = require('chai');
-const { expect } = chai.use(require('chai-bytes'));
 const Device = require('./device').Device;
 const SpeculosAutomation = require('./automation').SpeculosAutomation;
+const ScreenReader = require('./screen').ScreenReader;
 
 const APDU_PORT = 9999;
 const API_PORT = 40000;
@@ -17,6 +16,8 @@ exports.mochaHooks = {
                 apduPort: APDU_PORT,
             });
             this.automation = new SpeculosAutomation(null, API_PORT);
+            await this.automation.connect();
+            this.screens = new ScreenReader(this.automation);
         }
         this.device = new Device(this.transport);
     },
@@ -28,5 +29,3 @@ exports.mochaHooks = {
         }
     }
 };
-
-global.expect = expect;
