@@ -43,7 +43,7 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          apt update && apt install -qy lcov gcov
+          apt-get update && apt-get install -qy lcov gcov
           cd unit-tests/
           lcov --directory . -b "$(realpath build/)" --capture --initial -o coverage.base && \
           lcov --rc lcov_branch_coverage=1 --directory . -b "$(realpath build/)" --capture -o coverage.capture && \
@@ -102,8 +102,8 @@ jobs:
 
       - name: Run test
         run: |
-          curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
-          apt install -y nodejs
+          wget -O - https://deb.nodesource.com/setup_14.x | bash -
+          apt-get install -y nodejs
           # apt install -qy gcc  # /!\ workaround for pysha3
           nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --button-port 42000 --automation-port 43000 --display headless" > speculos.log 2<&1 &
           cd tests && npm install && npm run test
