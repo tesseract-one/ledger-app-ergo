@@ -102,9 +102,9 @@ jobs:
 
       - name: Run test
         run: |
-          apt-get update && apt-get install -u curl
+          apt-get update && apt-get install -qy curl
           curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
-          apt-get install -y nodejs
+          apt-get install -qy nodejs
           # apt install -qy gcc  # /!\ workaround for pysha3
           nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --button-port 42000 --automation-port 43000 --display headless" > speculos.log 2<&1 &
           cd tests && npm install && npm run test
