@@ -1,4 +1,4 @@
-const Buffer = require("buffer");
+const Buffer = require("buffer").Buffer;
 
 const CLA = 0xE0;
 
@@ -51,15 +51,15 @@ const COMMANDS = {
     sign_tx: 0x21
 }
 
-exports.DeviceError = class DeviceError extends Error {
+class DeviceError extends Error {
     constructor(code) {
-        this.code = code;
         const message = ERROR_CODES[code] || "Unknown error";
         super(message);
+        this.code = code;
     }
 }
 
-exports.Device = class Device {
+class Device {
     constructor(transport) {
         this.transport = transport;
     }
@@ -69,16 +69,16 @@ exports.Device = class Device {
             throw new DeviceError(0xE015); // Too much data
         }
         let header = Buffer.alloc(5);
-        header.writeUInt8(CLA);
-        header.writeUInt8(code);
-        header.writeUInt8(p1);
-        header.writeUInt8(p2);
-        header.writeUInt8(data.length);
+        header.writeUInt8(CLA, 0);
+        header.writeUInt8(code, 1);
+        header.writeUInt8(p1, 2);
+        header.writeUInt8(p2, 3);
+        header.writeUInt8(data.length, 4);
         const response = await this.transport.exchange(Buffer.concat([header, data]))
         if (response.length < 2) {
             throw new DeviceError(0xB001); // Wrong response length
         }
-        const returnCode = response.readUInt16(response.length - 2);
+        const returnCode = response.readUInt16BE(response.length - 2);
         if (returnCode != 0x9000) {
             throw new DeviceError(returnCode); // Call error
         }
@@ -110,5 +110,7 @@ exports.Device = class Device {
 }
 
 exports.CLA = CLA;
+exports.Device = Device;
+exports.DeviceError = DeviceError;
 exports.COMMANDS = COMMANDS;
 exports.ERROR_CODES = ERROR_CODES;

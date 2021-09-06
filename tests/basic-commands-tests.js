@@ -1,4 +1,4 @@
-const Buffer = require('buffer');
+const Buffer = require('buffer').Buffer;
 
 describe("Basic Commands Tests", function () {
     context("App Version", function () {
