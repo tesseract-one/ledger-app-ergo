@@ -95,10 +95,6 @@ class Device {
         return responses
     }
 
-    hasAutomation() {
-        return !!this.speculos.automationSocket;
-    }
-
     getAppVersion() {
         return this.command(COMMANDS.app_version, 0x00, 0x00, Buffer.from([]))
     }

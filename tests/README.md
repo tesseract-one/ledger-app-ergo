@@ -12,7 +12,7 @@ npm install
 First start your application with Speculos
 
 ```
-./path/to/speculos.py /path/to/bin/app.elf --apdu-port 9999 --button-port 42000 --automation-port 43000
+./path/to/speculos.py /path/to/bin/app.elf --apdu-port 9999 --api-port 40000
 ```
 
 then run
