@@ -7,7 +7,6 @@
     },
     "bin": "run-tests.js",
     "devDependencies": {
-        "bip32-path": "0.4.2",
         "chai": "^4.3.4",
         "chai-bytes": "^0.1.2",
         "mocha": "^9.1.1"
@@ -17,6 +16,7 @@
         "@ledgerhq/hw-transport-node-speculos": "6.3.0",
         "bip32-path": "^0.4.2",
         "bn.js": "^5.2.0",
-        "create-hash": "1.2.0"
+        "create-hash": "1.2.0",
+        "ergo-lib-wasm-nodejs": "v0.14.0-alpha-fc60067"
     }
 }

@@ -4,7 +4,7 @@ describe("Basic Commands Tests", function () {
     context("App Version", function () {
         it("can fetch version of the app", async function () {
             const version = await this.device.getAppVersion();
-            expect(version).to.be.equal(Buffer.from([0x00, 0x00, 0x01, 0x01]));
+            expect(version).to.equalBytes([0x00, 0x00, 0x01, 0x01]);
         });
     });
 
