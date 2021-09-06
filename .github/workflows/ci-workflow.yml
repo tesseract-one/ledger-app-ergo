@@ -43,6 +43,7 @@ jobs:
 
       - name: Generate code coverage
         run: |
+          apt update && apt install -qy lcov gcov
           cd unit-tests/
           lcov --directory . -b "$(realpath build/)" --capture --initial -o coverage.base && \
           lcov --rc lcov_branch_coverage=1 --directory . -b "$(realpath build/)" --capture -o coverage.capture && \
@@ -73,8 +74,6 @@ jobs:
           name: documentation
           path: doc/html
 
-
-
   job_test:
     name: Test
     needs: job_build_debug
@@ -103,9 +102,11 @@ jobs:
 
       - name: Run test
         run: |
-          apt update && apt install -qy gcc  # /!\ workaround for pysha3
+          curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
+          apt install -y nodejs
+          # apt install -qy gcc  # /!\ workaround for pysha3
           nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --button-port 42000 --automation-port 43000 --display headless" > speculos.log 2<&1 &
-          cd tests && pip install -r requirements.txt && pytest --headless
+          cd tests && npm install && npm run test
 
       - name: Upload Speculos log
         uses: actions/upload-artifact@v2
