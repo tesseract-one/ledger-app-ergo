@@ -111,7 +111,7 @@ class ExtendedOutput {
             const tokenId = Buffer.from(token.id().as_bytes()).toString('hex');
             const index = this._tokens.indexOf(tokenId);
             out.writeUInt32BE(index, i * 12);
-            out.write(token.amount().to_bytes(), i * 12 + 4);
+            Buffer.from(token.amount().to_bytes()).copy(out, i * 12 + 4);
         }
         return out;
     }
