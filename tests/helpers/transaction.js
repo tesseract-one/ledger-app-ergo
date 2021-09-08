@@ -1,6 +1,8 @@
 const ergo = require('ergo-lib-wasm-nodejs');
 const Buffer = require('buffer').Buffer;
 const crypto = require('crypto');
+const bip32 = require('bip32');
+const b32path = require('bip32-path');
 
 const minersFeeTree = Buffer.from([
     0x10, 0x05, 0x04, 0x00, 0x04, 0x00, 0x0e, 0x36, 0x10, 0x02, 0x04, 0xa0, 0x0b, 0x08, 0xcd,
@@ -186,10 +188,11 @@ class ExtendedTransaction {
     }
 
     outputs() {
+        const tokens = this.distinct_token_ids().map((id) => Buffer.from(id).toString('hex'));
         const outputs = this._transaction.output_candidates();
         const mapped = [];
         for (let i = 0; i < outputs.len(); i++) {
-            mapped.push(new ExtendedOutput(outputs.get(i), this._pathes));
+            mapped.push(new ExtendedOutput(outputs.get(i), this._pathes, tokens));
         }
         return mapped;
     }
@@ -206,17 +209,69 @@ class ExtendedTransaction {
 }
 
 class TransactionGenerator {
-    constructor(account) {
-        this.account = [];
+    constructor(account, path, height) {
+        this.account = bip32.fromBase58("");
+        this.height = height;
         this.input_boxes = [];
         this.output_boxes = [];
+        this.change_boxes = [];
+        this.pathes = {};
+        this.path = path;
     }
 
-    addInput(value, tokens) {
+    createToken(value) {
         const rawId = crypto.randomBytes(32);
-        const id = ergo.TxId.from_str(rawId.toString('hex'));
-        const input = new ergo.ErgoBox(value,);
+        const id = ergo.TokenId.from_str(rawId.toString('hex'));
+        const i64 = typeof value === "string"
+            ? ergo.I64.from_str(value)
+            : ergo.I64.from_str(value.toString(10));
+        const val = ergo.TokenAmount.from_i64(i64);
+        return new ergo.Token(id, val);
+    }
+
+    changeTokenValue(token, value) {
+        const i64 = typeof value === "string"
+            ? ergo.I64.from_str(value)
+            : ergo.I64.from_str(value.toString(10));
+        const val = ergo.TokenAmount.from_i64(i64);
+        return new ergo.Token(token.id(), val);
+    }
+
+    addInput(value, change, addrIndex, tokens) {
+        const pComp = [change ? 1 : 0, addrIndex];
+        const rawId = crypto.randomBytes(32);
+        const tx_id = ergo.TxId.from_str(rawId.toString('hex'));
+        const height = Math.floor(Math.random() * this.height);
+        const pubKey = this.account.derive(pComp[0]).derive(pComp[1]);
+        const address = ergo.Address.from_public_key(pubKey.publicKey);
+        const path = b32path.fromPathArray(this.path.toPathArray() + pComp);
+        this.pathes[Buffer.from(address.to_bytes(1)).toString('hex')] = path;
+        const contract = ergo.Contract.pay_to_address(address);
+        const index = Math.floor(Math.random() * 0xFFFF);
+        const tns = new ergo.Tokens();
+        for (let token of tokens) {
+            tns.add(token);
+        }
+        const input = new ergo.ErgoBox(value, height, contract, tx_id, index, tns);
         this.input_boxes.push(input);
+    }
+
+    getInputBoxes() {
+        return this.input_boxes;
+    }
+
+    getTxData(attestedInputs) {
+        const boxes = attestedInputs.reduce((dict, box) => {
+            const id = box.boxId().toString('hex');
+            dict[id] = box;
+            return dict;
+        }, {});
+
+        const boxSel = new ergo.BoxSelection()
+        const txBuilder = ergo.TxBuilder.new()
+
+        const transaction = new ergo.UnsignedTransaction();
+        return new ExtendedTransaction(transaction, boxes, this.pathes);
     }
 }
 

@@ -162,44 +162,96 @@ class Device {
             .then(buff => buff.toString('ascii'))
     }
 
-    getExtendedPubKey(account, useAuthToken) {
+    async getExtendedPubKey(account, useAuthToken) {
         const path = b32path.fromString(`m/44'/429'/${account}'`);
         const serPath = tx.serializeBip32Path(path);
         const message = useAuthToken
             ? Buffer.concat([serPath, this.serializedToken()])
             : serPath;
-        return this.command(COMMANDS.extented_pub_key, useAuthToken ? 0x02 : 0x01, 0x00, message)
-            .then((epk) => {
-                const pk = epk.slice(0, 65);
-                const cc = epk.slice(65);
-                return bip32.fromPublicKey(pk, cc);
-            });
+        const epk = await this.command(COMMANDS.extented_pub_key,
+            useAuthToken ? 0x02 : 0x01, 0x00, message);
+        const pk = epk.slice(0, 65);
+        const cc = epk.slice(65);
+        return bip32.fromPublicKey(pk, cc);
     }
 
-    attestInputSendHeader(box, useAuthToken) {
-        const _box = new ergo.ErgoBox();
-        const header = Buffer.alloc(0x37);
-        //header.writeUInt16BE(_box.)
+    async attestInputSendHeader(box, useAuthToken) {
+        let header = Buffer.alloc(0x37);
+        let offset = 0;
+        Buffer.from(box.tx_id().to_str(), 'hex').copy(header, offset);
+        offset += 32;
+        header.writeUInt16BE(box.index(), offset);
+        offset += 2;
+        Buffer.from(box.value().to_bytes()).copy(header, offset);
+        offset += 8;
+        header.writeUInt32BE(box.ergo_tree().sigma_serialize_bytes().length, offset);
+        offset += 4;
+        header.writeUInt32BE(box.creation_height(), offset);
+        offset += 4;
+        header.writeUInt8(box.tokens().len(), offset);
+        offset += 1;
+        header.writeUInt32BE(box.serialized_additional_registers().length, offset);
+        offset += 4;
+        if (useAuthToken) {
+            header = Buffer.concat([header, this.serializedToken()])
+        }
+        const res = await this.command(COMMANDS.attest_input, 0x01,
+            useAuthToken ? 0x02 : 0x01, header)
+        return res[0];
     }
 
-    attestInputSendTokens(tokens) {
-
+    async attestInputSendTree(data, sessionId) {
+        const results = await this.data(COMMANDS.attest_input, 0x02, sessionId, data);
+        return results.pop()[0];
     }
 
-    attestInputSendTree(data) {
-
+    async attestInputSendTokens(tokens, sessionId) {
+        const packets = [];
+        for (let i = 0; i < Math.ceil(tokens.len() / 6); i++) {
+            const chunks = []
+            for (let j = i * 6; j < Math.min((i + 1) * 6, tokens.len()); j++) {
+                const token = tokens.get(j);
+                const id = Buffer.from(token.id().as_bytes());
+                const value = Buffer.from(token.amount().to_bytes());
+                chunks.push(Buffer.concat([id, value]));
+            }
+            packets.push(Buffer.concat(chunks));
+        }
+        const results = [];
+        for (let p of packets) {
+            results.push(await this.command(COMMANDS.attest_input, 0x03, sessionId, p));
+        }
+        return results.pop()[0];
     }
 
-    getAttestedFrames(count) {
-
+    async attestInputSendRegisters(data, sessionId) {
+        const results = await this.data(COMMANDS.attest_input, 0x04, sessionId, data);
+        return results.pop()[0];
     }
 
-    attestInputSendRegisters(data) {
-
+    async getAttestedFrames(count, sessionId) {
+        const frames = [];
+        for (let i = 0; i < count; i++) {
+            frames.push(await this.command(COMMANDS.attest_input, 0x05,
+                sessionId, Buffer.from([i])));
+        }
+        return frames;
     }
 
-    attestInput(box, useAuthToken) {
-        const sessionId = this.attestInputSendHeader(box, useAuthToken);
+    async attestInput(box, useAuthToken) {
+        const sessionId = await this.attestInputSendHeader(box, useAuthToken);
+        const tree = Buffer.from(box.ergo_tree().sigma_serialize_bytes());
+        const tokens = box.tokens();
+        const registers = Buffer.from(box.serialized_additional_registers());
+        let frameCount = await this.attestInputSendTree(tree, sessionId);
+        if (tokens.len() > 0) {
+            frameCount = await this.attestInputSendTokens(tokens, sessionId);
+        }
+        if (registers.length > 0) {
+            frameCount = await this.attestInputSendRegisters(registers, sessionId);
+        }
+        const frames = await this.getAttestedFrames(frameCount, sessionId);
+        return new tx.AttestedBox(box, frames);
     }
 }
 
