@@ -1,4 +1,6 @@
 const Buffer = require("buffer").Buffer;
+const b32path = require("bip32-path");
+const bip32 = require("bip32");
 
 const CLA = 0xE0;
 
@@ -102,6 +104,34 @@ class Device {
     getAppName() {
         return this.command(COMMANDS.app_name, 0x00, 0x00, Buffer.from([]))
             .then(buff => buff.toString('ascii'))
+    }
+
+    getExtendedPubKey(account, useAuthToken) {
+
+    }
+
+    attestInputSendHeader(box, useAuthToken) {
+        const header = Buffer.alloc();
+    }
+
+    attestInputSendTokens(tokens) {
+
+    }
+
+    attestInputSendTree(data) {
+
+    }
+
+    getAttestedFrames(count) {
+
+    }
+
+    attestInputSendRegisters(data) {
+
+    }
+
+    attestInput(box, useAuthToken) {
+        const sessionId = this.attestInputSendHeader(box, useAuthToken);
     }
 }
 
