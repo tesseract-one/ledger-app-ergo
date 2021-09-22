@@ -73,7 +73,7 @@
 /**
  * Length of Extended Public Key.
  */
-#define EXTENDED_PUBLIC_KEY_LEN (PUBLIC_KEY_LEN + CHAIN_CODE_LEN)
+#define EXTENDED_PUBLIC_KEY_LEN (COMPRESSED_PUBLIC_KEY_LEN + CHAIN_CODE_LEN)
 
 /**
  * Length of Input Frame Signature.

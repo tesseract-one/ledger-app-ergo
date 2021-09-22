@@ -31,11 +31,10 @@ UX_STEP_NOCB(ux_da_display_address_step,
 
 // Display
 int ui_display_address(bool send,
-                       uint8_t network_id,
                        uint32_t app_access_token,
                        uint32_t* bip32_path,
                        uint8_t bip32_path_len,
-                       uint8_t raw_pub_key[static PUBLIC_KEY_LEN]) {
+                       uint8_t raw_address[static ADDRESS_LEN]) {
     if (!bip32_path_validate(bip32_path,
                              bip32_path_len,
                              BIP32_HARDENED(44),
@@ -64,13 +63,8 @@ int ui_display_address(bool send,
 
     memset(CONTEXT(G_context).address, 0, MEMBER_SIZE(derive_address_ctx_t, address));
     if (!send) {
-        uint8_t address[ADDRESS_LEN] = {0};
-        if (!address_from_pubkey(network_id, raw_pub_key, address)) {
-            return res_error(SW_ADDRESS_GENERATION_FAILED);
-        }
-
-        int result = base58_encode(address,
-                                   sizeof(address),
+        int result = base58_encode(raw_address,
+                                   ADDRESS_LEN,
                                    CONTEXT(G_context).address,
                                    MEMBER_SIZE(derive_address_ctx_t, address));
 
@@ -91,7 +85,7 @@ int ui_display_address(bool send,
     G_ux_flow[screen++] = FLOW_LOOP;
     G_ux_flow[screen++] = FLOW_END_STEP;
 
-    memmove(CONTEXT(G_context).raw_public_key, raw_pub_key, PUBLIC_KEY_LEN);
+    memmove(CONTEXT(G_context).raw_address, raw_address, ADDRESS_LEN);
 
     ux_flow_init(0, G_ux_flow, NULL);
 
@@ -107,7 +101,7 @@ void ui_action_derive_address(bool approved) {
     if (approved) {
         G_context.app_session_id = CONTEXT(G_context).app_token_value;
         if (CONTEXT(G_context).send) {
-            send_response_address(CONTEXT(G_context).raw_public_key);
+            send_response_address(CONTEXT(G_context).raw_address);
         } else {
             clear_context(&G_context, CMD_NONE);
             res_ok();

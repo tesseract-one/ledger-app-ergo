@@ -14,8 +14,12 @@ int send_response_extended_pubkey(uint8_t raw_public_key[static PUBLIC_KEY_LEN],
                                   uint8_t chain_code[static CHAIN_CODE_LEN]) {
     BUFFER_NEW_LOCAL_EMPTY(response, EXTENDED_PUBLIC_KEY_LEN);
 
-    if (!buffer_write_bytes(&response, raw_public_key, PUBLIC_KEY_LEN)) {
-        return res_error(SW_BUFFER_ERROR);
+    // Compressed pubkey
+    if (!buffer_write_u8(&response, ((raw_public_key[64] & 1) ? 0x03 : 0x02))) {
+        return false;
+    }
+    if (!buffer_write_bytes(&response, raw_public_key + 1, 32)) {
+        return false;
     }
 
     if (!buffer_write_bytes(&response, chain_code, CHAIN_CODE_LEN)) {

@@ -19,6 +19,7 @@
 #include "../../common/macros.h"
 #include "../../helpers/response.h"
 #include "../../helpers/session_id.h"
+#include "../../ergo/address.h"
 
 #define CONTEXT(gcxt) G_context.ctx.derive_address
 
@@ -31,6 +32,7 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
 
     uint8_t bip32_path_len;
     uint32_t bip32_path[MAX_BIP32_PATH];
+    uint8_t public_key[PUBLIC_KEY_LEN];
 
     uint32_t access_token = 0;
     uint8_t network_type = 0;
@@ -60,21 +62,21 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
         return res_error(SW_BIP32_BAD_PATH);
     }
 
-    if (crypto_generate_public_key(bip32_path,
-                                   bip32_path_len,
-                                   CONTEXT(G_context).raw_public_key,
-                                   NULL) != 0) {
+    if (crypto_generate_public_key(bip32_path, bip32_path_len, public_key, NULL) != 0) {
         return res_error(SW_INTERNAL_CRYPTO_ERROR);
     }
 
+    if (!ergo_address_from_pubkey(network_type, public_key, CONTEXT(G_context).raw_address)) {
+        return res_error(SW_ADDRESS_GENERATION_FAILED);
+    }
+
     if (!display && is_known_application(access_token, G_context.app_session_id)) {
-        return send_response_address(CONTEXT(G_context).raw_public_key);
+        return send_response_address(CONTEXT(G_context).raw_address);
     }
 
     return ui_display_address(!display,
-                              network_type,
                               access_token,
                               bip32_path,
                               bip32_path_len,
-                              CONTEXT(G_context).raw_public_key);
+                              CONTEXT(G_context).raw_address);
 }
