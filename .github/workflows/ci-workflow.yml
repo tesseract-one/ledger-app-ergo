@@ -21,7 +21,7 @@ jobs:
       - name: Upload app binary
         uses: actions/upload-artifact@v2
         with:
-          name: boilerplate-app-debug
+          name: ergo-app-debug
           path: bin
 
   job_unit_test:
@@ -62,7 +62,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./unit-tests/coverage.info
           flags: unittests
-          name: codecov-app-boilerplate
+          name: codecov-app-ergo
           fail_ci_if_error: true
           verbose: true
       
@@ -97,7 +97,7 @@ jobs:
       - name: Download app binary
         uses: actions/download-artifact@v2
         with:
-          name: boilerplate-app-debug
+          name: ergo-app-debug
           path: bin
 
       - name: Run test
