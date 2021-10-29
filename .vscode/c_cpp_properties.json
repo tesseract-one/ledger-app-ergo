@@ -1,14 +1,15 @@
 {
     "env": {
         "BOLOS_SDK": "/opt/bolos-sdk/nanos-secure-sdk",
-        "BOLOS_ENV": "/opt/bolos-devenv"
+        "BOLOS_ENV": "/opt/bolos-devenv",
+        "GCC_COMPILER_NAME": "gcc-arm-none-eabi-10-2020-q4-major"
     },
     "configurations": [
         {
             "name": "Nano S",
             "includePath": [
-                "/usr/include",
                 "${workspaceFolder}/src",
+                "${env:BOLOS_ENV}/${env:GCC_COMPILER_NAME}/arm-none-eabi/include",
                 "${env:BOLOS_SDK}/include/*",
                 "${env:BOLOS_SDK}/lib_ux/include/*",
                 "${env:BOLOS_SDK}/lib_cxng/include/*"
@@ -45,7 +46,7 @@
                 "HAVE_PRINTF",
                 "PRINTF=screen_printf"
             ],
-            "compilerPath": "${env:BOLOS_ENV}/gcc-arm-none-eabi-10-2020-q4-major/bin/arm-none-eabi-gcc",
+            "compilerPath": "${env:BOLOS_ENV}/${env:GCC_COMPILER_NAME}/bin/arm-none-eabi-gcc",
             "cStandard": "c99",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-arm",
