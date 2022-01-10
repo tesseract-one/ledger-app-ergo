@@ -170,6 +170,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_init(
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_TOKENS_STARTED;
     } else {
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED;
+        context->input_ctx.state = ERGO_TX_SERIALIZER_INPUT_STATE_FINISHED;
     }
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }
