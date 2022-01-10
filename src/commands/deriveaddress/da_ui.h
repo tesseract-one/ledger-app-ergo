@@ -16,11 +16,10 @@
  *
  */
 int ui_display_address(bool send,
-                       uint8_t network_id,
                        uint32_t app_access_token,
                        uint32_t *bip32_path,
                        uint8_t bip32_path_len,
-                       uint8_t raw_pub_key[static PUBLIC_KEY_LEN]);
+                       uint8_t raw_address[static ADDRESS_LEN]);
 
 /**
  * Action for public key validation and export.
