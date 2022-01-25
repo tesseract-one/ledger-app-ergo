@@ -13,6 +13,20 @@
             return res_error(_ctx, res);                                                           \
     } while (0)
 
+#define CHECK_CALL_DATA_IS_FINISHED(_ctx, _call, _block) \
+    do {                                                 \
+        ergo_tx_serializer_full_result_e res = _call;    \
+        switch (res) {                                   \
+            case ERGO_TX_SERIALIZER_FULL_RES_OK: {       \
+                _block;                                  \
+            }                                            \
+            case ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA:  \
+                return res;                              \
+            default:                                     \
+                return res_error(_ctx, res);             \
+        }                                                \
+    } while (0)
+
 static inline ergo_tx_serializer_full_result_e res_error(ergo_tx_serializer_full_context_t* context,
                                                          ergo_tx_serializer_full_result_e err) {
     context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
@@ -134,6 +148,15 @@ input_finished(ergo_tx_serializer_full_context_t* context) {
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }
 
+static inline ergo_tx_serializer_full_result_e output_finished(
+    ergo_tx_serializer_full_context_t* context) {
+    context->outputs_count--;
+    if (context->outputs_count == 0) {
+        context->state = ERGO_TX_SERIALIZER_FULL_STATE_FINISHED;
+    }
+    return ERGO_TX_SERIALIZER_FULL_RES_OK;
+}
+
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_init(
     ergo_tx_serializer_full_context_t* context,
     uint16_t inputs_count,
@@ -179,18 +202,15 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
     ergo_tx_serializer_full_context_t* context,
     buffer_t* tokens) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_TOKENS_STARTED);
-    ergo_tx_serializer_full_result_e res =
-        map_table_result(ergo_tx_serializer_table_add(&context->table_ctx, tokens));
-    switch (res) {
-        case ERGO_TX_SERIALIZER_FULL_RES_OK:
+
+    CHECK_CALL_DATA_IS_FINISHED(
+        context,
+        map_table_result(ergo_tx_serializer_table_add(&context->table_ctx, tokens)),
+        {
             context->state = ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED;
             context->input_ctx.state = ERGO_TX_SERIALIZER_INPUT_STATE_FINISHED;
-            return res;
-        case ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA:
-            return res;
-        default:
-            return res_error(context, res);
-    }
+            return ERGO_TX_SERIALIZER_FULL_RES_OK;
+        });
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
@@ -224,19 +244,16 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_tokens(
     buffer_t* tokens) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED);
 
-    ergo_tx_serializer_full_result_e res = map_input_result(
-        ergo_tx_serializer_input_add_tokens(&context->input_ctx, box_id, frame_index, tokens));
-    switch (res) {
-        case ERGO_TX_SERIALIZER_FULL_RES_OK:
+    CHECK_CALL_DATA_IS_FINISHED(
+        context,
+        map_input_result(
+            ergo_tx_serializer_input_add_tokens(&context->input_ctx, box_id, frame_index, tokens)),
+        {
             if (ergo_tx_serializer_input_is_finished(&context->input_ctx)) {
                 return input_finished(context);
             }
             return ERGO_TX_SERIALIZER_FULL_RES_OK;
-        case ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA:
-            return res;
-        default:
-            return res_error(context, res);
-    }
+        });
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_context_extension(
@@ -244,16 +261,11 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_context_exten
     buffer_t* echunk) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED);
 
-    ergo_tx_serializer_full_result_e res = map_input_result(
-        ergo_tx_serializer_input_add_context_extension(&context->input_ctx, echunk));
-    switch (res) {
-        case ERGO_TX_SERIALIZER_FULL_RES_OK:
-            return input_finished(context);
-        case ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA:
-            return res;
-        default:
-            return res_error(context, res);
-    }
+    CHECK_CALL_DATA_IS_FINISHED(
+        context,
+        map_input_result(
+            ergo_tx_serializer_input_add_context_extension(&context->input_ctx, echunk)),
+        { return input_finished(context); });
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_data_inputs(
@@ -305,28 +317,44 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_ergo_tree(
     ergo_tx_serializer_full_context_t* context,
     buffer_t* tree_chunk) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED);
-    CHECK_CALL_RESULT_OK(
+
+    CHECK_CALL_DATA_IS_FINISHED(
         context,
-        map_box_result(ergo_tx_serializer_box_add_tree(&context->box_ctx, tree_chunk)));
-    return ERGO_TX_SERIALIZER_FULL_RES_OK;
+        map_box_result(ergo_tx_serializer_box_add_tree(&context->box_ctx, tree_chunk)),
+        {
+            if (ergo_tx_serializer_box_is_finished(&context->box_ctx)) {
+                return output_finished(context);
+            }
+            return ERGO_TX_SERIALIZER_FULL_RES_OK;
+        });
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_change_tree(
     ergo_tx_serializer_full_context_t* context,
     uint8_t raw_pub_key[static PUBLIC_KEY_LEN]) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED);
+
     CHECK_CALL_RESULT_OK(
         context,
         map_box_result(ergo_tx_serializer_box_add_change_tree(&context->box_ctx, raw_pub_key)));
+
+    if (ergo_tx_serializer_box_is_finished(&context->box_ctx)) {
+        return output_finished(context);
+    }
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_miners_fee_tree(
     ergo_tx_serializer_full_context_t* context) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED);
+
     CHECK_CALL_RESULT_OK(
         context,
         map_box_result(ergo_tx_serializer_box_add_miners_fee_tree(&context->box_ctx)));
+
+    if (ergo_tx_serializer_box_is_finished(&context->box_ctx)) {
+        return output_finished(context);
+    }
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }
 
@@ -335,22 +363,16 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_tokens(
     buffer_t* tokens) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED);
 
-    ergo_tx_serializer_full_result_e res = map_box_result(
-        ergo_tx_serializer_box_add_tokens(&context->box_ctx, tokens, context->tokens_table));
-    switch (res) {
-        case ERGO_TX_SERIALIZER_FULL_RES_OK:
+    CHECK_CALL_DATA_IS_FINISHED(
+        context,
+        map_box_result(
+            ergo_tx_serializer_box_add_tokens(&context->box_ctx, tokens, context->tokens_table)),
+        {
             if (ergo_tx_serializer_box_is_finished(&context->box_ctx)) {
-                context->outputs_count--;
-                if (context->outputs_count == 0) {
-                    context->state = ERGO_TX_SERIALIZER_FULL_STATE_FINISHED;
-                }
+                return output_finished(context);
             }
-            return res;
-        case ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA:
-            return res;
-        default:
-            return res_error(context, res);
-    }
+            return ERGO_TX_SERIALIZER_FULL_RES_OK;
+        });
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_registers(
@@ -358,20 +380,10 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_registers(
     buffer_t* registers_chunk) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED);
 
-    ergo_tx_serializer_full_result_e res =
-        map_box_result(ergo_tx_serializer_box_add_registers(&context->box_ctx, registers_chunk));
-    switch (res) {
-        case ERGO_TX_SERIALIZER_FULL_RES_OK:
-            context->outputs_count--;
-            if (context->outputs_count == 0) {
-                context->state = ERGO_TX_SERIALIZER_FULL_STATE_FINISHED;
-            }
-            return res;
-        case ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA:
-            return res;
-        default:
-            return res_error(context, res);
-    }
+    CHECK_CALL_DATA_IS_FINISHED(
+        context,
+        map_box_result(ergo_tx_serializer_box_add_registers(&context->box_ctx, registers_chunk)),
+        { return output_finished(context); });
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
