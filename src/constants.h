@@ -26,6 +26,11 @@
 #define BIP32_ERGO_COIN 429
 
 /**
+ * Number of fraction digits in ERG token
+ */
+#define ERGO_ERG_FRACTION_DIGIT_COUNT 9
+
+/**
  * Length of hashed ids in Ergo.
  */
 #define ERGO_ID_LEN 32

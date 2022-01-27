@@ -254,23 +254,30 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
     }
     // New input
     if (frame_index == 0) {
+        // get extension length
         uint32_t extension_len;
         CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &extension_len, BE));
+
+        // Add new input
         CHECK_CALL_RESULT_OK(
             ctx,
             ergo_tx_serializer_full_add_input(&ctx->tx, ctx->tx_id, frames_count, extension_len));
 
+        // Add input amount to the stored one
         if (!checked_add_u64(ctx->amounts.inputs, value, &ctx->amounts.inputs)) {
             return handler_err(ctx, SW_U64_OVERFLOW);
         }
-    }
-    // Setup callbacks
-    if (ctx->state == SIGN_TRANSACTION_STATE_DATA_APPROVED) {
+
+        // Set callbacks (add_input recreated context)
         CHECK_CALL_RESULT_OK(ctx,
                              ergo_tx_serializer_full_set_input_callback(&ctx->tx,
                                                                         &input_token_cb,
                                                                         (void *) &ctx->amounts));
-        ctx->state = SIGN_TRANSACTION_STATE_INPUTS_STARTED;
+
+        // switch state if needed
+        if (ctx->state == SIGN_TRANSACTION_STATE_DATA_APPROVED) {
+            ctx->state = SIGN_TRANSACTION_STATE_INPUTS_STARTED;
+        }
     }
     // Add tokens to the input
     CHECK_CALL_RESULT_OK(
@@ -307,6 +314,7 @@ static inline int handle_output_init(sign_transaction_ctx_t *ctx, buffer_t *cdat
     CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &registers_size, BE));
     CHECK_PARAMS_FINISHED(ctx, cdata);
 
+    // Create new box header
     CHECK_CALL_RESULT_OK(ctx,
                          ergo_tx_serializer_full_add_box(&ctx->tx,
                                                          value,
@@ -314,13 +322,15 @@ static inline int handle_output_init(sign_transaction_ctx_t *ctx, buffer_t *cdat
                                                          creation_height,
                                                          tokens_count,
                                                          registers_size));
+    // Setup callbacks(add_box recreated context)
+    CHECK_CALL_RESULT_OK(ctx,
+                         ergo_tx_serializer_full_set_box_callbacks(&ctx->tx,
+                                                                   &output_type_cb,
+                                                                   &output_token_cb,
+                                                                   (void *) &ctx->amounts));
 
+    // Switch state if needed
     if (ctx->state == SIGN_TRANSACTION_STATE_INPUTS_STARTED) {
-        CHECK_CALL_RESULT_OK(ctx,
-                             ergo_tx_serializer_full_set_box_callbacks(&ctx->tx,
-                                                                       &output_type_cb,
-                                                                       &output_token_cb,
-                                                                       (void *) &ctx->amounts));
         ctx->state = SIGN_TRANSACTION_STATE_OUTPUTS_STARTED;
     }
 
