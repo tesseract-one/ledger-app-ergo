@@ -14,10 +14,10 @@
  * @param[in]  value
  *   64-bit signed integer to format.
  *
- * @return true if success, false otherwise.
+ * @return number of bytes written if success, -1 otherwise.
  *
  */
-bool format_i64(char *dst, size_t dst_len, const int64_t value);
+int format_i64(char *dst, size_t dst_len, const int64_t value);
 
 /**
  * Format 64-bit unsigned integer as string.
@@ -29,10 +29,10 @@ bool format_i64(char *dst, size_t dst_len, const int64_t value);
  * @param[in]  value
  *   64-bit unsigned integer to format.
  *
- * @return true if success, false otherwise.
+ * @return number of bytes written if success, -1 otherwise.
  *
  */
-bool format_u64(char *dst, size_t dst_len, uint64_t value);
+int format_u64(char *dst, size_t dst_len, uint64_t value);
 
 /**
  * Format 64-bit unsigned integer as string with decimals.
@@ -46,10 +46,10 @@ bool format_u64(char *dst, size_t dst_len, uint64_t value);
  * @param[in]  decimals
  *   Number of digits after decimal separator.
  *
- * @return true if success, false otherwise.
+ * @return number of bytes written if success, -1 otherwise.
  *
  */
-bool format_fpu64(char *dst, size_t dst_len, const uint64_t value, uint8_t decimals);
+int format_fpu64(char *dst, size_t dst_len, const uint64_t value, uint8_t decimals);
 
 /**
  * Format byte buffer to uppercase hexadecimal string.

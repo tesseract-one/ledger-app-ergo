@@ -215,7 +215,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[ERGO_ID_LEN],
+    const uint8_t box_id[ERGO_ID_LEN],
     uint8_t frames_count,
     uint32_t context_extension_data_size) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED);
@@ -239,7 +239,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_tokens(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[ERGO_ID_LEN],
+    const uint8_t box_id[ERGO_ID_LEN],
     uint8_t frame_index,
     buffer_t* tokens) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED);

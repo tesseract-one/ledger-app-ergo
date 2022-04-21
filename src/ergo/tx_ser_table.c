@@ -1,5 +1,4 @@
 #include "tx_ser_table.h"
-#include <os.h>
 #include "../common/varint.h"
 
 static inline ergo_tx_serializer_table_result_e parse_token(buffer_t* tokens,

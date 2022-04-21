@@ -10,6 +10,7 @@
 #include "../../helpers/response.h"
 #include "../../common/int_ops.h"
 #include "../../common/base58.h"
+#include "../../common/format.h"
 #include "../../ui/ui_application_id.h"
 #include "../../ui/ui_approve_reject.h"
 #include "../../ui/ui_menu.h"
@@ -74,39 +75,6 @@ void bnnn_paging_edgecase() {
     ux_flow_relayout();
 }
 
-char* u64toa(uint64_t value, char string[], uint8_t size) {
-    uint8_t indx = 0;
-    do {
-        if (indx == size - 2) return NULL;
-        string[indx++] = value % 10 + '0';
-    } while ((value /= 10) > 0);
-    string[indx] = '\0';
-    char c;
-    for (uint8_t i = 0, j = indx - 1; i < j; i++, j--) {
-        c = string[i];
-        string[i] = string[j];
-        string[j] = c;
-    }
-    return string + indx;
-}
-
-char* format_erg_value(char value[], uint8_t val_len, uint8_t val_size) {
-    if (val_len > ERGO_ERG_FRACTION_DIGIT_COUNT) {
-        if (val_len + 1 >= val_size) return NULL;
-        uint8_t dot_position = val_len - ERGO_ERG_FRACTION_DIGIT_COUNT;
-        memmove(value + dot_position + 1, value + dot_position, ERGO_ERG_FRACTION_DIGIT_COUNT + 1);
-        value[dot_position] = '.';
-        return value + val_len + 1;
-    } else {
-        uint8_t digits = (ERGO_ERG_FRACTION_DIGIT_COUNT - val_len) + 2;
-        if (val_len + digits >= val_size) return NULL;
-        memmove(value + digits, value, val_len + 1);
-        memset(value, '0', digits);
-        value[1] = '.';
-        return value + val_len + digits;
-    }
-}
-
 static NOINLINE void ui_stx_display_state() {
     char* title = CONFIRM_UI_CONTEXT(G_context).title;
     char* text = CONFIRM_UI_CONTEXT(G_context).text;
@@ -115,6 +83,11 @@ static NOINLINE void ui_stx_display_state() {
     memset(title, 0, title_len);
     memset(text, 0, text_len);
     switch (CONFIRM_UI_CONTEXT(G_context).state) {
+        case SIGN_TRANSACTION_UI_STATE_TX_ID: {
+            strncpy(title, "Transaction ID", title_len);
+            format_hex(CONTEXT(G_context).tx_id, ERGO_ID_LEN, text, text_len);
+            break;
+        }
         case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
             strncpy(title, "Transaction Amount", title_len);
             uint64_t value = CONTEXT(G_context).amounts.inputs;
@@ -122,15 +95,16 @@ static NOINLINE void ui_stx_display_state() {
                 !checked_sub_u64(value, CONTEXT(G_context).amounts.change, &value)) {
                 strncpy(text, "Bad TX. Outputs is bigger than inputs", text_len);
             } else {
-                char* pos = u64toa(value, text, text_len);
-                format_erg_value(text, pos - text, text_len);
+                format_fpu64(text, text_len, value, ERGO_ERG_FRACTION_DIGIT_COUNT);
             }
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TX_FEE: {
             strncpy(title, "Transaction Fee", title_len);
-            char* pos = u64toa(CONTEXT(G_context).amounts.fee, text, text_len);
-            format_erg_value(text, pos - text, text_len);
+            format_fpu64(text,
+                         text_len,
+                         CONTEXT(G_context).amounts.fee,
+                         ERGO_ERG_FRACTION_DIGIT_COUNT);
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
@@ -166,17 +140,19 @@ static NOINLINE void ui_stx_display_state() {
                 } else {
                     STRING_ADD_STATIC_TEXT(text, text_len, "B: ");
                 }
-                char* u64 = u64toa(value, text, text_len);
-                text_len -= u64 - text;
-                text = u64;
+                int char_count = format_u64(text, text_len, value);
+                text_len -= char_count;
+                text += char_count;
                 STRING_ADD_STATIC_TEXT(text, text_len, "; ");
             }
             STRING_ADD_STATIC_TEXT(text, text_len, "T: ");
-            u64toa(amount->output, text, text_len);
+            format_u64(text, text_len, amount->output);
             break;
         }
-        default:
+        case SIGN_TRANSACTION_UI_STATE_NONE: {
+            text[0] = title[0] = '\0';
             break;
+        }
     }
 }
 
@@ -193,6 +169,15 @@ static inline void ui_stx_dynamic_step_right() {
                 CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_FEE;
                 CONFIRM_UI_CONTEXT(G_context).token_idx = 0;
             }
+            // Fill screen with data
+            ui_stx_display_state();
+            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
+            // behaviour.
+            bnnn_paging_edgecase();
+            break;
+        }
+        case SIGN_TRANSACTION_UI_STATE_TX_ID: {
+            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
             // Fill screen with data
             ui_stx_display_state();
             // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
@@ -258,18 +243,26 @@ static inline void ui_stx_dynamic_step_left() {
     switch (CONFIRM_UI_CONTEXT(G_context).state) {
         case SIGN_TRANSACTION_UI_STATE_NONE: {
             // Show TX ERG value
-            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
+            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_ID;
             // Fill screen with data
             ui_stx_display_state();
             // Move to the next step, which will display the screen.
             ux_flow_next();
             break;
         }
-        case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
+        case SIGN_TRANSACTION_UI_STATE_TX_ID: {
             CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_NONE;
             // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
             // behaviour.
             bnnn_paging_edgecase();
+            break;
+        }
+        case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
+            CONFIRM_UI_CONTEXT(G_context).state = SIGN_TRANSACTION_UI_STATE_TX_ID;
+            // Fill screen with data
+            ui_stx_display_state();
+            // Move to the next step, which will display the screen.
+            ux_flow_next();
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TX_FEE: {

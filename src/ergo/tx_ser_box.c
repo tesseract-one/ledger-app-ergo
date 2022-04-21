@@ -1,6 +1,6 @@
 #include "tx_ser_box.h"
-#include <os.h>
 #include <string.h>
+#include <os.h>
 #include "ergo_tree.h"
 #include "../common/varint.h"
 #include "../common/macros.h"
