@@ -103,7 +103,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_ergo_tree(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_change_tree(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t raw_pub_key[static PUBLIC_KEY_LEN]);
+    const uint8_t raw_pub_key[static PUBLIC_KEY_LEN]);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_miners_fee_tree(
     ergo_tx_serializer_full_context_t* context,

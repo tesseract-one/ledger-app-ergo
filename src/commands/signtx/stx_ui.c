@@ -121,7 +121,7 @@ static NOINLINE void ui_stx_display_state() {
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {
             uint8_t token_idx = ctx->token_idx;
             snprintf(title, title_len, "Token [%d]", (int) token_idx + 1);
-            sign_transaction_token_amount_t* amount = &ctx->amounts->tokens[token_idx];
+            const sign_transaction_token_amount_t* amount = &ctx->amounts->tokens[token_idx];
             uint64_t value = 0;
             bool minting;
             if (!checked_sub_u64(amount->input, amount->output, &value)) {

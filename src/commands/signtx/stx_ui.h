@@ -4,6 +4,8 @@
 #include <stdbool.h>
 
 #include "../../ui/ui_approve_reject.h"
+#include "stx_amounts.h"
+#include "stx_types.h"
 
 /**
  * Display application access_token on the device and ask confirmation to proceed.
