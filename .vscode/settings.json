@@ -11,7 +11,10 @@
         "functional": "c",
         "tuple": "c",
         "type_traits": "c",
-        "utility": "c"
+        "utility": "c",
+        "limits": "c",
+        "numeric": "c",
+        "stop_token": "c"
     },
     "C_Cpp.clang_format_path": "/usr/bin/clang-format",
     "editor.formatOnSave": true,

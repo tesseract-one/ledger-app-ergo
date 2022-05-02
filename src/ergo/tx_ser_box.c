@@ -1,6 +1,5 @@
 #include "tx_ser_box.h"
 #include <string.h>
-#include <os.h>
 #include "ergo_tree.h"
 #include "../common/varint.h"
 #include "../common/macros.h"
@@ -138,11 +137,13 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tree(
 }
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_miners_fee_tree(
-    ergo_tx_serializer_box_context_t* context) {
+    ergo_tx_serializer_box_context_t* context,
+    bool is_mainnet) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_INITIALIZED);
-    if (!blake2b_update(context->hash,
-                        PIC(C_ERGO_TREE_MINERS_HASH_FEE),
-                        sizeof(C_ERGO_TREE_MINERS_HASH_FEE))) {
+    uint8_t* tree = NULL;
+    size_t tree_len = 0;
+    ergo_tree_miners_fee_tree(is_mainnet, &tree, &tree_len);
+    if (!blake2b_update(context->hash, tree, tree_len)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
     context->type = ERGO_TX_SERIALIZER_BOX_TYPE_FEE;

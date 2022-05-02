@@ -76,7 +76,8 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tree(
     buffer_t* tree_chunk);
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_miners_fee_tree(
-    ergo_tx_serializer_box_context_t* context);
+    ergo_tx_serializer_box_context_t* context,
+    bool is_mainnet);
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_change_tree(
     ergo_tx_serializer_box_context_t* context,
