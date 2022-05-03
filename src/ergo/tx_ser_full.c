@@ -384,13 +384,3 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_registers(
         map_box_result(ergo_tx_serializer_box_add_registers(&context->box_ctx, registers_chunk)),
         { return output_finished(context); });
 }
-
-// ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
-//     ergo_tx_serializer_full_context_t* context,
-//     uint8_t tx_id[static ERGO_ID_LEN]) {
-//     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_FINISHED);
-//     if (!blake2b_256_finalize(context->hash, tx_id)) {
-//         return ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER;
-//     }
-//     return ERGO_TX_SERIALIZER_FULL_RES_OK;
-// }

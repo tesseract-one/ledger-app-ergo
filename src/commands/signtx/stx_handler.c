@@ -47,85 +47,6 @@ static inline int handler_err(sign_transaction_ctx_t *ctx, uint16_t err) {
     return res_error(err);
 }
 
-// static inline uint8_t find_token_index(const token_table_t *table,
-//                                        const uint8_t id[static ERGO_ID_LEN]) {
-//     for (uint8_t i = 0; i < table->count; i++) {
-//         if (memcmp(table->tokens[i], id, ERGO_ID_LEN) == 0) return i;
-//     }
-//     return 0xFF;
-// }
-
-// static NOINLINE ergo_tx_serializer_input_result_e
-// input_token_cb(const uint8_t box_id[static ERGO_ID_LEN],
-//                const uint8_t tn_id[static ERGO_ID_LEN],
-//                uint64_t value,
-//                void *context) {
-//     (void) (box_id);
-//     _sign_transaction_amounts_ctx_t *ctx = (_sign_transaction_amounts_ctx_t *) context;
-//     // searching for token in table
-//     uint8_t index = 0;
-//     if ((index = find_token_index(&ctx->tokens_table, tn_id)) == 0xFF) {
-//         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID;
-//     }
-//     // calculating proper token sum
-//     if (!checked_add_u64(ctx->tokens[index].input, value, &ctx->tokens[index].input)) {
-//         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_U64_OVERFLOW;
-//     }
-//     return ERGO_TX_SERIALIZER_INPUT_RES_OK;
-// }
-
-// static NOINLINE ergo_tx_serializer_box_result_e output_type_cb(ergo_tx_serializer_box_type_e
-// type,
-//                                                                uint64_t value,
-//                                                                void *context) {
-//     uint64_t *sum;
-//     _sign_transaction_amounts_ctx_t *ctx = (_sign_transaction_amounts_ctx_t *) context;
-//     switch (type) {
-//         case ERGO_TX_SERIALIZER_BOX_TYPE_CHANGE:
-//             sum = &ctx->change;
-//             break;
-//         case ERGO_TX_SERIALIZER_BOX_TYPE_FEE:
-//             sum = &ctx->fee;
-//             break;
-//         case ERGO_TX_SERIALIZER_BOX_TYPE_TREE:
-//             // we don't need to calculate outputs. We will calc sum from other values
-//             return ERGO_TX_SERIALIZER_BOX_RES_OK;
-//     }
-//     if (!checked_add_u64(*sum, value, sum)) {  // calculating proper sum
-//         return ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW;
-//     }
-//     return ERGO_TX_SERIALIZER_BOX_RES_OK;
-// }
-
-// static NOINLINE ergo_tx_serializer_box_result_e
-// output_token_cb(ergo_tx_serializer_box_type_e type,
-//                 const uint8_t id[static ERGO_ID_LEN],
-//                 uint64_t value,
-//                 void *context) {
-//     uint64_t *sum;
-//     _sign_transaction_amounts_ctx_t *ctx = (_sign_transaction_amounts_ctx_t *) context;
-//     uint8_t index = 0;
-//     if ((index = find_token_index(&ctx->tokens_table, id)) == 0xFF) {
-//         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_ID;
-//     }
-//     switch (type) {
-//         case ERGO_TX_SERIALIZER_BOX_TYPE_TREE:
-//             sum = &ctx->tokens[index].output;
-//             break;
-//         case ERGO_TX_SERIALIZER_BOX_TYPE_CHANGE:
-//             sum = &ctx->tokens[index].change;
-//             break;
-//         default:
-//             // we shouldn't send tokens to miners fee
-//             // also, can't be input box too (we have only output boxes in sign tx).
-//             return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE;
-//     }
-//     if (!checked_add_u64(*sum, value, sum)) {  // calculating proper token sum
-//         return ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW;
-//     }
-//     return ERGO_TX_SERIALIZER_BOX_RES_OK;
-// }
-
 static inline uint16_t read_bip32_path(buffer_t *input,
                                        uint32_t path[MAX_BIP32_PATH],
                                        uint8_t *path_len) {
@@ -152,26 +73,6 @@ static NOINLINE uint16_t bip32_public_key(buffer_t *input, uint8_t pub_key[stati
     return SW_OK;
 }
 
-// static NOINLINE uint16_t bip32_private_key(buffer_t *input,
-//                                            uint8_t priv_key[static PRIVATE_KEY_LEN]) {
-//     uint32_t b32_path[MAX_BIP32_PATH];
-//     uint8_t path_len;
-//     uint16_t res = read_bip32_path(input, b32_path, &path_len);
-//     if (res != SW_OK) return res;
-//     if (!bip32_path_validate(b32_path,
-//                              path_len,
-//                              BIP32_HARDENED(44),
-//                              BIP32_HARDENED(BIP32_ERGO_COIN),
-//                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
-//         return SW_BIP32_BAD_PATH;
-//     }
-//     if (crypto_generate_private_key(b32_path, path_len, priv_key) != 0) {
-//         explicit_bzero(priv_key, PRIVATE_KEY_LEN);
-//         return SW_INTERNAL_CRYPTO_ERROR;
-//     }
-//     return SW_OK;
-// }
-
 static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
                                    buffer_t *cdata,
                                    bool has_token,
@@ -195,7 +96,10 @@ static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
         return send_response_sign_transaction_session_id(ctx->session);
     }
 
-    return ui_stx_operation_p2pk_show_token_and_path(&ctx->p2pk, app_session_id_in);
+    // switch beetwen operations if more will be added
+    CHECK_CALL_RESULT_OK(ctx,
+                         ui_stx_operation_p2pk_show_token_and_path(&ctx->p2pk, app_session_id_in));
+    return 0;
 }
 
 static inline int handle_tx_start(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
@@ -372,20 +276,9 @@ static inline int handle_output_registers(sign_transaction_ctx_t *ctx, buffer_t 
 static inline int handle_sign_confirm(sign_transaction_ctx_t *ctx) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
-    return ui_stx_operation_p2pk_show_confirm_screen(&ctx->p2pk);
+    CHECK_CALL_RESULT_OK(ctx, ui_stx_operation_p2pk_show_confirm_screen(&ctx->p2pk));
+    return 0;
 }
-
-// static inline int handle_sign_pk(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
-//     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_CONFIRMED);
-//     uint8_t secret[PRIVATE_KEY_LEN];
-//     uint16_t res = bip32_private_key(cdata, secret);
-//     if (res != 0) return handler_err(ctx, res);
-//     bool is_ok = ergo_secp256k1_schnorr_sign(G_io_apdu_buffer, ctx->tx_id, secret);
-//     explicit_bzero(secret, PRIVATE_KEY_LEN);
-//     if (!is_ok) return handler_err(ctx, SW_SCHNORR_SIGNING_FAILED);
-//     BUFFER_FROM_ARRAY_FULL(out, G_io_apdu_buffer, ERGO_SIGNATURE_LEN);
-//     return res_ok_data(&out);
-// }
 
 int handler_sign_transaction(buffer_t *cdata,
                              sign_transaction_subcommand_e subcommand,

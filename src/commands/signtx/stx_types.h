@@ -29,8 +29,10 @@ typedef struct {
     char app_token[APPLICATION_ID_STR_LEN];  // App token string
 } sign_transaction_ui_aprove_ctx_t;
 
-typedef void (
+// Show screen callback: (index, title, title_len, text, text_len, cb_context)
+typedef uint16_t (
     *ui_sign_transaction_operation_show_screen_cb)(uint8_t, char *, size_t, char *, size_t, void *);
+// Send response callback (cb_context)
 typedef void (*ui_sign_transaction_operation_send_response_cb)(void *);
 
 typedef struct {

@@ -17,6 +17,7 @@ typedef enum {
     SIGN_TRANSACTION_OPERATION_P2PK_STATE_INPUTS_STARTED,
     SIGN_TRANSACTION_OPERATION_P2PK_STATE_OUTPUTS_STARTED,
     SIGN_TRANSACTION_OPERATION_P2PK_STATE_TX_FINISHED,
+    SIGN_TRANSACTION_OPERATION_P2PK_STATE_FINALIZED,
     SIGN_TRANSACTION_OPERATION_P2PK_STATE_ERROR
 } sign_transaction_operation_p2pk_state_e;
 
@@ -87,15 +88,19 @@ uint16_t stx_operation_p2pk_add_output_tokens(sign_transaction_operation_p2pk_ct
 uint16_t stx_operation_p2pk_add_output_registers(sign_transaction_operation_p2pk_ctx_t *ctx,
                                                  buffer_t *data);
 
+static inline bool stx_operation_p2pk_is_tx_finished(sign_transaction_operation_p2pk_ctx_t *ctx) {
+    return ctx->state == SIGN_TRANSACTION_OPERATION_P2PK_STATE_TX_FINISHED;
+}
+
 //****************** OPERATION UI *******************
 /**
  * Display bip44 path and application access_token on the device
  * and ask confirmation to proceed.
  *
- * @return 0 if success, negative integer otherwise.
+ * @return SW_OK if success, error code otherwise.
  *
  */
-int ui_stx_operation_p2pk_show_token_and_path(sign_transaction_operation_p2pk_ctx_t *ctx,
-                                              uint32_t app_access_token);
+uint16_t ui_stx_operation_p2pk_show_token_and_path(sign_transaction_operation_p2pk_ctx_t *ctx,
+                                                   uint32_t app_access_token);
 
-int ui_stx_operation_p2pk_show_confirm_screen(sign_transaction_operation_p2pk_ctx_t *ctx);
+uint16_t ui_stx_operation_p2pk_show_confirm_screen(sign_transaction_operation_p2pk_ctx_t *ctx);

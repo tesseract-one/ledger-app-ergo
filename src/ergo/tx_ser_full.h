@@ -117,10 +117,6 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_registers(
     ergo_tx_serializer_full_context_t* context,
     buffer_t* registers_chunk);
 
-// ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
-//     ergo_tx_serializer_full_context_t* context,
-//     uint8_t tx_id[static ERGO_ID_LEN]);
-
 static inline bool ergo_tx_serializer_full_is_finished(ergo_tx_serializer_full_context_t* context) {
     return context->state == ERGO_TX_SERIALIZER_FULL_STATE_FINISHED;
 }

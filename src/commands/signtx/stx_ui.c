@@ -16,13 +16,23 @@
 #include "../../ui/ui_menu.h"
 
 #define CONTEXT(gctx) gctx.ctx.sign_tx
-//#define APP_ID_UI_CONTEXT(gctx)  CONTEXT(gctx).ui_app_id
-//#define CONFIRM_UI_CONTEXT(gctx) CONTEXT(gctx).ui_confirm
 
 #define STRING_ADD_STATIC_TEXT(str, slen, text) \
     strncpy(str, text, slen);                   \
     slen -= sizeof(text) - 1;                   \
     str += sizeof(text) - 1
+
+#define DISPLAY_TX_STATE(ctx, switch_method)      \
+    do {                                          \
+        uint16_t res = ui_stx_display_state(ctx); \
+        if (res == SW_OK) {                       \
+            switch_method();                      \
+        } else {                                  \
+            res_error(res);                       \
+            clear_context(&G_context, CMD_NONE);  \
+            ui_menu_main();                       \
+        }                                         \
+    } while (0)
 
 static NOINLINE void ui_stx_operation_approve_action(bool approved) {
     sign_transaction_ui_aprove_ctx_t* ctx =
@@ -41,27 +51,21 @@ static NOINLINE void ui_stx_operation_approve_action(bool approved) {
     ui_menu_main();
 }
 
-int ui_stx_add_display_access_token_screens(uint32_t app_access_token,
-                                            uint8_t* screen,
-                                            sign_transaction_ui_aprove_ctx_t* ctx) {
+bool ui_stx_add_access_token_screens(uint32_t app_access_token,
+                                     uint8_t* screen,
+                                     sign_transaction_ui_aprove_ctx_t* ctx) {
+    if (MAX_NUMBER_OF_SCREENS - *screen < 3) return false;
+
     if (app_access_token != 0) {
-        G_ux_flow[*screen++] = ui_application_id_screen(app_access_token, ctx->app_token);
+        G_ux_flow[(*screen)++] = ui_application_id_screen(app_access_token, ctx->app_token);
     }
     ctx->app_token_value = app_access_token;
 
-    const ux_flow_step_t** approve = &G_ux_flow[*screen++];
-    const ux_flow_step_t** reject = &G_ux_flow[*screen++];
+    const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
+    const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
     ui_approve_reject_screens(ui_stx_operation_approve_action, approve, reject);
 
-    G_ux_flow[*screen++] = FLOW_LOOP;
-    G_ux_flow[*screen++] = FLOW_END_STEP;
-
-    ux_flow_init(0, G_ux_flow, NULL);
-
-    G_context.is_ui_busy = true;
-    G_context.ctx.sign_tx.ui_context = (void*) ctx;
-
-    return 0;
+    return true;
 }
 
 // This is a special function we must call for bnnn_paging to work properly in an edgecase.
@@ -74,9 +78,7 @@ void bnnn_paging_edgecase() {
     ux_flow_relayout();
 }
 
-static NOINLINE void ui_stx_display_state() {
-    sign_transaction_ui_confirm_ctx_t* ctx =
-        (sign_transaction_ui_confirm_ctx_t*) CONTEXT(G_context).ui_context;
+static NOINLINE uint16_t ui_stx_display_state(sign_transaction_ui_confirm_ctx_t* ctx) {
     char* title = ctx->title;
     char* text = ctx->text;
     uint8_t title_len = MEMBER_SIZE(sign_transaction_ui_confirm_ctx_t, title);
@@ -85,13 +87,12 @@ static NOINLINE void ui_stx_display_state() {
     memset(text, 0, text_len);
     switch (ctx->state) {
         case SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN: {
-            ctx->op_screen_cb(ctx->op_screen_index,
-                              title,
-                              title_len,
-                              text,
-                              text_len,
-                              ctx->op_cb_context);
-            break;
+            return ctx->op_screen_cb(ctx->op_screen_index,
+                                     title,
+                                     title_len,
+                                     text,
+                                     text_len,
+                                     ctx->op_cb_context);
         }
         case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
             strncpy(title, "Transaction Amount", title_len);
@@ -155,6 +156,7 @@ static NOINLINE void ui_stx_display_state() {
             break;
         }
     }
+    return SW_OK;
 }
 
 static inline void ui_stx_dynamic_step_right() {
@@ -172,10 +174,10 @@ static inline void ui_stx_dynamic_step_right() {
                 ctx->token_idx = 0;
             }
             // Fill screen with data
-            ui_stx_display_state();
-            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
-            // behaviour.
-            bnnn_paging_edgecase();
+            //
+            // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to account
+            // for `bnnn_paging`'s weird behaviour.
+            DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN: {
@@ -186,19 +188,19 @@ static inline void ui_stx_dynamic_step_right() {
                 ctx->op_screen_index++;
             }
             // Fill screen with data
-            ui_stx_display_state();
-            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
-            // behaviour.
-            bnnn_paging_edgecase();
+            //
+            // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to account
+            // for `bnnn_paging`'s weird behaviour.
+            DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
             ctx->state = SIGN_TRANSACTION_UI_STATE_TX_FEE;
             // Fill screen with data
-            ui_stx_display_state();
-            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
-            // behaviour.
-            bnnn_paging_edgecase();
+            //
+            // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to account
+            // for `bnnn_paging`'s weird behaviour.
+            DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TX_FEE: {
@@ -206,10 +208,10 @@ static inline void ui_stx_dynamic_step_right() {
                 ctx->token_idx = 0;
                 ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
                 // Fill screen with data
-                ui_stx_display_state();
-                // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
-                // weird behaviour.
-                bnnn_paging_edgecase();
+                //
+                // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to
+                // account for `bnnn_paging`'s weird behaviour.
+                DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
             } else {
                 ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
                 // go to the next static screen
@@ -220,10 +222,10 @@ static inline void ui_stx_dynamic_step_right() {
         case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
             ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE;
             // Fill screen with data
-            ui_stx_display_state();
-            // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s weird
-            // behaviour.
-            bnnn_paging_edgecase();
+            //
+            // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to account
+            // for `bnnn_paging`'s weird behaviour.
+            DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {
@@ -231,10 +233,10 @@ static inline void ui_stx_dynamic_step_right() {
                 ctx->token_idx++;
                 ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
                 // Fill screen with data
-                ui_stx_display_state();
-                // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
-                // weird behaviour.
-                bnnn_paging_edgecase();
+                //
+                // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to
+                // account for `bnnn_paging`'s weird behaviour.
+                DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
             } else {
                 ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
                 // go to the next static screen
@@ -259,9 +261,8 @@ static inline void ui_stx_dynamic_step_left() {
                 ctx->state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
             }
             // Fill screen with data
-            ui_stx_display_state();
             // Move to the next step, which will display the screen.
-            ux_flow_next();
+            DISPLAY_TX_STATE(ctx, ux_flow_next);
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN: {
@@ -269,9 +270,8 @@ static inline void ui_stx_dynamic_step_left() {
                 ctx->op_screen_index--;
                 ctx->state = SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN;
                 // Fill screen with data
-                ui_stx_display_state();
                 // Move to the next step, which will display the screen.
-                ux_flow_next();
+                DISPLAY_TX_STATE(ctx, ux_flow_next);
             } else {
                 ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
                 // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
@@ -285,9 +285,8 @@ static inline void ui_stx_dynamic_step_left() {
                 ctx->op_screen_index = ctx->op_screen_count - 1;
                 ctx->state = SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN;
                 // Fill screen with data
-                ui_stx_display_state();
                 // Move to the next step, which will display the screen.
-                ux_flow_next();
+                DISPLAY_TX_STATE(ctx, ux_flow_next);
             } else {
                 ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
                 // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
@@ -299,9 +298,8 @@ static inline void ui_stx_dynamic_step_left() {
         case SIGN_TRANSACTION_UI_STATE_TX_FEE: {
             ctx->state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
             // Fill screen with data
-            ui_stx_display_state();
             // Move to the next step, which will display the screen.
-            ux_flow_next();
+            DISPLAY_TX_STATE(ctx, ux_flow_next);
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
@@ -312,17 +310,15 @@ static inline void ui_stx_dynamic_step_left() {
                 ctx->token_idx--;
             }
             // Fill screen with data
-            ui_stx_display_state();
             // Move to the next step, which will display the screen.
-            ux_flow_next();
+            DISPLAY_TX_STATE(ctx, ux_flow_next);
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {
             ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
             // Fill screen with data
-            ui_stx_display_state();
             // Move to the next step, which will display the screen.
-            ux_flow_next();
+            DISPLAY_TX_STATE(ctx, ux_flow_next);
             break;
         }
     }
@@ -353,26 +349,28 @@ static NOINLINE void ui_stx_operation_execute_action(bool approved) {
     ui_menu_main();
 }
 
-int ui_stx_display_transaction_screens(sign_transaction_ui_confirm_ctx_t* ctx,
-                                       const sign_transaction_amounts_ctx_t* amounts,
-                                       uint8_t op_screen_count,
-                                       ui_sign_transaction_operation_show_screen_cb screen_cb,
-                                       ui_sign_transaction_operation_send_response_cb response_cb,
-                                       void* cb_context) {
+bool ui_stx_add_transaction_screens(sign_transaction_ui_confirm_ctx_t* ctx,
+                                    uint8_t* screen,
+                                    const sign_transaction_amounts_ctx_t* amounts,
+                                    uint8_t op_screen_count,
+                                    ui_sign_transaction_operation_show_screen_cb screen_cb,
+                                    ui_sign_transaction_operation_send_response_cb response_cb,
+                                    void* cb_context) {
+    if (MAX_NUMBER_OF_SCREENS - *screen < 6) return false;
+
     memset(ctx, 0, sizeof(sign_transaction_ui_confirm_ctx_t));
 
-    uint8_t screen = 0;
-    G_ux_flow[screen++] = &ux_stx_display_tx_confirm_step;
-    G_ux_flow[screen++] = &ux_stx_dynamic_upper_delimiter_step;
-    G_ux_flow[screen++] = &ux_stx_dynamic_step;
-    G_ux_flow[screen++] = &ux_stx_dynamic_lower_delimiter_step;
+    G_ui_stx_dynamic_step_params[0].text = ctx->text;
+    G_ui_stx_dynamic_step_params[0].title = ctx->title;
 
-    const ux_flow_step_t** approve = &G_ux_flow[screen++];
-    const ux_flow_step_t** reject = &G_ux_flow[screen++];
+    G_ux_flow[(*screen)++] = &ux_stx_display_tx_confirm_step;
+    G_ux_flow[(*screen)++] = &ux_stx_dynamic_upper_delimiter_step;
+    G_ux_flow[(*screen)++] = &ux_stx_dynamic_step;
+    G_ux_flow[(*screen)++] = &ux_stx_dynamic_lower_delimiter_step;
+
+    const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
+    const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
     ui_approve_reject_screens(ui_stx_operation_execute_action, approve, reject);
-
-    G_ux_flow[screen++] = FLOW_LOOP;
-    G_ux_flow[screen++] = FLOW_END_STEP;
 
     ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
     ctx->op_screen_count = op_screen_count;
@@ -382,13 +380,19 @@ int ui_stx_display_transaction_screens(sign_transaction_ui_confirm_ctx_t* ctx,
     ctx->token_idx = 0;
     ctx->amounts = amounts;
 
-    G_ui_stx_dynamic_step_params[0].text = ctx->text;
-    G_ui_stx_dynamic_step_params[0].title = ctx->title;
+    return true;
+}
+
+bool ui_stx_display_screens(uint8_t screen_count, void* ui_context) {
+    if (MAX_NUMBER_OF_SCREENS - screen_count < 2) return false;
+
+    G_ux_flow[screen_count++] = FLOW_LOOP;
+    G_ux_flow[screen_count++] = FLOW_END_STEP;
 
     ux_flow_init(0, G_ux_flow, NULL);
 
     G_context.is_ui_busy = true;
-    CONTEXT(G_context).ui_context = (void*) ctx;
+    CONTEXT(G_context).ui_context = ui_context;
 
-    return 0;
+    return true;
 }

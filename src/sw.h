@@ -37,6 +37,8 @@
 
 #define SW_WRONG_SUBCOMMAND 0xB003
 
+#define SW_SCREENS_BUFFER_OVERFLOW 0xB004
+
 #define SW_BAD_STATE 0xB0FF
 
 #define SW_BAD_TOKEN_ID               0xE001
