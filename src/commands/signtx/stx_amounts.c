@@ -92,3 +92,18 @@ uint16_t stx_amounts_register_output_callbacks(sign_transaction_amounts_ctx_t *c
                                                                      &output_token_cb,
                                                                      (void *) ctx));
 }
+
+void stx_amounts_remove_unused_tokens(sign_transaction_amounts_ctx_t *ctx) {
+    uint8_t index = 0;
+    while (index < ctx->tokens_table.count) {
+        if (stx_amounts_is_token_used(&ctx->tokens[index])) {
+            index++;
+            continue;
+        }
+        for (uint8_t i = index; i < ctx->tokens_table.count - 1; i++) {
+            ctx->tokens[i] = ctx->tokens[i + 1];
+            memmove(ctx->tokens_table.tokens[i], ctx->tokens_table.tokens[i + 1], ERGO_ID_LEN);
+        }
+        ctx->tokens_table.count--;
+    }
+}

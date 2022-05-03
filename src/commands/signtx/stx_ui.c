@@ -34,6 +34,8 @@
         }                                         \
     } while (0)
 
+#define TOKEN_ID_CHARACTERS 7
+
 static NOINLINE void ui_stx_operation_approve_action(bool approved) {
     sign_transaction_ui_aprove_ctx_t* ctx =
         (sign_transaction_ui_aprove_ctx_t*) CONTEXT(G_context).ui_context;
@@ -113,10 +115,16 @@ static NOINLINE uint16_t ui_stx_display_state(sign_transaction_ui_confirm_ctx_t*
         case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
             uint8_t token_idx = ctx->token_idx;
             snprintf(title, title_len, "Token [%d]", (int) token_idx + 1);
-            base58_encode(ctx->amounts->tokens_table.tokens[token_idx],
-                          ERGO_ID_LEN,
-                          text,
-                          text_len);
+            int len = base58_encode(ctx->amounts->tokens_table.tokens[token_idx],
+                                    ERGO_ID_LEN,
+                                    text,
+                                    text_len);
+            text[TOKEN_ID_CHARACTERS] = text[TOKEN_ID_CHARACTERS + 1] =
+                text[TOKEN_ID_CHARACTERS + 2] = '.';
+            memmove(text + TOKEN_ID_CHARACTERS + 3,
+                    text + len - TOKEN_ID_CHARACTERS,
+                    TOKEN_ID_CHARACTERS);
+            text[2 * TOKEN_ID_CHARACTERS + 3] = '\0';
             break;
         }
         case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {

@@ -244,12 +244,10 @@ static NOINLINE void ui_stx_operation_p2pk_send_response(void *cb_context) {
     uint8_t signature[ERGO_SIGNATURE_LEN];
     BUFFER_FROM_ARRAY_FULL(res_sig, signature, ERGO_SIGNATURE_LEN);
 
-    if (ctx->state != SIGN_TRANSACTION_OPERATION_P2PK_STATE_TX_FINISHED) {
+    if (ctx->state != SIGN_TRANSACTION_OPERATION_P2PK_STATE_FINALIZED) {
         res_error(SW_BAD_STATE);
         return;
     }
-
-    ctx->state = SIGN_TRANSACTION_OPERATION_P2PK_STATE_FINALIZED;
 
     if (crypto_generate_private_key(ctx->bip32_path, ctx->bip32_path_len, secret) != 0) {
         explicit_bzero(ctx->schnorr_key, PRIVATE_KEY_LEN);
@@ -286,7 +284,10 @@ static NOINLINE uint16_t ui_stx_operation_p2pk_show_tx_screen(uint8_t index,
 
 uint16_t ui_stx_operation_p2pk_show_confirm_screen(sign_transaction_operation_p2pk_ctx_t *ctx) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_OPERATION_P2PK_STATE_TX_FINISHED);
+    ctx->state = SIGN_TRANSACTION_OPERATION_P2PK_STATE_FINALIZED;
     uint8_t screen = 0;
+    // Removing tokens sent to the change.
+    stx_amounts_remove_unused_tokens(&ctx->amounts);
     if (!ui_stx_add_transaction_screens(&ctx->ui_confirm,
                                         &screen,
                                         &ctx->amounts,

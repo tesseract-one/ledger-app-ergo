@@ -31,6 +31,12 @@ static inline uint16_t stx_amounts_add_input(sign_transaction_amounts_ctx_t *ctx
     return checked_add_u64(ctx->inputs, value, &ctx->inputs) ? SW_OK : SW_U64_OVERFLOW;
 }
 
+static inline bool stx_amounts_is_token_used(sign_transaction_token_amount_t *amount) {
+    return amount->output > 0 || amount->input != amount->change;
+}
+
+void stx_amounts_remove_unused_tokens(sign_transaction_amounts_ctx_t *ctx);
+
 uint16_t stx_amounts_register_input_token_callback(sign_transaction_amounts_ctx_t *ctx,
                                                    ergo_tx_serializer_full_context_t *tx_ctx);
 
