@@ -241,7 +241,7 @@ static NOINLINE void ui_stx_operation_p2pk_send_response(void *cb_context) {
     explicit_bzero(secret, PRIVATE_KEY_LEN);
     explicit_bzero(ctx->schnorr_key, PRIVATE_KEY_LEN);
 
-    if (!finished) {
+    if (finished) {
         res_ok_data(&res_sig);
     } else {
         res_error(SW_INTERNAL_CRYPTO_ERROR);
