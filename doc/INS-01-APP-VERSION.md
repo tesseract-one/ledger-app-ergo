@@ -1,4 +1,5 @@
 # 0x01 - Get Ledger Application Version
+
 Returns the Ledger Application version.
 
 ## Command
