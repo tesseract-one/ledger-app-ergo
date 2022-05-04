@@ -22,7 +22,7 @@ There is the list of the instructions which can be called in the Ergo Ledger App
 
 * **0x01-0x0F** - General application status
     * [0x01 - Get Ledger Application version](INS-01-APP-VERSION.md)
-    * [0x02 - Get Ledget Application name](INS-02-APP-NAME.md)
+    * [0x02 - Get Ledger Application name](INS-02-APP-NAME.md)
 * **0x10-0x1F** - Public key / Addresses
     * [0x10 - Get the extended public key](INS-10-EXT-PUB-KEY.md)
     * [0x11 - Derive address](INS-11-DERIVE-ADDR.md)

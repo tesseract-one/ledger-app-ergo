@@ -27,7 +27,7 @@ make load     # load the app on the Nano using ledgerblue
 
 ## Documentation
 
-API documentation can be found in [doc](doc/INDEX.md) folder.
+API documentation can be found in the [doc](doc/README.md) folder.
 
 Ledger app developer documentation which can be generated with [doxygen](https://www.doxygen.nl)
 
