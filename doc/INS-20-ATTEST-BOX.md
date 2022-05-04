@@ -103,7 +103,7 @@ Get results of the attestation. Results returned in set of frames. All frames sh
 ### Request
 | INS | P1 | P2 | Lc | Data |
 | --- | --- | --- | --- | --- |
-| 0x20 | 0x04 | Session ID | 0x01 | Frame Index (from 0) |
+| 0x20 | 0x05 | Session ID | 0x01 | Frame Index (from 0) |
 
 ### Response
 
