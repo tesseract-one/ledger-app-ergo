@@ -21,23 +21,21 @@ static uint8_t const SECP256K1_N[] = {
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe,
     0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48, 0xa0, 0x3b, 0xbf, 0xd2, 0x5e, 0x8c, 0xd0, 0x36, 0x41, 0x41};
 
-static uint8_t const PREFIX[] = {0x01, 0x00, 0x27, 0x10, 0x01, 0x08, 0xcd};
+static uint8_t const P2PK_PREFIX[] = {0x01, 0x00, 0x27, 0x10, 0x01, 0x08, 0xcd};
 
-static uint8_t const SUFFIX[] = {0x73, 0x00, 0x00, 0x21};
+static uint8_t const P2PK_SUFFIX[] = {0x73, 0x00, 0x00, 0x21};
 
-bool ergo_secp256k1_schnorr_sign(uint8_t signature[static ERGO_SIGNATURE_LEN],
-                                 const uint8_t message[static ERGO_ID_LEN],
-                                 const uint8_t secret[static PRIVATE_KEY_LEN]) {
-    cx_blake2b_t hash;
-    uint8_t y[PRIVATE_KEY_LEN];
+bool ergo_secp256k1_schnorr_p2pk_sign_init(cx_blake2b_t* hash,
+                                           uint8_t key[static PRIVATE_KEY_LEN],
+                                           const uint8_t secret[static PRIVATE_KEY_LEN]) {
     uint8_t buf[PUBLIC_KEY_LEN];
     for (uint8_t i = 0; i < MAX_ITERATIONS; i++) {
         bool result = false;
         do {
-            if (!blake2b_256_init(&hash)) break;
-            // compute commitment c = H(prefix || pk || postfix || w || msg)
+            if (!blake2b_256_init(hash)) break;
+            // compute commitment prefix P(c) = H(prefix || pk || postfix || w)
             // adds preifx
-            if (!blake2b_update(&hash, PIC(PREFIX), sizeof(PREFIX))) break;
+            if (!blake2b_update(hash, PIC(P2PK_PREFIX), sizeof(P2PK_PREFIX))) break;
 
             int cmp_diff;
             // check private key has a proper value
@@ -46,7 +44,7 @@ bool ergo_secp256k1_schnorr_sign(uint8_t signature[static ERGO_SIGNATURE_LEN],
                 cmp_diff > 0)
                 break;
 
-            // pk = G * secret
+            // pk = G * secret (pub key)
             buf[0] = 0x04;
             memcpy(buf + 1, PIC(SECP256K1_G), sizeof(SECP256K1_G));
             if (cx_ecfp_scalar_mult_no_throw(CX_CURVE_SECP256K1, buf, secret, PRIVATE_KEY_LEN) != 0)
@@ -54,62 +52,67 @@ bool ergo_secp256k1_schnorr_sign(uint8_t signature[static ERGO_SIGNATURE_LEN],
             // compress pk
             buf[0] = (buf[PUBLIC_KEY_LEN - 1] & 1) == 1 ? 0x03 : 0x02;
 
-            // compute commitment c = H(prefix || pk || postfix || w || msg)
+            // compute commitment prefix P(c) = H(prefix || pk || postfix || w)
             // add pk and postfix
-            if (!blake2b_update(&hash, buf, COMPRESSED_PUBLIC_KEY_LEN)) break;
-            if (!blake2b_update(&hash, PIC(SUFFIX), sizeof(SUFFIX))) break;
+            if (!blake2b_update(hash, buf, COMPRESSED_PUBLIC_KEY_LEN)) break;
+            if (!blake2b_update(hash, PIC(P2PK_SUFFIX), sizeof(P2PK_SUFFIX))) break;
 
             // generate ephemeral private key
-            cx_rng_no_throw(y, PRIVATE_KEY_LEN);
+            cx_rng_no_throw(key, PRIVATE_KEY_LEN);
 
             // check it has a proper value
-            if (cx_math_is_zero(y, PRIVATE_KEY_LEN)) break;
-            if (cx_math_cmp_no_throw(y, PIC(SECP256K1_N), PRIVATE_KEY_LEN, &cmp_diff) != 0 ||
+            if (cx_math_is_zero(key, PRIVATE_KEY_LEN)) break;
+            if (cx_math_cmp_no_throw(key, PIC(SECP256K1_N), PRIVATE_KEY_LEN, &cmp_diff) != 0 ||
                 cmp_diff > 0)
                 break;
 
-            // w = G * y
+            // w = G * y (pub key)
             buf[0] = 0x04;
             memcpy(buf + 1, PIC(SECP256K1_G), sizeof(SECP256K1_G));
-            if (cx_ecfp_scalar_mult_no_throw(CX_CURVE_SECP256K1, buf, y, PRIVATE_KEY_LEN) != 0)
+            if (cx_ecfp_scalar_mult_no_throw(CX_CURVE_SECP256K1, buf, key, PRIVATE_KEY_LEN) != 0)
                 break;
             // compress w
             buf[0] = (buf[PUBLIC_KEY_LEN - 1] & 1) == 1 ? 0x03 : 0x02;
 
-            // compute commitment c = H(prefix || pk || postfix || w || msg)
+            // compute commitment prefix P(c) = H(prefix || pk || postfix || w)
             // add w
-            if (!blake2b_update(&hash, buf, COMPRESSED_PUBLIC_KEY_LEN)) break;
-            // add message
-            if (!blake2b_update(&hash, message, ERGO_ID_LEN)) break;
-            // compute hash
-            if (!blake2b_256_finalize(&hash, signature)) break;
-
-            // build c
-            // important: we only use the first 24 bytes of the hash output!
-            memset(buf, 0, BLAKE2B_256_DIGEST_LEN - ERGO_SOUNDNESS_BYTES);
-            memcpy(buf + BLAKE2B_256_DIGEST_LEN - ERGO_SOUNDNESS_BYTES,
-                   signature,
-                   ERGO_SOUNDNESS_BYTES);
-
-            if (cx_math_is_zero(buf, BLAKE2B_256_DIGEST_LEN)) break;
-
-            // z = c * secret + y
-            if (cx_math_multm_no_throw(buf, buf, secret, PIC(SECP256K1_N), PRIVATE_KEY_LEN) != 0)
-                break;
-            if (cx_math_addm_no_throw(signature + ERGO_SOUNDNESS_BYTES,
-                                      y,
-                                      buf,
-                                      PIC(SECP256K1_N),
-                                      PRIVATE_KEY_LEN) != 0)
-                break;
-
+            if (!blake2b_update(hash, buf, COMPRESSED_PUBLIC_KEY_LEN)) break;
             result = true;
         } while (0);
 
-        explicit_bzero(y, sizeof(y));
         explicit_bzero(buf, sizeof(buf));
 
         if (result) return result;
     }
     return false;
+}
+
+bool ergo_secp256k1_schnorr_p2pk_sign_finish(uint8_t signature[static ERGO_SIGNATURE_LEN],
+                                             cx_blake2b_t* hash,
+                                             const uint8_t secret[static PRIVATE_KEY_LEN],
+                                             const uint8_t key[static PRIVATE_KEY_LEN]) {
+    uint8_t buf[PUBLIC_KEY_LEN];
+    // compute hash
+    if (!blake2b_256_finalize(hash, signature)) return false;
+
+    // build c
+    // important: we only use the first 24 bytes of the hash output!
+    memset(buf, 0, BLAKE2B_256_DIGEST_LEN - ERGO_SOUNDNESS_BYTES);
+    memcpy(buf + BLAKE2B_256_DIGEST_LEN - ERGO_SOUNDNESS_BYTES, signature, ERGO_SOUNDNESS_BYTES);
+
+    if (cx_math_is_zero(buf, BLAKE2B_256_DIGEST_LEN)) return false;
+
+    // z = c * secret + key
+    if (cx_math_multm_no_throw(buf, buf, secret, PIC(SECP256K1_N), PRIVATE_KEY_LEN) != 0)
+        return false;
+    if (cx_math_addm_no_throw(signature + ERGO_SOUNDNESS_BYTES,
+                              key,
+                              buf,
+                              PIC(SECP256K1_N),
+                              PRIVATE_KEY_LEN) != 0)
+        return false;
+
+    explicit_bzero(buf, sizeof(buf));
+
+    return true;
 }

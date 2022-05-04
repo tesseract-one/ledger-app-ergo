@@ -47,7 +47,7 @@ typedef struct {
     uint16_t inputs_count;
     uint16_t data_inputs_count;
     uint16_t outputs_count;
-    cx_blake2b_t hash;
+    cx_blake2b_t* hash;
     token_table_t* tokens_table;
     union {
         ergo_tx_serializer_table_context_t table_ctx;
@@ -62,6 +62,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_init(
     uint16_t data_inputs_count,
     uint16_t outputs_count,
     uint8_t tokens_count,
+    cx_blake2b_t* hash,
     token_table_t* tokens_table);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
@@ -70,13 +71,13 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[ERGO_ID_LEN],
+    const uint8_t box_id[ERGO_ID_LEN],
     uint8_t token_frames_count,
     uint32_t context_extension_data_size);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_tokens(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[ERGO_ID_LEN],
+    const uint8_t box_id[ERGO_ID_LEN],
     uint8_t token_frame_index,
     buffer_t* tokens);
 
@@ -102,10 +103,11 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_ergo_tree(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_change_tree(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t raw_pub_key[static PUBLIC_KEY_LEN]);
+    const uint8_t raw_pub_key[static PUBLIC_KEY_LEN]);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_miners_fee_tree(
-    ergo_tx_serializer_full_context_t* context);
+    ergo_tx_serializer_full_context_t* context,
+    bool is_mainnet);
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_tokens(
     ergo_tx_serializer_full_context_t* context,
@@ -114,10 +116,6 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_tokens(
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_registers(
     ergo_tx_serializer_full_context_t* context,
     buffer_t* registers_chunk);
-
-ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
-    ergo_tx_serializer_full_context_t* context,
-    uint8_t tx_id[static ERGO_ID_LEN]);
 
 static inline bool ergo_tx_serializer_full_is_finished(ergo_tx_serializer_full_context_t* context) {
     return context->state == ERGO_TX_SERIALIZER_FULL_STATE_FINISHED;

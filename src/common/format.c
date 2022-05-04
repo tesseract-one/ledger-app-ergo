@@ -21,7 +21,7 @@
 
 #include "format.h"
 
-bool format_i64(char *dst, size_t dst_len, const int64_t value) {
+int format_i64(char *dst, size_t dst_len, const int64_t value) {
     char temp[] = "-9223372036854775808";
 
     char *ptr = temp;
@@ -46,7 +46,7 @@ bool format_i64(char *dst, size_t dst_len, const int64_t value) {
     int distance = (ptr - temp) + 1;
 
     if ((int) dst_len < distance) {
-        return false;
+        return -1;
     }
 
     size_t index = 0;
@@ -57,10 +57,10 @@ bool format_i64(char *dst, size_t dst_len, const int64_t value) {
 
     dst[index] = '\0';
 
-    return true;
+    return index;
 }
 
-bool format_u64(char *out, size_t outLen, uint64_t in) {
+int format_u64(char *out, size_t outLen, uint64_t in) {
     uint8_t i = 0;
 
     if (outLen == 0) {
@@ -73,13 +73,13 @@ bool format_u64(char *out, size_t outLen, uint64_t in) {
         in /= 10;
         i++;
         if (i + 1 > outLen) {
-            return false;
+            return -1;
         }
     }
     out[i] = in + '0';
     out[i + 1] = '\0';
 
-    uint8_t j = 0;
+    uint8_t j = 0, count = i + 1;
     char tmp;
 
     // revert the string
@@ -92,21 +92,21 @@ bool format_u64(char *out, size_t outLen, uint64_t in) {
         i--;
         j++;
     }
-    return true;
+    return count;
 }
 
-bool format_fpu64(char *dst, size_t dst_len, const uint64_t value, uint8_t decimals) {
+int format_fpu64(char *dst, size_t dst_len, const uint64_t value, uint8_t decimals) {
     char buffer[21] = {0};
 
-    if (!format_u64(buffer, sizeof(buffer), value)) {
-        return false;
+    if (format_u64(buffer, sizeof(buffer), value) <= 0) {
+        return -1;
     }
 
     size_t digits = strlen(buffer);
 
     if (digits <= decimals) {
         if (dst_len <= 2 + decimals - digits) {
-            return false;
+            return -1;
         }
         *dst++ = '0';
         *dst++ = '.';
@@ -115,18 +115,18 @@ bool format_fpu64(char *dst, size_t dst_len, const uint64_t value, uint8_t decim
         }
         dst_len -= 2 + decimals - digits;
         strncpy(dst, buffer, dst_len);
+        return 2 + decimals;
     } else {
         if (dst_len <= digits + 1 + decimals) {
-            return false;
+            return -1;
         }
 
         const size_t shift = digits - decimals;
         memmove(dst, buffer, shift);
         dst[shift] = '.';
         strncpy(dst + shift + 1, buffer + shift, decimals);
+        return digits + 1;
     }
-
-    return true;
 }
 
 int format_hex(const uint8_t *in, size_t in_len, char *out, size_t out_len) {
@@ -134,7 +134,7 @@ int format_hex(const uint8_t *in, size_t in_len, char *out, size_t out_len) {
         return -1;
     }
 
-    const char hex[] = "0123456789ABCDEF";
+    const char hex[] = "0123456789abcdef";
     size_t i = 0;
     int written = 0;
 

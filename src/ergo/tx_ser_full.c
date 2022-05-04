@@ -125,8 +125,8 @@ data_inputs_finished(ergo_tx_serializer_full_context_t* context) {
                                                        context->tokens_table)));
     CHECK_CALL_RESULT_OK(
         context,
-        map_table_result(ergo_tx_serializer_table_hash(&context->table_ctx, &context->hash)));
-    if (!hash_u16(&context->hash, context->outputs_count)) {
+        map_table_result(ergo_tx_serializer_table_hash(&context->table_ctx, context->hash)));
+    if (!hash_u16(context->hash, context->outputs_count)) {
         return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER);
     }
     context->state = ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED;
@@ -137,7 +137,7 @@ static NOINLINE ergo_tx_serializer_full_result_e
 input_finished(ergo_tx_serializer_full_context_t* context) {
     context->inputs_count--;
     if (context->inputs_count == 0) {
-        if (!hash_u16(&context->hash, context->data_inputs_count)) {
+        if (!hash_u16(context->hash, context->data_inputs_count)) {
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER);
         }
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_DATA_INPUTS_STARTED;
@@ -163,6 +163,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_init(
     uint16_t data_inputs_count,
     uint16_t outputs_count,
     uint8_t tokens_count,
+    cx_blake2b_t* hash,
     token_table_t* tokens_table) {
     memset(context, 0, sizeof(ergo_tx_serializer_full_context_t));
     if (inputs_count == 0) {
@@ -171,13 +172,10 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_init(
     if (outputs_count == 0) {
         return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_OUTPUT_COUNT);
     }
-    if (!blake2b_256_init(&context->hash)) {
+    if (!hash_u16(hash, inputs_count)) {
         return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER);
     }
-    if (!hash_u16(&context->hash, inputs_count)) {
-        return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER);
-    }
-
+    context->hash = hash;
     context->inputs_count = inputs_count;
     context->data_inputs_count = data_inputs_count;
     context->outputs_count = outputs_count;
@@ -215,7 +213,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_tokens(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[ERGO_ID_LEN],
+    const uint8_t box_id[ERGO_ID_LEN],
     uint8_t frames_count,
     uint32_t context_extension_data_size) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED);
@@ -233,13 +231,13 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input(
                                                                         frames_count,
                                                                         context_extension_data_size,
                                                                         context->tokens_table,
-                                                                        &context->hash)));
+                                                                        context->hash)));
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_input_tokens(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t box_id[ERGO_ID_LEN],
+    const uint8_t box_id[ERGO_ID_LEN],
     uint8_t frame_index,
     buffer_t* tokens) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_INPUTS_STARTED);
@@ -280,7 +278,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_data_inputs(
         if (!buffer_read_bytes(inputs, box_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_DATA_INPUT);
         }
-        if (!blake2b_update(&context->hash, box_id, ERGO_ID_LEN)) {
+        if (!blake2b_update(context->hash, box_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER);
         }
         context->data_inputs_count--;
@@ -309,7 +307,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box(
                                                                     creation_height,
                                                                     tokens_count,
                                                                     registers_size,
-                                                                    &context->hash)));
+                                                                    context->hash)));
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }
 
@@ -331,7 +329,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_ergo_tree(
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_change_tree(
     ergo_tx_serializer_full_context_t* context,
-    uint8_t raw_pub_key[static PUBLIC_KEY_LEN]) {
+    const uint8_t raw_pub_key[static PUBLIC_KEY_LEN]) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED);
 
     CHECK_CALL_RESULT_OK(
@@ -345,12 +343,13 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_change_tree(
 }
 
 ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_miners_fee_tree(
-    ergo_tx_serializer_full_context_t* context) {
+    ergo_tx_serializer_full_context_t* context,
+    bool is_mainnet) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED);
 
     CHECK_CALL_RESULT_OK(
         context,
-        map_box_result(ergo_tx_serializer_box_add_miners_fee_tree(&context->box_ctx)));
+        map_box_result(ergo_tx_serializer_box_add_miners_fee_tree(&context->box_ctx, is_mainnet)));
 
     if (ergo_tx_serializer_box_is_finished(&context->box_ctx)) {
         return output_finished(context);
@@ -384,14 +383,4 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_box_registers(
         context,
         map_box_result(ergo_tx_serializer_box_add_registers(&context->box_ctx, registers_chunk)),
         { return output_finished(context); });
-}
-
-ergo_tx_serializer_full_result_e ergo_tx_serializer_full_hash(
-    ergo_tx_serializer_full_context_t* context,
-    uint8_t tx_id[static ERGO_ID_LEN]) {
-    CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_FULL_STATE_FINISHED);
-    if (!blake2b_256_finalize(&context->hash, tx_id)) {
-        return ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER;
-    }
-    return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }

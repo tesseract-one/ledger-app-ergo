@@ -27,7 +27,9 @@ make load     # load the app on the Nano using ledgerblue
 
 ## Documentation
 
-High level documentation such as [APDU](doc/APDU.md), [commands](doc/COMMANDS.md) and [transaction serialization](doc/TRANSACTION.md) are included in developer documentation which can be generated with [doxygen](https://www.doxygen.nl)
+API documentation can be found in the [doc](doc/README.md) folder.
+
+Ledger app developer documentation which can be generated with [doxygen](https://www.doxygen.nl)
 
 ```
 doxygen .doxygen/Doxyfile
@@ -48,7 +50,7 @@ The flow processed in [GitHub Actions](https://github.com/features/actions) is t
 
 It outputs 4 artifacts:
 
-- `boilerplate-app-debug` within output files of the compilation process in debug mode
+- `ergo-app-debug` within output files of the compilation process in debug mode
 - `speculos-log` within APDU command/response when executing end-to-end tests
 - `code-coverage` within HTML details of code coverage
 - `documentation` within HTML auto-generated documentation
