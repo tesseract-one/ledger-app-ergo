@@ -2,7 +2,7 @@
     "env": {
         "BOLOS_SDK": "/opt/bolos-sdk/nanos-secure-sdk",
         "BOLOS_ENV": "/opt/bolos-devenv",
-        "GCC_COMPILER_NAME": "gcc-arm-none-eabi-10-2020-q4-major"
+        "GCC_COMPILER_NAME": "gcc-arm-none-eabi-10.3-2021.10"
     },
     "configurations": [
         {
