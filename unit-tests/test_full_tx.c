@@ -17,6 +17,8 @@ static void test_simple_send_tx(void** state) {
     cx_blake2b_t hash;
     token_table_t tokens_table = {0};
 
+    assert_true(blake2b_256_init(&hash));
+
     // One input. 3 outputs. No tokens. Simple ERG transfer.
     assert_int_equal(ergo_tx_serializer_full_init(&ctx, 1, 0, 3, 0, &hash, &tokens_table),
                      ERGO_TX_SERIALIZER_FULL_RES_OK);
