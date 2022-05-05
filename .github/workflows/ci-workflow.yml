@@ -3,9 +3,18 @@ name: Compilation & tests
 on: [push, pull_request]
 
 jobs:
-  job_build_debug:
-    name: Build debug
+  job_build_nano_debug:
+    name: Build boilerplate application for NanoS, X and S+
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - SDK: "$NANOS_SDK"
+            artifact: ergo-app-debug-nanoS
+          - SDK: "$NANOX_SDK"
+            artifact: ergo-app-debug-nanoX
+          - SDK: "$NANOSP_SDK"
+            artifact: ergo-app-debug-nanoSP
 
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
@@ -16,17 +25,16 @@ jobs:
 
       - name: Build
         run: |
-          make DEBUG=1
+          make BOLOS_SDK=${{ matrix.SDK }} DEBUG=1
 
       - name: Upload app binary
         uses: actions/upload-artifact@v2
         with:
-          name: ergo-app-debug
+          name: ${{ matrix.artifact }}
           path: bin
 
   job_unit_test:
     name: Unit test
-    needs: job_build_debug
     runs-on: ubuntu-latest
 
     container:
@@ -43,7 +51,6 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          apt-get update && apt-get install -qy lcov gcov
           cd unit-tests/
           lcov --directory . -b "$(realpath build/)" --capture --initial -o coverage.base && \
           lcov --rc lcov_branch_coverage=1 --directory . -b "$(realpath build/)" --capture -o coverage.capture && \
@@ -65,7 +72,18 @@ jobs:
           name: codecov-app-ergo
           fail_ci_if_error: true
           verbose: true
-      
+
+  job_generate_doc:
+    name: Generate project documentation
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+
       - name: HTML documentation
         run: doxygen .doxygen/Doxyfile
 
@@ -76,7 +94,6 @@ jobs:
           
   job_scan_build:
     name: Clang Static Analyzer
-    needs: job_build_debug
     runs-on: ubuntu-latest
 
     container:
@@ -97,7 +114,7 @@ jobs:
 
   job_test:
     name: Test
-    needs: job_build_debug
+    needs: job_build_nano_debug
     runs-on: ubuntu-latest
 
     container:
@@ -118,7 +135,7 @@ jobs:
       - name: Download app binary
         uses: actions/download-artifact@v2
         with:
-          name: ergo-app-debug
+          name: ergo-app-debug-nanoS
           path: bin
 
       - name: Run test

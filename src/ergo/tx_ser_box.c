@@ -140,7 +140,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_miners_fee_tree(
     ergo_tx_serializer_box_context_t* context,
     bool is_mainnet) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_INITIALIZED);
-    uint8_t* tree = NULL;
+    const uint8_t* tree;
     size_t tree_len = 0;
     ergo_tree_miners_fee_tree(is_mainnet, &tree, &tree_len);
     if (!blake2b_update(context->hash, tree, tree_len)) {
