@@ -56,7 +56,7 @@ static void test_simple_send_tx(void** state) {
     assert_int_equal(ergo_tx_serializer_full_add_box(&ctx, 1100000ULL, 0, 201644, 0, 0),
                      ERGO_TX_SERIALIZER_FULL_RES_OK);
 
-    assert_int_equal(ergo_tx_serializer_full_add_box_miners_fee_tree(&ctx),
+    assert_int_equal(ergo_tx_serializer_full_add_box_miners_fee_tree(&ctx, true),
                      ERGO_TX_SERIALIZER_FULL_RES_OK);
 
     // Change ERG address. Address output with 0 tokens and registers
