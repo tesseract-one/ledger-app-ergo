@@ -34,7 +34,7 @@ void ergo_tree_generate_p2pk(const uint8_t raw_public_key[static PUBLIC_KEY_LEN]
     buffer_write_bytes(&out, raw_public_key + 1, 32);
 }
 
-void ergo_tree_miners_fee_tree(bool is_mainnet, uint8_t** tree, size_t* size) {
+void ergo_tree_miners_fee_tree(bool is_mainnet, const uint8_t** tree, size_t* size) {
     if (is_mainnet) {
         *size = sizeof(C_ERGO_TREE_MINERS_HASH_FEE_MAINNET);
         *tree = PIC(C_ERGO_TREE_MINERS_HASH_FEE_MAINNET);
