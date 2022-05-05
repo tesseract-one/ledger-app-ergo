@@ -60,6 +60,7 @@ uint8_t io_event(__attribute__((unused)) uint8_t channel) {
         io_seproxyhal_general_status();
     }
 
+    // Check for Stack Overflow
     check_canary();
 
     return 1;

@@ -42,6 +42,7 @@ ux_flow_step_t const *G_ux_flow[MAX_NUMBER_OF_SCREENS + 1];
  * Handle APDU command received and send back APDU response using handlers.
  */
 void app_main() {
+    // Init Stack Overflow detection
     init_canary();
     // Length of APDU command received in G_io_apdu_buffer
     int input_len = 0;
