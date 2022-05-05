@@ -14,10 +14,11 @@ static void test_simple_send_tx(void** state) {
     (void) state;
 
     ergo_tx_serializer_full_context_t ctx;
+    cx_blake2b_t hash;
     token_table_t tokens_table = {0};
 
     // One input. 3 outputs. No tokens. Simple ERG transfer.
-    assert_int_equal(ergo_tx_serializer_full_init(&ctx, 1, 0, 3, 0, &tokens_table),
+    assert_int_equal(ergo_tx_serializer_full_init(&ctx, 1, 0, 3, 0, &hash, &tokens_table),
                      ERGO_TX_SERIALIZER_FULL_RES_OK);
 
     const uint8_t INPUT_BOX_0_ID[ERGO_ID_LEN] = {0xee, 0x52, 0x85, 0xa4, 0x1e, 0x36, 0x80, 0x26,
@@ -84,23 +85,21 @@ static void test_simple_send_tx(void** state) {
                                       0x21, 0x16, 0x4d, 0x2e, 0x10, 0x32, 0xda, 0x95,
                                       0xcf, 0xf1, 0x26, 0x3b, 0x09, 0x01, 0x6a, 0xd7};
 
+    
+
     // Calculating hash
-    assert_int_equal(ergo_tx_serializer_full_hash(&ctx, tx_id), ERGO_TX_SERIALIZER_FULL_RES_OK);
+    assert_true(blake2b_256_finalize(&hash, tx_id));
 
     uint8_t* tx_data = NULL;
     size_t tx_data_len = 0;
 
-    _cx_blake2b_get_data(&ctx.hash, &tx_data, &tx_data_len);
-
-    for (size_t i = 0; i < tx_data_len; i++) {
-        printf("%02x", tx_data[i]);
-    }
+    _cx_blake2b_get_data(&hash, &tx_data, &tx_data_len);
 
     // Should be equal to expected
     assert_memory_equal(tx_id, EXPECTED_TX_ID, ERGO_ID_LEN);
 
     // Freeing TX data
-    _cx_blake2b_free_data(&ctx.hash);
+    _cx_blake2b_free_data(&hash);
 }
 
 int main() {
