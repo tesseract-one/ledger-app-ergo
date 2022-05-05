@@ -64,6 +64,7 @@ jobs:
           path: unit-tests/coverage
 
       - name: Upload to codecov.io
+        if: false
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
