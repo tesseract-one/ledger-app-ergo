@@ -120,9 +120,8 @@ static NOINLINE ergo_tx_serializer_full_result_e
 data_inputs_finished(ergo_tx_serializer_full_context_t* context) {
     CHECK_CALL_RESULT_OK(
         context,
-        map_table_result(ergo_tx_serializer_table_init(&context->table_ctx,
-                                                       context->tokens_table->count,
-                                                       context->tokens_table)));
+        map_table_result(
+            ergo_tx_serializer_table_init(&context->table_ctx, 0, context->tokens_table)));
     CHECK_CALL_RESULT_OK(
         context,
         map_table_result(ergo_tx_serializer_table_hash(&context->table_ctx, context->hash)));
