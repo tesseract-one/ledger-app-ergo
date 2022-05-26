@@ -9,6 +9,15 @@
 
 #include "common/base58.h"
 
+#define VERIFY_BAD_BASE58_DECODE(in) \
+    out_len = base58_decode(in, sizeof(in) - 1, out, sizeof(out)); \
+    assert_int_equal(out_len, -1);
+
+#define VERIFY_BASE58_DECODE(in, expected_out) \
+    out_len = base58_decode(in, sizeof(in) - 1, out, sizeof(out)); \
+    assert_int_equal(out_len, strlen(expected_out)); \
+    assert_string_equal((char *) out, expected_out);
+
 static void test_base58(void **state) {
     (void) state;
 
@@ -27,8 +36,23 @@ static void test_base58(void **state) {
     assert_string_equal((char *) out2, expected_out2);
 }
 
+static void test_base58_decode(void **state) {
+    (void) state;
+
+    uint8_t out[100] = {0};
+    int out_len = 0;
+
+    VERIFY_BAD_BASE58_DECODE("");
+    VERIFY_BAD_BASE58_DECODE("0");
+    VERIFY_BAD_BASE58_DECODE("I");
+    VERIFY_BAD_BASE58_DECODE("O");
+    VERIFY_BAD_BASE58_DECODE("l");
+    VERIFY_BASE58_DECODE("a", "!"); // one character
+}
+
 int main() {
-    const struct CMUnitTest tests[] = {cmocka_unit_test(test_base58)};
+    const struct CMUnitTest tests[] = {cmocka_unit_test(test_base58),
+                                       cmocka_unit_test(test_base58_decode)};
 
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
