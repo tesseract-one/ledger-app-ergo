@@ -28,6 +28,14 @@
                             type); \
     assert_false(b);
 
+#define VERIFY_BIP32_PATH_READ(input, expected, n) \
+    uint32_t output[n] = {0}; \
+    assert_true(bip32_path_read(input, sizeof(input), output, n)); \
+    assert_memory_equal(output, expected, n);
+
+#define VERIFY_BAD_BIP32_PATH_READ(input, n) \
+    uint32_t output[n] = {0}; \
+    assert_false(bip32_path_read(input, sizeof(input), output, n));
 
 static void test_bip32_format(void **state) {
     (void) state;
@@ -89,6 +97,17 @@ static void test_bip32_read(void **state) {
     assert_memory_equal(output, expected, 5);
 }
 
+static void test_bip32_read_bigger_buffer(void **state) {
+    (void) state;
+
+    uint8_t input[8] = {
+        0x01, 0x01, 0x01, 0x01,
+        0x02, 0x02, 0x02, 0x02
+    };
+    uint32_t expected[1] = {0x01010101};
+    VERIFY_BIP32_PATH_READ(input, expected, 1);
+}
+
 static void test_bad_bip32_read(void **state) {
     (void) state;
 
@@ -110,6 +129,15 @@ static void test_bad_bip32_read(void **state) {
 
     // More than MAX_BIP32_PATH (=10)
     assert_false(bip32_path_read(input, sizeof(input), output, 20));
+}
+
+static void test_bad_bip32_read_smaller_buffer(void **state) {
+    (void) state;
+
+    uint8_t input[4] = {
+        0x01, 0x01, 0x01, 0x01
+    };
+    VERIFY_BAD_BIP32_PATH_READ(input, 2);
 }
 
 static void test_bip32_validate_account(void **state) {
@@ -212,7 +240,9 @@ int main() {
     const struct CMUnitTest tests[] = {cmocka_unit_test(test_bip32_format),
                                        cmocka_unit_test(test_bad_bip32_format),
                                        cmocka_unit_test(test_bip32_read),
+                                       cmocka_unit_test(test_bip32_read_bigger_buffer),
                                        cmocka_unit_test(test_bad_bip32_read),
+                                       cmocka_unit_test(test_bad_bip32_read_smaller_buffer),
                                        cmocka_unit_test(test_bip32_validate_account),
                                        cmocka_unit_test(test_bip32_validate_address),
                                        cmocka_unit_test(test_bad_bip32_validate_account),
