@@ -262,6 +262,25 @@ static void test_buffer_read(void **state) {
     assert_false(buffer_read_u64(&buf, &fourth, BE));  // can't read 8 bytes
 }
 
+static void test_buffer_read_bip32_path(void **state) {
+    (void) state;
+
+    uint8_t temp[20] = {
+        0x80, 0x00, 0x00, 0x2C,
+        0x80, 0x00, 0x00, 0x01,
+        0x80, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t expected[5] = {0x8000002C, 0x80000001, 0x80000000, 0, 0};
+    uint32_t out[5] = {0};
+    BUFFER_FROM_ARRAY_FULL(buf, temp, sizeof(temp));
+    assert_true(buffer_read_bip32_path(&buf, out, 5));
+    assert_memory_equal(out, expected, 5);
+    assert_int_equal(buf.read_offset, sizeof(expected));
+    assert_false(buffer_read_bip32_path(&buf, out, 6));
+}
+
 static void test_buffer_write(void **state) {
     (void) state;
 
@@ -403,6 +422,7 @@ int main() {
                                        cmocka_unit_test(test_buffer_seek_read),
                                        cmocka_unit_test(test_buffer_seek_write),
                                        cmocka_unit_test(test_buffer_read),
+                                       cmocka_unit_test(test_buffer_read_bip32_path),
                                        cmocka_unit_test(test_buffer_write),
                                        cmocka_unit_test(test_buffer_read_bytes),
                                        cmocka_unit_test(test_buffer_copy_bytes),
