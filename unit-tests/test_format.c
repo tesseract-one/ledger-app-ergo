@@ -55,7 +55,16 @@ static void test_format_fpu64(void **state) {
 
     char temp[22] = {0};
 
-    uint64_t amount = 100000000ull;  // satoshi
+    uint64_t amount = 0ull;
+    assert_int_equal(format_fpu64(temp, sizeof(temp), amount, 0), 2);
+    assert_string_equal(temp, "0.");
+
+    amount = 0ull;  // satoshi
+    memset(temp, 0, sizeof(temp));
+    assert_int_equal(format_fpu64(temp, sizeof(temp), amount, 8), 10);
+    assert_string_equal(temp, "0.00000000");
+
+    amount = 100000000ull;  // satoshi
     memset(temp, 0, sizeof(temp));
     assert_int_equal(format_fpu64(temp, sizeof(temp), amount, 8), 10);
     assert_string_equal(temp, "1.00000000");  // BTC
@@ -84,6 +93,12 @@ static void test_format_fpu64(void **state) {
 
 static void test_format_hex(void **state) {
     (void) state;
+
+    uint8_t input1[1] = {0x00};
+    char output1[2 * sizeof(input1) + 1] = {0};
+    assert_int_equal(2 * sizeof(input1) + 1,
+                     format_hex(input1, sizeof(input1), output1, sizeof(output1)));
+    assert_string_equal(output1, "00");
 
     uint8_t address[] = {0xde, 0xb,  0x29, 0x56, 0x69, 0xa9, 0xfd, 0x93, 0xd5, 0xf2,
                          0x8d, 0x9e, 0xc8, 0x5e, 0x40, 0xf4, 0xcb, 0x69, 0x7b, 0xae};
