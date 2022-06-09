@@ -10,23 +10,23 @@
 #include "common/base58.h"
 
 #define VERIFY_BAD_BASE58_ENCODE(in) \
-    char out[100] = {0}; \
+    char out[165] = {0}; \
     int out_len = base58_encode((uint8_t *) in, strlen(in), out, sizeof(out)); \
     assert_int_equal(out_len, -1);
 
 #define VERIFY_BASE58_ENCODE(in, expected_out) \
-    char out[100] = {0}; \
+    char out[165] = {0}; \
     int out_len = base58_encode((uint8_t *) in, strlen(in), out, sizeof(out)); \
     assert_int_equal(out_len, strlen(expected_out)); \
     assert_string_equal((char *) out, expected_out);
 
 #define VERIFY_BAD_BASE58_DECODE(in) \
-    uint8_t out[100] = {0}; \
+    uint8_t out[121] = {0}; \
     int out_len = base58_decode(in, strlen(in), out, sizeof(out)); \
     assert_int_equal(out_len, -1);
 
 #define VERIFY_BASE58_DECODE(in, expected_out) \
-    uint8_t out[100] = {0}; \
+    uint8_t out[121] = {0}; \
     int out_len = base58_decode(in, strlen(in), out, sizeof(out)); \
     assert_int_equal(out_len, strlen(expected_out)); \
     assert_string_equal((char *) out, expected_out);
