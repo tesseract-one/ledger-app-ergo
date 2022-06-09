@@ -84,37 +84,32 @@ static void test_bad_base58_decode_zero_characters(void **state) {
 
 static void test_bad_base58_decode_0_symbol(void **state) {
     (void) state;
-    VERIFY_BAD_BASE58_DECODE("0");
+    VERIFY_BAD_BASE58_DECODE("0a");
 }
 
 static void test_bad_base58_decode_I_symbol(void **state) {
     (void) state;
-    VERIFY_BAD_BASE58_DECODE("I");
+    VERIFY_BAD_BASE58_DECODE("Ia");
 }
 
 static void test_bad_base58_decode_O_symbol(void **state) {
     (void) state;
-    VERIFY_BAD_BASE58_DECODE("O");
+    VERIFY_BAD_BASE58_DECODE("Oa");
 }
 
 static void test_bad_base58_decode_l_symbol(void **state) {
     (void) state;
-    VERIFY_BAD_BASE58_DECODE("l");
+    VERIFY_BAD_BASE58_DECODE("la");
 }
 
 static void test_bad_base58_decode_plus_symbol(void **state) {
     (void) state;
-    VERIFY_BAD_BASE58_DECODE("+");
+    VERIFY_BAD_BASE58_DECODE("+a");
 }
 
 static void test_bad_base58_decode_slash_symbol(void **state) {
     (void) state;
-    VERIFY_BAD_BASE58_DECODE("/");
-}
-
-static void test_base58_decode_one_character(void **state) {
-    (void) state;
-    VERIFY_BASE58_DECODE("a", "!");
+    VERIFY_BAD_BASE58_DECODE("/a");
 }
 
 static void test_base58_decode_max_number_of_characters(void **state) {
@@ -141,7 +136,6 @@ int main() {
                                        cmocka_unit_test(test_bad_base58_decode_l_symbol),
                                        cmocka_unit_test(test_bad_base58_decode_plus_symbol),
                                        cmocka_unit_test(test_bad_base58_decode_slash_symbol),
-                                       cmocka_unit_test(test_base58_decode_one_character),
                                        cmocka_unit_test(test_base58_decode_max_number_of_characters)};
 
     return cmocka_run_group_tests(tests, NULL, NULL);
