@@ -35,7 +35,7 @@ static void test_ergo_tree_miners_fee_tree_mainnet(void **state) {
     (void) state;
 
     bool is_mainnet = true;
-    uint8_t *tree;
+    const uint8_t *tree;
     size_t size;
     ergo_tree_miners_fee_tree(is_mainnet, &tree, &size);
     uint8_t expected[105] = {
@@ -55,7 +55,7 @@ static void test_ergo_tree_miners_fee_tree_testnet(void **state) {
     (void) state;
 
     bool is_mainnet = false;
-    uint8_t *tree;
+    const uint8_t *tree;
     size_t size;
     ergo_tree_miners_fee_tree(is_mainnet, &tree, &size);
     uint8_t expected[105] = {
