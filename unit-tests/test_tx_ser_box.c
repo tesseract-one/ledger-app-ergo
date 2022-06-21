@@ -7,6 +7,7 @@
 
 #include <cmocka.h>
 
+#include "common/varint.h"
 #include "ergo/tx_ser_box.h"
 
 #define ERGO_TX_SERIALIZER_BOX_INIT(name) \
@@ -226,12 +227,42 @@ static void test_ergo_tx_serializer_box_add_tree_bad_hash(void **state) {
         registers_size,
         &hash
     );
-    memset(context.hash, 0, sizeof(context.hash));
+    memset(context.hash, 0, sizeof(*context.hash));
     assert_int_equal(
         ergo_tx_serializer_box_add_tree(&context, &tree_chunk),
         ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER
     );
     assert_int_equal(context.state, ERGO_TX_SERIALIZER_BOX_STATE_ERROR);
+}
+
+static void test_ergo_tx_serializer_box_add_tree_more_data(void **state) {
+    (void) state;
+
+    uint8_t tree_chunk_array[2] = {0x01, 0x02};
+    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    ergo_tx_serializer_box_context_t context;
+    uint64_t value = 12345;
+    uint32_t ergo_tree_size = 3;
+    uint32_t creation_height = 3;
+    uint8_t tokens_count = 1;
+    uint32_t registers_size = 1;
+    cx_blake2b_t hash;
+    ergo_tx_serializer_box_id_hash_init(&hash);
+    ergo_tx_serializer_box_init(
+        &context,
+        value,
+        ergo_tree_size,
+        creation_height,
+        tokens_count,
+        registers_size,
+        &hash
+    );
+    assert_int_equal(
+        ergo_tx_serializer_box_add_tree(&context, &tree_chunk),
+        ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA
+    );
+    assert_int_equal(context.type, ERGO_TX_SERIALIZER_BOX_TYPE_TREE);
+    assert_int_equal(context.state, ERGO_TX_SERIALIZER_BOX_STATE_INITIALIZED);
 }
 
 static void test_ergo_tx_serializer_box_add_miners_fee_tree_mainnet(void **state) {
@@ -260,6 +291,31 @@ static void test_ergo_tx_serializer_box_add_miners_fee_tree_testnet(void **state
     assert_int_equal(context.state, ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED);
 }
 
+static void test_ergo_tx_serializer_box_add_miners_fee_tree_bad_state(void **state) {
+    (void) state;
+
+    ergo_tx_serializer_box_context_t context;
+    bool is_mainnet = true;
+    assert_int_equal(
+        ergo_tx_serializer_box_add_miners_fee_tree(&context, is_mainnet),
+        ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE
+    );
+    assert_int_equal(context.state, ERGO_TX_SERIALIZER_BOX_STATE_ERROR);
+}
+
+static void test_ergo_tx_serializer_box_add_miners_fee_tree_bad_hash(void **state) {
+    (void) state;
+
+    ERGO_TX_SERIALIZER_BOX_INIT(context);
+    bool is_mainnet = true;
+    memset(context.hash, 0, sizeof(*context.hash));
+    assert_int_equal(
+        ergo_tx_serializer_box_add_miners_fee_tree(&context, is_mainnet),
+        ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER
+    );
+    assert_int_equal(context.state, ERGO_TX_SERIALIZER_BOX_STATE_ERROR);
+}
+
 static void test_ergo_tx_serializer_box_add_change_tree(void **state) {
     (void) state;
 
@@ -271,6 +327,31 @@ static void test_ergo_tx_serializer_box_add_change_tree(void **state) {
     );
     assert_int_equal(context.type, ERGO_TX_SERIALIZER_BOX_TYPE_CHANGE);
     assert_int_equal(context.state, ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED);
+}
+
+static void test_ergo_tx_serializer_box_add_change_tree_bad_state(void **state) {
+    (void) state;
+
+    ergo_tx_serializer_box_context_t context;
+    const uint8_t raw_public_key[PUBLIC_KEY_LEN] = {0};
+    assert_int_equal(
+        ergo_tx_serializer_box_add_change_tree(&context, raw_public_key),
+        ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE
+    );
+    assert_int_equal(context.state, ERGO_TX_SERIALIZER_BOX_STATE_ERROR);
+}
+
+static void test_ergo_tx_serializer_box_add_change_tree_bad_hash(void **state) {
+    (void) state;
+
+    ERGO_TX_SERIALIZER_BOX_INIT(context);
+    const uint8_t raw_public_key[PUBLIC_KEY_LEN] = {0};
+    memset(context.hash, 0, sizeof(*context.hash));
+    assert_int_equal(
+        ergo_tx_serializer_box_add_change_tree(&context, raw_public_key),
+        ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER
+    );
+    assert_int_equal(context.state, ERGO_TX_SERIALIZER_BOX_STATE_ERROR);
 }
 
 static void test_ergo_tx_serializer_box_add_tokens(void **state) {
@@ -393,9 +474,14 @@ int main() {
                                        cmocka_unit_test(test_ergo_tx_serializer_box_add_tree_bad_state),
                                        cmocka_unit_test(test_ergo_tx_serializer_box_add_tree_too_much_data),
                                        cmocka_unit_test(test_ergo_tx_serializer_box_add_tree_bad_hash),
+                                       cmocka_unit_test(test_ergo_tx_serializer_box_add_tree_more_data),
                                        cmocka_unit_test(test_ergo_tx_serializer_box_add_miners_fee_tree_mainnet),
                                        cmocka_unit_test(test_ergo_tx_serializer_box_add_miners_fee_tree_testnet),
+                                       cmocka_unit_test(test_ergo_tx_serializer_box_add_miners_fee_tree_bad_state),
+                                       cmocka_unit_test(test_ergo_tx_serializer_box_add_miners_fee_tree_bad_hash),
                                        cmocka_unit_test(test_ergo_tx_serializer_box_add_change_tree),
+                                       cmocka_unit_test(test_ergo_tx_serializer_box_add_change_tree_bad_state),
+                                       cmocka_unit_test(test_ergo_tx_serializer_box_add_change_tree_bad_hash),
                                        cmocka_unit_test(test_ergo_tx_serializer_box_add_tokens),
                                        cmocka_unit_test(test_ergo_tx_serializer_box_add_registers),
                                        cmocka_unit_test(test_ergo_tx_serializer_box_id_hash)};
