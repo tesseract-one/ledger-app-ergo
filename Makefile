@@ -77,6 +77,7 @@ DEBUG = 0
 ifneq ($(DEBUG),0)
     DEFINES += DEBUG_BUILD
     DEFINES += HAVE_PRINTF
+    DEFINES += HAVE_BOLOS_APP_STACK_CANARY
     ifeq ($(TARGET_NAME),TARGET_NANOS)
         DEFINES += PRINTF=screen_printf
     else
