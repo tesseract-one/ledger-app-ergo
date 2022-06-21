@@ -25,7 +25,6 @@
 #include "../sw.h"
 #include "../common/buffer.h"
 #include "../common/write.h"
-#include "stack_protect.h"
 
 uint32_t G_output_len = 0;
 
@@ -59,9 +58,6 @@ uint8_t io_event(__attribute__((unused)) uint8_t channel) {
     if (!io_seproxyhal_spi_is_status_sent()) {
         io_seproxyhal_general_status();
     }
-
-    // Check for Stack Overflow
-    check_canary();
 
     return 1;
 }
