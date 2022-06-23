@@ -7,7 +7,6 @@
 
 #include <cmocka.h>
 
-#include "common/varint.h"
 #include "ergo/tx_ser_box.h"
 
 #define ERGO_TX_SERIALIZER_BOX_INIT(name) \
