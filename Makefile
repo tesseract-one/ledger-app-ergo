@@ -27,6 +27,10 @@ APP_LOAD_PARAMS += --appFlags 0x40
 APP_LOAD_PARAMS += --path "44'/429'"
 APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
 
+# Pending review parameters
+APP_LOAD_PARAMS += --tlvraw 9F:01
+DEFINES += HAVE_PENDING_REVIEW_SCREEN
+
 APPNAME      = "Ergo"
 APPVERSION_M = 0
 APPVERSION_N = 0
@@ -73,6 +77,7 @@ DEBUG = 0
 ifneq ($(DEBUG),0)
     DEFINES += DEBUG_BUILD
     DEFINES += HAVE_PRINTF
+    DEFINES += HAVE_BOLOS_APP_STACK_CANARY
     ifeq ($(TARGET_NAME),TARGET_NANOS)
         DEFINES += PRINTF=screen_printf
     else
@@ -114,4 +119,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS COIN BOL
+	@echo VARIANTS COIN ergo
