@@ -181,6 +181,8 @@ static void test_ergo_tx_serializer_box_add_tree_bad_state(void **state) {
     (void) state;
 
     ergo_tx_serializer_box_context_t context;
+    memset(&context, 0, sizeof(ergo_tx_serializer_box_context_t));
+    context.state = ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED;
     uint8_t tree_chunk_array[2] = {0x01, 0x02};
     BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     assert_int_equal(
