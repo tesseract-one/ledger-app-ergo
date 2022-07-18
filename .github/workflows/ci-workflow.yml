@@ -47,7 +47,17 @@ jobs:
       - name: Build unit tests
         run: |
           cd unit-tests/
-          cmake -Bbuild -H. && make -C build && make -C build test
+          cmake -Bbuild -H. && make -C build
+
+      - name: Run test_tx_ser_box
+        run: |
+          cd unit-tests/build/
+          ./test_tx_ser_box
+
+      - name: Run unit tests
+        run: |
+          cd unit-tests/
+          make -C build test
 
       - name: Generate code coverage
         run: |
