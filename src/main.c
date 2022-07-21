@@ -29,7 +29,6 @@
 #include "apdu/parser.h"
 #include "apdu/dispatcher.h"
 #include "common/macros.h"
-#include "helpers/stack_protect.h"
 
 uint8_t G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 io_state_e G_io_state;
@@ -42,8 +41,6 @@ ux_flow_step_t const *G_ux_flow[MAX_NUMBER_OF_SCREENS + 1];
  * Handle APDU command received and send back APDU response using handlers.
  */
 void app_main() {
-    // Init Stack Overflow detection
-    init_canary();
     // Length of APDU command received in G_io_apdu_buffer
     int input_len = 0;
     // Structured APDU command
