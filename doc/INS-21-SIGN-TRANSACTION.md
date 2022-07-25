@@ -29,7 +29,7 @@ Ledger Application is clearing all internal buffers and preparing for transactio
 ##### Data
 | Field | Size (B) | Description |
 | --- | --- | --- |
-| BIP44 path length | 1 | Value: 0x02-0x0A (2-10). The number of path components |
+| BIP44 path length | 1 | Value: 0x05-0x0A (5-10). The number of path components |
 | First derivation index | 4 | Big-endian. Value: 44’ |
 | Second derivation index | 4 | Big-endian. Value: 429’ (Ergo coin id) |
 | [Optional] Third index | 4 | Big-endian. Any valid bip44 hardened value. |
@@ -167,7 +167,7 @@ Add Change tree to the current Output Box with provided BIP44 path. Can be calle
 #### Data
 | Field | Size (B) | Description |
 | --- | --- | --- |
-| BIP44 path length | 1 | Value: 0x02-0x0A (2-10). The number of path components |
+| BIP44 path length | 1 | Value: 0x05-0x0A (5-10). The number of path components |
 | First derivation index | 4 | Big-endian. Value: 44’ |
 | Second derivation index | 4 | Big-endian. Value: 429’ (Ergo coin id) |
 | [Optional] Third index | 4 | Big-endian. Any valid bip44 hardened value. |
