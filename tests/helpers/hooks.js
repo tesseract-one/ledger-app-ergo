@@ -1,5 +1,6 @@
 const SpeculosTransport = require('@ledgerhq/hw-transport-node-speculos').default;
 const HidTransport = require('@ledgerhq/hw-transport-node-hid').default;
+const { ErgoLedgerApp } = require('ledger-ergo-js');
 const Device = require('./device').Device;
 const SpeculosAutomation = require('./automation').SpeculosAutomation;
 const ScreenReader = require('./screen').ScreenReader;
@@ -19,7 +20,8 @@ exports.mochaHooks = {
             await this.automation.connect();
             this.screens = new ScreenReader(this.automation);
         }
-        this.device = new Device(this.transport);
+        let ledger = new ErgoLedgerApp(this.transport);
+        this.device = new Device(ledger);
     },
     afterAll: async function () {
         this.device = undefined;

@@ -102,10 +102,9 @@ class DeviceError extends Error {
 }
 
 class Device {
-    constructor(transport) {
-        this.transport = transport;
-        this.authToken = 0;
-        this.generateNewAuthToken();
+    constructor(ledger) {
+        this.ledger = ledger;
+        this.transport = ledger.transport;
     }
 
     async command(code, p1, p2, data) {
@@ -139,12 +138,8 @@ class Device {
         return responses
     }
 
-    generateNewAuthToken() {
-        let newToken = 0;
-        do {
-            newToken = Math.floor(Math.random() * 0xFFFFFFFF) + 1;
-        } while (newToken === this.authToken);
-        this.authToken = newToken;
+    useAuthToken(use) {
+        this.ledger.useAuthToken(use);
     }
 
     serializedToken() {
@@ -153,26 +148,17 @@ class Device {
         return buf;
     }
 
-    getAppVersion() {
-        return this.command(COMMANDS.app_version, 0x00, 0x00, Buffer.from([]))
+    async getAppVersion() {
+        return await this.ledger.getAppVersion();
     }
 
-    getAppName() {
-        return this.command(COMMANDS.app_name, 0x00, 0x00, Buffer.from([]))
-            .then(buff => buff.toString('ascii'))
+    async getAppName() {
+        return (await this.ledger.getAppName()).name;
     }
 
-    async getExtendedPubKey(account, useAuthToken) {
-        const path = b32path.fromString(`m/44'/429'/${account}'`);
-        const serPath = tx.serializeBip32Path(path);
-        const message = useAuthToken
-            ? Buffer.concat([serPath, this.serializedToken()])
-            : serPath;
-        const epk = await this.command(COMMANDS.extented_pub_key,
-            useAuthToken ? 0x02 : 0x01, 0x00, message);
-        const pk = epk.slice(0, 65);
-        const cc = epk.slice(65);
-        return bip32.fromPublicKey(pk, cc);
+    async getExtendedPubKey(account) {
+        const path = `m/44'/429'/${account}'`;
+        return await this.ledger.getExtendedPublicKey(path);
     }
 
     async attestInputSendHeader(box, useAuthToken) {

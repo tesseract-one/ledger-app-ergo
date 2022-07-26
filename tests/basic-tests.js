@@ -7,9 +7,12 @@ describe("Basic Tests", function () {
     context("Basic Commands", function () {
         it("can fetch version of the app", async function () {
             const version = await this.device.getAppVersion();
-            expect(version).to.equalBytes([
-                makefile.versionMajor, makefile.versionMinor, makefile.versionPatch, 0x01
-            ]);
+            expect(version).to.be.deep.equal({
+                major: makefile.versionMajor,
+                minor: makefile.versionMinor,
+                patch: makefile.versionPatch,
+                flags: { isDebug: true }
+            });
         });
 
         it("can fetch name of the app", async function () {
