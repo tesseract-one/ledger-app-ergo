@@ -3,6 +3,14 @@ const { expect } = chai.use(require('chai-bytes'));
 const makefile = require('./helpers/makefile');
 const screen = require('./helpers/screen');
 
+function getAccountPath(account) {
+    return `m/44'/429'/${account}'`
+}
+
+function getAddressPath(account, address) {
+    return getAccountPath(account) + `/0/${address}`
+}
+
 describe("Basic Tests", function () {
     context("Basic Commands", function () {
         it("can fetch version of the app", async function () {
@@ -16,8 +24,26 @@ describe("Basic Tests", function () {
         });
 
         it("can fetch name of the app", async function () {
-            const name = await this.device.getAppName();
+            const name = (await this.device.getAppName()).name;
             expect(name).to.be.equal(makefile.appName);
+        });
+
+        it("can get extended public key", async function () {
+            const path = getAccountPath(0);
+            const extendedPublicKey = await this.device.getExtendedPublicKey(path);
+            expect(extendedPublicKey).to.not.be.undefined;
+        });
+
+        it("can derive address", async function () {
+            const path = getAddressPath(0, 0);
+            const address = await this.device.deriveAddress(path);
+            expect(address).to.not.be.undefined;
+        });
+
+        it("can show address", async function () {
+            const path = getAddressPath(0, 0);
+            const showAddress = await this.device.showAddress(path);
+            expect(showAddress).to.be.true;
         });
     });
 
