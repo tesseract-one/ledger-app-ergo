@@ -3,6 +3,10 @@ const { expect } = chai.use(require('chai-bytes'));
 const makefile = require('./helpers/makefile');
 const screen = require('./helpers/screen');
 
+async function sleep(ms) {
+    await new Promise(r => setTimeout(r, ms));
+}
+
 function getAccountPath(account) {
     return `m/44'/429'/${account}'`
 }
@@ -30,20 +34,42 @@ describe("Basic Tests", function () {
 
         it("can get extended public key", async function () {
             const path = getAccountPath(0);
-            const extendedPublicKey = await this.device.getExtendedPublicKey(path);
-            expect(extendedPublicKey).to.not.be.undefined;
+            const getExtendedPublicKey = this.device.getExtendedPublicKey(path);
+            await sleep(500);
+            if (this.screens) {
+                await this.screens.click(2);
+                const extendedPublicKey = await getExtendedPublicKey;
+                expect(extendedPublicKey).to.have.property('publicKey').that.exist;
+                expect(extendedPublicKey).to.have.property('chainCode').that.exist;
+            } else {
+                console.log("Check screens on the device, please!");
+            }
         });
 
         it("can derive address", async function () {
             const path = getAddressPath(0, 0);
-            const address = await this.device.deriveAddress(path);
-            expect(address).to.not.be.undefined;
+            const deriveAddress = this.device.deriveAddress(path);
+            await sleep(500);
+            if (this.screens) {
+                await this.screens.click(2);
+                const address = await deriveAddress;
+                expect(address).to.have.property('addressHex').that.exist;
+            } else {
+                console.log("Check screens on the device, please!");
+            }
         });
 
         it("can show address", async function () {
             const path = getAddressPath(0, 0);
-            const showAddress = await this.device.showAddress(path);
-            expect(showAddress).to.be.true;
+            const showAddress = this.device.showAddress(path);
+            await sleep(500);
+            if (this.screens) {
+                await this.screens.click(5);
+                const show = await showAddress;
+                expect(show).to.be.true;
+            } else {
+                console.log("Check screens on the device, please!");
+            }
         });
     });
 
