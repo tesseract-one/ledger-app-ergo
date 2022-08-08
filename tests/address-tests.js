@@ -7,7 +7,7 @@ describe("Address Tests", function () {
         it("can derive address", async function () {
             const path = common.getAddressPath(0, 0);
             const deriveAddress = this.device.deriveAddress(path);
-            await common.sleep(500);
+            await common.sleep();
             if (this.screens) {
                 await this.screens.click(2);
                 const address = await deriveAddress;
@@ -22,7 +22,7 @@ describe("Address Tests", function () {
         it("can show address", async function () {
             const path = common.getAddressPath(0, 0);
             const showAddress = this.device.showAddress(path);
-            await common.sleep(500);
+            await common.sleep();
             if (this.screens) {
                 await this.screens.click(5);
                 const show = await showAddress;

@@ -1,5 +1,5 @@
 async function sleep(ms) {
-    await new Promise(r => setTimeout(r, ms));
+    await new Promise(r => setTimeout(r, ms != null ? ms : 500));
 }
 
 function getAccountPath(account) {

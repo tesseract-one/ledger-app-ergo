@@ -7,7 +7,7 @@ describe("Public Key Tests", function () {
         it("can get extended public key", async function () {
             const path = common.getAccountPath(0);
             const getExtendedPublicKey = this.device.getExtendedPublicKey(path);
-            await common.sleep(500);
+            await common.sleep();
             if (this.screens) {
                 await this.screens.click(2);
                 const extendedPublicKey = await getExtendedPublicKey;
