@@ -283,11 +283,64 @@ function createUnsignedTransaction() {
     const dataInputs = new ergo.DataInputs();
     dataInputs.add(new ergo.DataInput(boxId));
     const feeAmount = ergo.BoxValue.from_i64(ergo.I64.from_str("1000000"));
-    const creationHeight = 1;
+    const creationHeight = 0;
     const boxCandidate = ergo.ErgoBoxCandidate.new_miner_fee_box(feeAmount, creationHeight);
     const outputCandidates = new ergo.ErgoBoxCandidates(boxCandidate);
     const transaction = new ergo.UnsignedTransaction(inputs, dataInputs, outputCandidates);
     return transaction;
+}
+
+function createErgoBox(txId, index) {
+    const value = ergo.BoxValue.from_i64(ergo.I64.from_str("1000000"));
+    const creationHeight = 0;
+    const ergoTree = ergo.ErgoTree.from_base16_bytes("0008cd033088e457b2ccd2d26e4c5df8bf3c0c332807ed7a9eb02a4b71affb576fb14210");
+    const contract = ergo.Contract.new(ergoTree);
+    const tokens = new ergo.Tokens();
+    const ergoBox = new ergo.ErgoBox(value, creationHeight, contract, txId, index, tokens);
+    return ergoBox;
+}
+
+function createInput(ergoBox) {
+    const ext = new ergo.ContextExtension();
+    const input = new ergo.UnsignedInput(ergoBox.box_id(), ext);
+    return input;
+}
+
+function createDataInput(ergoBox) {
+    return new ergo.DataInput(ergoBox.box_id());
+}
+
+function createUnsignedTransaction(inputs, dataInputs, outputCandidates) {
+    const transaction = new ergo.UnsignedTransaction(inputs, dataInputs, outputCandidates);
+    return transaction;
+}
+
+function asArray(array) {
+    const array2 = [];
+    for (let i = 0; i < array.len(); i++) {
+        array2.push(array.get(i));
+    }
+    return array2;
+}
+
+function toUnsignedBox(ergoBox) {
+    const box = {
+        txId: ergoBox.tx_id().to_str(),
+        index: ergoBox.index(),
+        value: ergoBox.value().as_i64().to_str(),
+        ergoTree: Buffer.from(ergoBox.ergo_tree().to_base16_bytes()),
+        creationHeight: ergoBox.creation_height(),
+        tokens: asArray(ergoBox.tokens()),
+        additionalRegisters: Buffer.from(ergoBox.serialized_additional_registers()),
+        extension: Buffer.from([]),
+        signPath: common.getAddressPath(0, 0),
+    };
+    return box;
+}
+
+function createUnsignedBox(txId, index) {
+    const ergoBox = createErgoBox(txId, index);
+    return toUnsignedBox(ergoBox);
 }
 
 exports.AttestedBox = AttestedBox;
@@ -296,3 +349,4 @@ exports.ExtendedOutput = ExtendedOutput;
 exports.TransactionGenerator = TransactionGenerator;
 exports.serializeBip32Path = serializeBip32Path;
 exports.createUnsignedTransaction = createUnsignedTransaction;
+exports.createUnsignedBox = createUnsignedBox;
