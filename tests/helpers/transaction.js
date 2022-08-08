@@ -275,8 +275,24 @@ class TransactionGenerator {
     }
 }
 
+function createUnsignedTransaction() {
+    const inputs = new ergo.UnsignedInputs();
+    const boxId = ergo.BoxId.from_str("0000000000000000000000000000000000000000000000000000000000000000");
+    const ext = new ergo.ContextExtension();
+    inputs.add(new ergo.UnsignedInput(boxId, ext));
+    const dataInputs = new ergo.DataInputs();
+    dataInputs.add(new ergo.DataInput(boxId));
+    const feeAmount = ergo.BoxValue.from_i64(ergo.I64.from_str("1000000"));
+    const creationHeight = 1;
+    const boxCandidate = ergo.ErgoBoxCandidate.new_miner_fee_box(feeAmount, creationHeight);
+    const outputCandidates = new ergo.ErgoBoxCandidates(boxCandidate);
+    const transaction = new ergo.UnsignedTransaction(inputs, dataInputs, outputCandidates);
+    return transaction;
+}
+
 exports.AttestedBox = AttestedBox;
 exports.ExtendedTransaction = ExtendedTransaction;
 exports.ExtendedOutput = ExtendedOutput;
 exports.TransactionGenerator = TransactionGenerator;
 exports.serializeBip32Path = serializeBip32Path;
+exports.createUnsignedTransaction = createUnsignedTransaction;
