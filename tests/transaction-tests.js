@@ -8,30 +8,19 @@ const { createUnsignedTransaction, createUnsignedBox, createBoxCandidate, create
 describe("Transaction Tests", function () {
     context("Transaction Commands", function () {
         it("can attest input", async function () {
+            this.timeout(5000);
             const transaction = createUnsignedTransaction();
-            const box = {
-                txId: transaction.id().to_str(),
-                index: 0,
-                value: "1000000",
-                ergoTree: Buffer.from("0008cd033088e457b2ccd2d26e4c5df8bf3c0c332807ed7a9eb02a4b71affb576fb14210"),
-                creationHeight: 0,
-                tokens: [],
-                additionalRegisters: Buffer.from([]),
-                extension: Buffer.from([]),
-                signPath: "",
-            };
-            const attestInput = this.device.attestInput(box);
-            await common.sleep();
-            if (this.screens) {
-                await this.screens.click(2);
-                const attestedBox = await attestInput;
-                expect(attestedBox).to.exist;
-            } else {
-                console.log("Check screens on the device, please!");
-            }
+            const box = createUnsignedBox(ADDRESS, transaction.id(), 0);
+            await this.screenFlows.attestInput.do(
+                () => this.device.attestInput(box),
+                attestedBox => {
+                    expect(attestedBox).to.exist;
+                }
+            );
         });
 
         it("can sign tx", async function () {
+            this.timeout(10000);
             const transaction1 = createUnsignedTransaction();
             const input1 = createUnsignedBox(ADDRESS, transaction1.id(), 0);
             const dataInput1 = createDataInput(ADDRESS, transaction1.id(), 0);
@@ -45,18 +34,12 @@ describe("Transaction Tests", function () {
                 changeMap,
             };
             const network = Network.Testnet;
-            const signTx = this.device.signTx(unsignedTransaction, network);
-            await common.sleep();
-            if (this.screens) {
-                this.timeout(5000);
-                await this.screens.click(2);
-                await common.sleep();
-                await this.screens.click(4);
-                const signedTransaction = await signTx;
-                expect(signedTransaction).to.exist;
-            } else {
-                console.log("Check screens on the device, please!");
-            }
+            await this.screenFlows.signTx.do(
+                () => this.device.signTx(unsignedTransaction, network),
+                signedTransaction => {
+                    expect(signedTransaction).to.exist;
+                }
+            );
         });
     })
 });

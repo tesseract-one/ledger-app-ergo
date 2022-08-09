@@ -1,3 +1,4 @@
+const { sleep } = require('./common');
 const makefile = require('./makefile');
 
 const MAIN_FLOW = [
@@ -128,6 +129,7 @@ class ScreenReader {
     }
 
     async click(index) {
+        await sleep();
         for (let i = 0; i < index; i++) {
             await this.goNext()
             await this.currentScreen();
