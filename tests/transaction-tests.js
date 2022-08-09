@@ -23,7 +23,7 @@ describe("Transaction Tests", function () {
             const attestInput = this.device.attestInput(box);
             await common.sleep();
             if (this.screens) {
-                await this.screens.click(1);
+                await this.screens.click(2);
                 const attestedBox = await attestInput;
                 expect(attestedBox).to.exist;
             } else {
@@ -49,7 +49,7 @@ describe("Transaction Tests", function () {
             await common.sleep();
             if (this.screens) {
                 this.timeout(5000);
-                await this.screens.click(1);
+                await this.screens.click(2);
                 await common.sleep();
                 await this.screens.click(4);
                 const signedTransaction = await signTx;

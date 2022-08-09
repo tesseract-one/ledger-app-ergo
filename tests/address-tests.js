@@ -9,7 +9,7 @@ describe("Address Tests", function () {
             const deriveAddress = this.device.deriveAddress(path);
             await common.sleep();
             if (this.screens) {
-                await this.screens.click(2);
+                await this.screens.click(3);
                 const address = await deriveAddress;
                 expect(address).to.be.deep.equal({
                     addressHex: '01033088e457b2ccd2d26e4c5df8bf3c0c332807ed7a9eb02a4b71affb576fb142106ba8dc41'
@@ -24,7 +24,7 @@ describe("Address Tests", function () {
             const showAddress = this.device.showAddress(path);
             await common.sleep();
             if (this.screens) {
-                await this.screens.click(5);
+                await this.screens.click(6);
                 const show = await showAddress;
                 expect(show).to.be.true;
             } else {

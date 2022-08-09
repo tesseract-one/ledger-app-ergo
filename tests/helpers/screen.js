@@ -78,10 +78,11 @@ class ScreenReader {
         this._automation.events.on("error", (err) => {
             this._currentScreen.reject(err);
         });
-        this.goNext();
+        this._currentScreen = resolver();
     }
 
     async ensureMainMenu() {
+        await this.goNext();
         let screen = await this.currentScreen();
         while (mainMenuScreenIndex(screen) >= 0 && mainMenuScreenIndex(screen) != 2) {
             await this.goNext();
