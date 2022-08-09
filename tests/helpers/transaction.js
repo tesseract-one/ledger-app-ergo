@@ -3,6 +3,7 @@ const Buffer = require('buffer').Buffer;
 const crypto = require('crypto');
 const bip32 = require('bip32');
 const b32path = require('bip32-path');
+const common = require('./common');
 
 const minersFeeTree = Buffer.from([
     0x10, 0x05, 0x04, 0x00, 0x04, 0x00, 0x0e, 0x36, 0x10, 0x02, 0x04, 0xa0, 0x0b, 0x08, 0xcd,
@@ -290,29 +291,14 @@ function createUnsignedTransaction() {
     return transaction;
 }
 
-function createErgoBox(txId, index) {
+function createErgoBox(address, txId, index) {
     const value = ergo.BoxValue.from_i64(ergo.I64.from_str("1000000"));
     const creationHeight = 0;
-    const ergoTree = ergo.ErgoTree.from_base16_bytes("0008cd033088e457b2ccd2d26e4c5df8bf3c0c332807ed7a9eb02a4b71affb576fb14210");
+    const ergoTree = address.to_ergo_tree();
     const contract = ergo.Contract.new(ergoTree);
     const tokens = new ergo.Tokens();
     const ergoBox = new ergo.ErgoBox(value, creationHeight, contract, txId, index, tokens);
     return ergoBox;
-}
-
-function createInput(ergoBox) {
-    const ext = new ergo.ContextExtension();
-    const input = new ergo.UnsignedInput(ergoBox.box_id(), ext);
-    return input;
-}
-
-function createDataInput(ergoBox) {
-    return new ergo.DataInput(ergoBox.box_id());
-}
-
-function createUnsignedTransaction(inputs, dataInputs, outputCandidates) {
-    const transaction = new ergo.UnsignedTransaction(inputs, dataInputs, outputCandidates);
-    return transaction;
 }
 
 function asArray(array) {
@@ -323,8 +309,9 @@ function asArray(array) {
     return array2;
 }
 
-function toUnsignedBox(ergoBox) {
-    const box = {
+function createUnsignedBox(address, txId, index) {
+    const ergoBox = createErgoBox(address, txId, index);
+    const unsignedBox = {
         txId: ergoBox.tx_id().to_str(),
         index: ergoBox.index(),
         value: ergoBox.value().as_i64().to_str(),
@@ -335,12 +322,33 @@ function toUnsignedBox(ergoBox) {
         extension: Buffer.from([]),
         signPath: common.getAddressPath(0, 0),
     };
-    return box;
+    return unsignedBox;
 }
 
-function createUnsignedBox(txId, index) {
-    const ergoBox = createErgoBox(txId, index);
-    return toUnsignedBox(ergoBox);
+function createDataInput(address, txId, index) {
+    const ergoBox = createErgoBox(address, txId, index);
+    const ergoDataInput = new ergo.DataInput(ergoBox.box_id()).box_id();
+    const dataInput = ergoDataInput.to_str();
+    return dataInput;
+}
+
+function createBoxCandidate(value, address) {
+    const boxCandidate = {
+        value,
+        ergoTree: Buffer.from(address.to_ergo_tree().to_base16_bytes(), 'hex'),
+        creationHeight: 0,
+        tokens: [],
+        registers: Buffer.from([]),
+    };
+    return boxCandidate;
+}
+
+function createChangeMap(address, path, network) {
+    const changeMap = {
+        address: address.to_base58(network),
+        path,
+    };
+    return changeMap;
 }
 
 exports.AttestedBox = AttestedBox;
@@ -350,3 +358,6 @@ exports.TransactionGenerator = TransactionGenerator;
 exports.serializeBip32Path = serializeBip32Path;
 exports.createUnsignedTransaction = createUnsignedTransaction;
 exports.createUnsignedBox = createUnsignedBox;
+exports.createDataInput = createDataInput;
+exports.createBoxCandidate = createBoxCandidate;
+exports.createChangeMap = createChangeMap;

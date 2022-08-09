@@ -6,8 +6,8 @@ function getAccountPath(account) {
     return `m/44'/429'/${account}'`
 }
 
-function getAddressPath(account, address) {
-    return getAccountPath(account) + `/0/${address}`
+function getAddressPath(account, address, change) {
+    return getAccountPath(account) + `/${change ? '1' : '0'}/${address}`
 }
 
 exports.sleep = sleep;

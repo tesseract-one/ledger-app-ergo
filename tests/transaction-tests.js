@@ -2,7 +2,8 @@ const chai = require('chai');
 const { Network } = require('ledger-ergo-js');
 const { expect } = chai.use(require('chai-bytes'));
 const common = require('./helpers/common');
-const { createUnsignedTransaction, toUnsignedBox, createErgoBox } = require('./helpers/transaction');
+const { ADDRESS, ADDRESS2, CHANGE_ADDRESS, NETWORK } = require('./helpers/data');
+const { createUnsignedTransaction, createUnsignedBox, createBoxCandidate, createDataInput, createChangeMap } = require('./helpers/transaction');
 
 describe("Transaction Tests", function () {
     context("Transaction Commands", function () {
@@ -32,33 +33,25 @@ describe("Transaction Tests", function () {
 
         it("can sign tx", async function () {
             const transaction1 = createUnsignedTransaction();
-            const input1 = createUnsignedBox(transaction1.id(), 0);
-            const output1 = {
-                value: "500000",
-                ergoTree: Buffer.from("0008cd033088e457b2ccd2d26e4c5df8bf3c0c332807ed7a9eb02a4b71affb576fb14210"),
-                creationHeight: 0,
-                tokens: [{
-                    id: "0000000000000000000000000000000000000000000000000000000000000000",
-                    amount: "1",
-                }],
-                registers: Buffer.from([]),
-            };
-            const changeMap = {
-                address: "01033088e457b2ccd2d26e4c5df8bf3c0c332807ed7a9eb02a4b71affb576fb142106ba8dc41",
-                path: common.getAddressPath(0, 1),
-            };
+            const input1 = createUnsignedBox(ADDRESS, transaction1.id(), 0);
+            const dataInput1 = createDataInput(ADDRESS, transaction1.id(), 0);
+            const output1 = createBoxCandidate("500000", ADDRESS2);
+            const changeMap = createChangeMap(CHANGE_ADDRESS, common.getAddressPath(0, 0, true), NETWORK);
             const unsignedTransaction = {
                 inputs: [input1],
-                dataInputs: ["0000000000000000000000000000000000000000000000000000000000000000"],
+                dataInputs: [dataInput1],
                 outputs: [output1],
-                distinctTokenIds: ["0000000000000000000000000000000000000000000000000000000000000000"],
+                distinctTokenIds: [],
                 changeMap,
-            }
+            };
             const network = Network.Testnet;
             const signTx = this.device.signTx(unsignedTransaction, network);
             await common.sleep();
             if (this.screens) {
+                this.timeout(5000);
                 await this.screens.click(1);
+                await common.sleep();
+                await this.screens.click(4);
                 const signedTransaction = await signTx;
                 expect(signedTransaction).to.exist;
             } else {
