@@ -276,79 +276,162 @@ class TransactionGenerator {
     }
 }
 
-function createUnsignedTransaction() {
-    const inputs = new ergo.UnsignedInputs();
-    const boxId = ergo.BoxId.from_str("0000000000000000000000000000000000000000000000000000000000000000");
-    const ext = new ergo.ContextExtension();
-    inputs.add(new ergo.UnsignedInput(boxId, ext));
-    const dataInputs = new ergo.DataInputs();
-    dataInputs.add(new ergo.DataInput(boxId));
-    const feeAmount = ergo.BoxValue.from_i64(ergo.I64.from_str("1000000"));
-    const creationHeight = 0;
-    const boxCandidate = ergo.ErgoBoxCandidate.new_miner_fee_box(feeAmount, creationHeight);
-    const outputCandidates = new ergo.ErgoBoxCandidates(boxCandidate);
-    const transaction = new ergo.UnsignedTransaction(inputs, dataInputs, outputCandidates);
-    return transaction;
-}
-
-function createErgoBox(address, txId, index) {
-    const value = ergo.BoxValue.from_i64(ergo.I64.from_str("1000000"));
-    const creationHeight = 0;
-    const ergoTree = address.to_ergo_tree();
-    const contract = ergo.Contract.new(ergoTree);
-    const tokens = new ergo.Tokens();
-    const ergoBox = new ergo.ErgoBox(value, creationHeight, contract, txId, index, tokens);
+function createErgoBox(recipient, txId, index) {
+    const ergoBox = new ergo.ErgoBox(
+        ergo.BoxValue.from_i64(ergo.I64.from_str('1000000000')),
+        0,
+        ergo.Contract.pay_to_address(recipient),
+        txId,
+        index,
+        new ergo.Tokens()
+    )
     return ergoBox;
 }
 
-function asArray(array) {
-    const array2 = [];
-    for (let i = 0; i < array.len(); i++) {
-        array2.push(array.get(i));
-    }
-    return array2;
-}
-
-function createUnsignedBox(address, txId, index) {
-    const ergoBox = createErgoBox(address, txId, index);
-    const unsignedBox = {
+function toUnsignedBox(ergoBox, contextExtension, signPath) {
+    return {
         txId: ergoBox.tx_id().to_str(),
         index: ergoBox.index(),
         value: ergoBox.value().as_i64().to_str(),
         ergoTree: Buffer.from(ergoBox.ergo_tree().to_base16_bytes()),
         creationHeight: ergoBox.creation_height(),
-        tokens: asArray(ergoBox.tokens()),
+        tokens: common.toArray(ergoBox.tokens()),
         additionalRegisters: Buffer.from(ergoBox.serialized_additional_registers()),
-        extension: Buffer.from([]),
-        signPath: common.getAddressPath(0, 0),
+        extension: Buffer.from(contextExtension.sigma_serialize_bytes()),
+        signPath,
     };
-    return unsignedBox;
 }
 
-function createDataInput(address, txId, index) {
-    const ergoBox = createErgoBox(address, txId, index);
-    const ergoDataInput = new ergo.DataInput(ergoBox.box_id()).box_id();
-    const dataInput = ergoDataInput.to_str();
-    return dataInput;
+function toToken(token) {
+    return {
+        id: token.id().to_str(),
+        amount: token.amount().as_i64().to_str()
+    };
 }
 
-function createBoxCandidate(value, address) {
-    const boxCandidate = {
-        value,
-        ergoTree: Buffer.from(address.to_ergo_tree().to_base16_bytes(), 'hex'),
-        creationHeight: 0,
-        tokens: [],
-        registers: Buffer.from([]),
+function toBoxCandidate(output) {
+    return {
+        value: output.value().as_i64().to_str(),
+        ergoTree: Buffer.from(output.ergo_tree().to_base16_bytes(), 'hex'),
+        creationHeight: output.creation_height(),
+        tokens: common.toArray(output.tokens()).map(toToken),
+        registers: Buffer.from(output.serialized_additional_registers()),
     };
-    return boxCandidate;
 }
 
-function createChangeMap(address, path, network) {
-    const changeMap = {
-        address: address.to_base58(network),
-        path,
-    };
-    return changeMap;
+class ErgoUnsignedTransactionBuilder {
+    constructor() {
+        this.amount = ergo.I64.from_str('0');
+        this.inputs = ergo.ErgoBoxes.empty();
+        this.dataInputs = new ergo.DataInputs();
+        this.outputs = ergo.ErgoBoxCandidates.empty();
+        this.changeAddress = null;
+    }
+
+    input(ergoBox) {
+        this.inputs.add(ergoBox);
+        return this;
+    }
+
+    dataInput(ergoBox) {
+        this.dataInputs.add(new ergo.DataInput(ergoBox.box_id()));
+        return this;
+    }
+
+    output(boxCandidate) {
+        this.amount = this.amount.checked_add(boxCandidate.value().as_i64());
+        this.outputs.add(boxCandidate);
+        return this;
+    }
+
+    change(address) {
+        this.changeAddress = address;
+        return this;
+    }
+
+    build() {
+        const fee = ergo.TxBuilder.SUGGESTED_TX_FEE();
+        const targetBalance = ergo.BoxValue.from_i64(this.amount.checked_add(fee.as_i64()));
+        const boxSelection = new ergo.SimpleBoxSelector().select(this.inputs, targetBalance, new ergo.Tokens());
+        const txBuilder = ergo.TxBuilder.new(
+            boxSelection,
+            this.outputs,
+            0,
+            fee,
+            this.changeAddress,
+            ergo.BoxValue.SAFE_USER_MIN()
+        );
+        txBuilder.set_data_inputs(this.dataInputs);
+        return txBuilder.build();
+    }
+}
+
+class UnsignedTransactionBuilder {
+    constructor() {
+        this.ergoBuilder = new ErgoUnsignedTransactionBuilder();
+        this.inputs = [];
+        this.dataInputs = [];
+        this.outputs = [];
+        this.distinctTokenIds = [];
+        this.changeMap = null;
+    }
+
+    input(address, txId, index, signPath) {
+        const ergoBox = createErgoBox(address, txId, index);
+        const contextExtension = new ergo.ContextExtension();
+        const unsignedBox = toUnsignedBox(ergoBox, contextExtension, signPath);
+        this.inputs.push(unsignedBox);
+        this.ergoBuilder.input(ergoBox);
+        return this;
+    }
+
+    dataInput(address, txId, index) {
+        const ergoBox = createErgoBox(address, txId, index);
+        const dataInput = ergoBox.box_id().to_str();
+        this.dataInputs.push(dataInput);
+        this.ergoBuilder.dataInput(ergoBox);
+        return this;
+    }
+
+    output(value, address) {
+        const output = new ergo.ErgoBoxCandidateBuilder(
+            ergo.BoxValue.from_i64(ergo.I64.from_str(value)),
+            ergo.Contract.pay_to_address(address),
+            0
+        ).build();
+        const boxCandidate = toBoxCandidate(output);
+        this.outputs.push(boxCandidate);
+        this.ergoBuilder.output(output);
+        return this;
+    }
+
+    tokenId(tokenId) {
+        this.distinctTokenIds.push(tokenId);
+        return this;
+    }
+
+    change(address, network, path) {
+        this.changeMap = {
+            address: address.to_base58(network),
+            path,
+        };
+        this.ergoBuilder.change(address);
+        return this;
+    }
+
+    build() {
+        return {
+            inputs: this.inputs,
+            dataInputs: this.dataInputs,
+            outputs: this.outputs,
+            distinctTokenIds: this.distinctTokenIds,
+            changeMap: this.changeMap,
+        };
+    }
+
+    buildErgo() {
+        return this.ergoBuilder.build();
+    }
 }
 
 exports.AttestedBox = AttestedBox;
@@ -356,8 +439,4 @@ exports.ExtendedTransaction = ExtendedTransaction;
 exports.ExtendedOutput = ExtendedOutput;
 exports.TransactionGenerator = TransactionGenerator;
 exports.serializeBip32Path = serializeBip32Path;
-exports.createUnsignedTransaction = createUnsignedTransaction;
-exports.createUnsignedBox = createUnsignedBox;
-exports.createDataInput = createDataInput;
-exports.createBoxCandidate = createBoxCandidate;
-exports.createChangeMap = createChangeMap;
+exports.UnsignedTransactionBuilder = UnsignedTransactionBuilder;
