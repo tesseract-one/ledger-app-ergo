@@ -1,5 +1,5 @@
 const chai = require('chai');
-const { Transaction, TxId } = require('ergo-lib-wasm-nodejs');
+const { Transaction, TxId, verify_signature } = require('ergo-lib-wasm-nodejs');
 const { Network } = require('ledger-ergo-js');
 const { expect } = chai.use(require('chai-bytes'));
 const common = require('./helpers/common');
@@ -28,7 +28,7 @@ describe("Transaction Tests", function () {
             const builder = new UnsignedTransactionBuilder()
                 .input(ADDRESS, TxId.zero(), 0, common.getAddressPath(0, 0))
                 .dataInput(ADDRESS, TxId.zero(), 0)
-                .output('1000001', ADDRESS2)
+                .output('100000000', ADDRESS2)
                 .change(CHANGE_ADDRESS, NETWORK, common.getAddressPath(0, 0, true));
             const unsignedTransaction = builder.build();
             const network = Network.Testnet;
@@ -36,10 +36,14 @@ describe("Transaction Tests", function () {
                 () => this.device.signTx(unsignedTransaction, network),
                 signatures => {
                     expect(signatures).to.exist;
-                    console.log(signatures);
-                    const ergoTransaction = builder.buildErgo();
-                    const signedTransaction = Transaction.from_unsigned_tx(ergoTransaction, signatures);
-                    console.log(signedTransaction);
+                    const unsigned = builder.buildErgo();
+                    const signed = Transaction.from_unsigned_tx(unsigned, signatures);
+                    const verificationResult = verify_signature(
+                        ADDRESS,
+                        signed.sigma_serialize_bytes(),
+                        signatures[0]
+                    );
+                    expect(verificationResult.to.be.equal(true));
                 }
             );
         });

@@ -284,7 +284,7 @@ function createErgoBox(recipient, txId, index) {
         txId,
         index,
         new ergo.Tokens()
-    )
+    );
     return ergoBox;
 }
 
