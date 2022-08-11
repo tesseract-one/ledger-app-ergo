@@ -1,17 +1,17 @@
 const chai = require('chai');
+const { toHex } = require('./helpers/common');
 const { expect } = chai.use(require('chai-bytes'));
-const common = require('./helpers/common');
+const { TEST_DATA } = require('./helpers/data');
 
 describe("Address Tests", function () {
     context("Address Commands", function () {
         it("can derive address", async function () {
             this.timeout(5000);
-            const path = common.getAddressPath(0, 0);
             await this.screenFlows.deriveAddress.do(
-                () => this.device.deriveAddress(path),
+                () => this.device.deriveAddress(TEST_DATA.address0.path.toString()),
                 address => {
                     expect(address).to.be.deep.equal({
-                        addressHex: '01033088e457b2ccd2d26e4c5df8bf3c0c332807ed7a9eb02a4b71affb576fb142106ba8dc41'
+                        addressHex: toHex(TEST_DATA.address0.toBytes())
                     });
                 }
             );
@@ -19,9 +19,8 @@ describe("Address Tests", function () {
 
         it("can show address", async function () {
             this.timeout(5000);
-            const path = common.getAddressPath(0, 0);
             await this.screenFlows.showAddress.do(
-                () => this.device.showAddress(path),
+                () => this.device.showAddress(TEST_DATA.address0.path.toString()),
                 show => {
                     expect(show).to.be.true;
                 }

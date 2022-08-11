@@ -376,10 +376,10 @@ class UnsignedTransactionBuilder {
         this.changeMap = null;
     }
 
-    input(address, txId, index, signPath) {
-        const ergoBox = createErgoBox(address, txId, index);
+    input(extendedAddress, txId, index) {
+        const ergoBox = createErgoBox(extendedAddress.address, txId, index);
         const contextExtension = new ergo.ContextExtension();
-        const unsignedBox = toUnsignedBox(ergoBox, contextExtension, signPath);
+        const unsignedBox = toUnsignedBox(ergoBox, contextExtension, extendedAddress.path.toString());
         this.inputs.push(unsignedBox);
         this.ergoBuilder.input(ergoBox);
         return this;
@@ -410,12 +410,12 @@ class UnsignedTransactionBuilder {
         return this;
     }
 
-    change(address, network, path) {
+    change(extendedAddress) {
         this.changeMap = {
-            address: address.to_base58(network),
-            path,
+            address: extendedAddress.toBase58(),
+            path: extendedAddress.path.toString(),
         };
-        this.ergoBuilder.change(address);
+        this.ergoBuilder.change(extendedAddress.address);
         return this;
     }
 

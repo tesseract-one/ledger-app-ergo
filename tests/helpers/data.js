@@ -1,11 +1,41 @@
-const { Address, NetworkPrefix } = require("ergo-lib-wasm-nodejs");
+const { Address, NetworkPrefix, DerivationPath } = require("ergo-lib-wasm-nodejs");
 
-const NETWORK = NetworkPrefix.Testnet;
-const ADDRESS = Address.from_base58("3WxvL2bGTBLAP2wiBmoFbsTPHE6Mu5bjxQPh8xKq6eK6p6Y89qAj");
-const ADDRESS2 = Address.from_base58("3WzQYa3DoJtSqgL3dF6Nv52G3ctuJ8gsiervM9To2PjfS6s68W6E");
-const CHANGE_ADDRESS = Address.from_base58("3Wy8RUojcXSBKQsvbLfbH4dPMx5JyevAVceTL4bkUWmHX2sQoPsw");
+class ExtendedAddress {
+    constructor(network, address, path) {
+        this.network = network;
+        this.address = address;
+        this.path = DerivationPath.new(path[0], [path[1]]);
+    }
 
-exports.NETWORK = NETWORK;
-exports.ADDRESS = ADDRESS;
-exports.ADDRESS2 = ADDRESS2;
-exports.CHANGE_ADDRESS = CHANGE_ADDRESS;
+    toBase58() {
+        return this.address.to_base58(this.network);
+    }
+
+    toBytes() {
+        return this.address.to_bytes(this.network);
+    }
+}
+
+class TestData {
+    constructor(network) {
+        this.network = network;
+        this.accountPath = DerivationPath.from_string(`m/44'/429'/0'`);
+        this.address0 = new ExtendedAddress(
+            network,
+            Address.from_base58("9gqBSpseifxnkjRLZUxs5wbJGsvYPG7MLRcBgnKEzFiJoMJaakg"),
+            [0, 0]
+        );
+        this.address1 = new ExtendedAddress(
+            network,
+            Address.from_base58("9iKPzGpzrEFFQ7kn2n6BHWU4fgTwSMF7atqPsvHAjgGvogSHz6Y"),
+            [0, 1]
+        );
+        this.changeAddress = new ExtendedAddress(
+            network,
+            Address.from_base58("9eo8hALVQTaAuu8m95JhR8rhXuAMsLacaxM8X4omp724Smt8ior"),
+            [0, 2]
+        );
+    }
+}
+
+exports.TEST_DATA = new TestData(NetworkPrefix.Mainnet);

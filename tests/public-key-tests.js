@@ -1,14 +1,13 @@
 const chai = require('chai');
 const { expect } = chai.use(require('chai-bytes'));
-const common = require('./helpers/common');
+const { TEST_DATA } = require('./helpers/data');
 
 describe("Public Key Tests", function () {
     context("Public Key Commands", function () {
         it("can get extended public key", async function () {
             this.timeout(5000);
-            const path = common.getAccountPath(0);
             await this.screenFlows.getExtendedPublicKey.do(
-                () => this.device.getExtendedPublicKey(path),
+                () => this.device.getExtendedPublicKey(TEST_DATA.accountPath.toString()),
                 extendedPublicKey => {
                     expect(extendedPublicKey).to.be.deep.equal({
                         publicKey: '03c24e55008b523ccaf03b6c757f88c4881ef3331a255b76d2e078016c69c3dfd4',
