@@ -1,7 +1,8 @@
-const chai = require('chai');
-const { Transaction, TxId, verify_signature } = require('ergo-lib-wasm-nodejs');
+const { expect } = require('chai')
+    .use(require('chai-bytes'))
+    .use(require('chai-as-promised'));
+const { Transaction, TxId } = require('ergo-lib-wasm-nodejs');
 const { toNetwork } = require('./helpers/common');
-const { expect } = chai.use(require('chai-bytes'));
 const { TEST_DATA } = require('./helpers/data');
 const { UnsignedTransactionBuilder } = require('./helpers/transaction');
 
@@ -44,6 +45,19 @@ describe("Transaction Tests", function () {
                     expect(verificationResult).to.be.equal(true);
                 }
             );
+        });
+
+        it("can not sign tx with zero inputs", async function () {
+            this.timeout(10000);
+            const builder = new UnsignedTransactionBuilder()
+                .dataInput(TEST_DATA.address0.address, TxId.zero(), 0)
+                .output('100000000', TEST_DATA.address1.address)
+                .change(TEST_DATA.changeAddress);
+            const unsignedTransaction = builder.build();
+            await expect(this.screenFlows.signTx.do(
+                () => this.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network)),
+                _ => { }
+            )).to.be.rejectedWith(Error);
         });
     })
 });

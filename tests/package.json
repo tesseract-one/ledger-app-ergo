@@ -8,6 +8,7 @@
     "bin": "run-tests.js",
     "devDependencies": {
         "chai": "^4.3.4",
+        "chai-as-promised": "^7.1.1",
         "chai-bytes": "^0.1.2",
         "mocha": "^9.1.1"
     },
