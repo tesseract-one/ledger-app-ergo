@@ -43,7 +43,7 @@ describe("Transaction Tests", function () {
                         signed.sigma_serialize_bytes(),
                         signatures[0]
                     );
-                    expect(verificationResult.to.be.equal(true));
+                    expect(verificationResult).to.be.equal(true);
                 }
             );
         });
