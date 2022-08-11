@@ -31,13 +31,13 @@ describe("Transaction Tests", function () {
                 .output('1000001', ADDRESS2)
                 .change(CHANGE_ADDRESS, NETWORK, common.getAddressPath(0, 0, true));
             const unsignedTransaction = builder.build();
-            const ergoTransaction = builder.buildErgo();
             const network = Network.Testnet;
             await this.screenFlows.signTx.do(
                 () => this.device.signTx(unsignedTransaction, network),
                 signatures => {
                     expect(signatures).to.exist;
                     console.log(signatures);
+                    const ergoTransaction = builder.buildErgo();
                     const signedTransaction = Transaction.from_unsigned_tx(ergoTransaction, signatures);
                     console.log(signedTransaction);
                 }
