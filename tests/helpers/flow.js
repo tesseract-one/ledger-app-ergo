@@ -63,12 +63,16 @@ class AuthFlow {
         this.device = device;
     }
 
-    async do(action, result) {
+    async do(action, success, failure) {
         const run = async auth => {
             this.device.useAuthToken(auth);
             const promise = action();
             await this.flows[auth]();
-            result(await promise);
+            try {
+                success(await promise);
+            } catch (error) {
+                failure(error);
+            }
         }
         await run(1);
         await run(0);

@@ -13,7 +13,8 @@ describe("Address Tests", function () {
                     expect(address).to.be.deep.equal({
                         addressHex: toHex(TEST_DATA.address0.toBytes())
                     });
-                }
+                },
+                error => assert.fail(error)
             );
         });
 
@@ -23,7 +24,8 @@ describe("Address Tests", function () {
                 () => this.device.showAddress(TEST_DATA.address0.path.toString()),
                 show => {
                     expect(show).to.be.true;
-                }
+                },
+                error => assert.fail(error)
             );
         });
     });

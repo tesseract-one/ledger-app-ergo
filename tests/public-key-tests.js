@@ -15,7 +15,8 @@ describe("Public Key Tests", function () {
                         publicKey: toHex(account.publicKey.pub_key_bytes()),
                         chainCode: toHex(account.publicKey.chain_code()),
                     });
-                }
+                },
+                error => assert.fail(error)
             );
         });
     })

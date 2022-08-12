@@ -1,6 +1,6 @@
 const { expect } = require('chai')
-    .use(require('chai-bytes'))
-    .use(require('chai-as-promised'));
+    .use(require('chai-bytes'));
+const { assert } = require('chai');
 const { Transaction, TxId } = require('ergo-lib-wasm-nodejs');
 const { toNetwork } = require('./helpers/common');
 const { TEST_DATA } = require('./helpers/data');
@@ -29,7 +29,8 @@ describe("Transaction Tests", function () {
                     expect(frame.tokens).to.be.empty;
                     expect(frame.attestation).to.exist;
                     expect(frame.buffer).to.exist;
-                }
+                },
+                error => assert.fail(error)
             );
         });
 
@@ -44,16 +45,28 @@ describe("Transaction Tests", function () {
             await this.screenFlows.signTx.do(
                 () => this.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network)),
                 signatures => {
-                    expect(signatures).to.exist;
+                    expect(signatures).to.have.length(1);
                     const unsigned = builder.buildErgo();
                     const signed = Transaction.from_unsigned_tx(unsigned, signatures);
-                    const verificationResult = verify_signature(
-                        TEST_DATA.address0.address,
-                        signed.sigma_serialize_bytes(),
-                        signatures[0]
-                    );
-                    expect(verificationResult).to.be.equal(true);
-                }
+                    // TODO verify signatures
+                },
+                error => assert.fail(error)
+            );
+        });
+
+        it("can sign tx with zero data inputs", async function () {
+            this.timeout(10000);
+            const builder = new UnsignedTransactionBuilder()
+                .input(TEST_DATA.address0, TxId.zero(), 0)
+                .output('100000000', TEST_DATA.address1.address)
+                .change(TEST_DATA.changeAddress);
+            const unsignedTransaction = builder.build();
+            await this.screenFlows.signTx.do(
+                () => this.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network)),
+                signatures => {
+                    expect(signatures).to.have.length(1);
+                },
+                error => assert.fail(error)
             );
         });
 
@@ -64,10 +77,31 @@ describe("Transaction Tests", function () {
                 .output('100000000', TEST_DATA.address1.address)
                 .change(TEST_DATA.changeAddress);
             const unsignedTransaction = builder.build();
-            await expect(this.screenFlows.signTx.do(
+            await this.screenFlows.signTx.do(
                 () => this.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network)),
-                _ => { }
-            )).to.be.rejectedWith(Error);
+                signatures => {
+                    expect(signatures).to.be.empty;
+                },
+                error => assert.fail(error)
+            );
+        });
+
+        it("can not sign tx with zero outputs", async function () {
+            this.timeout(10000);
+            const builder = new UnsignedTransactionBuilder()
+                .input(TEST_DATA.address0, TxId.zero(), 0)
+                .dataInput(TEST_DATA.address0.address, TxId.zero(), 0)
+                .change(TEST_DATA.changeAddress);
+            const unsignedTransaction = builder.build();
+            await this.screenFlows.signTx.do(
+                () => this.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network)),
+                signatures => expect(signatures).to.not.exist,
+                error => {
+                    expect(error).to.be.an('error');
+                    expect(error.name).to.be.equal('DeviceError');
+                    expect(error.message).to.be.equal('Bad output count');
+                }
+            );
         });
     })
 });
