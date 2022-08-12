@@ -19,6 +19,16 @@ describe("Transaction Tests", function () {
                 attestedBox => {
                     expect(attestedBox).to.have.property('box');
                     expect(attestedBox.box).to.be.deep.equal(unsignedBox);
+                    expect(attestedBox).to.have.property('frames');
+                    expect(attestedBox.frames).to.have.length(1);
+                    const frame = attestedBox.frames[0];
+                    expect(frame.boxId).to.exist;
+                    expect(frame.framesCount).to.be.equal(1);
+                    expect(frame.frameIndex).to.be.equal(0);
+                    expect(frame.amount).to.be.equal('1000000000');
+                    expect(frame.tokens).to.be.empty;
+                    expect(frame.attestation).to.exist;
+                    expect(frame.buffer).to.exist;
                 }
             );
         });
