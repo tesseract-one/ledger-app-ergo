@@ -1,6 +1,5 @@
-const { expect } = require('chai')
+const { assert, expect } = require('chai')
     .use(require('chai-bytes'));
-const { assert } = require('chai');
 const { Transaction, TxId, Tokens, Token, TokenId, TokenAmount, I64 } = require('ergo-lib-wasm-nodejs');
 const { toNetwork } = require('./helpers/common');
 const { TEST_DATA } = require('./helpers/data');

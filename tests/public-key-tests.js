@@ -1,6 +1,6 @@
-const chai = require('chai');
+const { assert, expect } = require('chai')
+    .use(require('chai-bytes'));
 const { toHex } = require('./helpers/common');
-const { expect } = chai.use(require('chai-bytes'));
 const { TEST_DATA } = require('./helpers/data');
 
 describe("Public Key Tests", function () {
