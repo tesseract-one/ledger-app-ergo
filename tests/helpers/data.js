@@ -1,4 +1,12 @@
-const { Address, NetworkPrefix, DerivationPath } = require("ergo-lib-wasm-nodejs");
+const { Address, NetworkPrefix, DerivationPath, ExtPubKey } = require("ergo-lib-wasm-nodejs");
+const { toBytes } = require("./common");
+
+class Account {
+    constructor(publicKey, chainCode, path) {
+        this.publicKey = ExtPubKey.new(toBytes(publicKey), toBytes(chainCode), path);
+        this.path = path;
+    }
+}
 
 class ExtendedAddress {
     constructor(network, address, path) {
@@ -19,7 +27,11 @@ class ExtendedAddress {
 class TestData {
     constructor(network) {
         this.network = network;
-        this.accountPath = DerivationPath.from_string(`m/44'/429'/0'`);
+        this.account = new Account(
+            '03c24e55008b523ccaf03b6c757f88c4881ef3331a255b76d2e078016c69c3dfd4',
+            '8eb29c7897d57aee371bf254be6516e6963e2d9b379d0d626c17a39d1a3bf553',
+            DerivationPath.from_string(`m/44'/429'/0'`)
+        );
         this.address0 = new ExtendedAddress(
             network,
             Address.from_base58("9gqBSpseifxnkjRLZUxs5wbJGsvYPG7MLRcBgnKEzFiJoMJaakg"),

@@ -9,6 +9,10 @@ function toHex(bytes) {
     return Buffer.from(bytes).toString('hex');
 }
 
+function toBytes(hex) {
+    return Uint8Array.from(Buffer.from(hex, 'hex'));
+}
+
 function toArray(object) {
     let array = [];
     for (let i = 0; i < object.len(); i++) {
@@ -28,5 +32,6 @@ function toNetwork(prefix) {
 
 exports.sleep = sleep;
 exports.toHex = toHex;
+exports.toBytes = toBytes;
 exports.toArray = toArray;
 exports.toNetwork = toNetwork;
