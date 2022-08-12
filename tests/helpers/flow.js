@@ -54,6 +54,19 @@ class ScreenFlows {
                 },
             ], device
         );
+        this.signTxWithTokens = new AuthFlow(
+            [
+                async () => {
+                    await this.screens.click(1);
+                    await this.screens.click(2);
+                    await this.screens.click(6);
+                },
+                async () => {
+                    await this.screens.click(2);
+                    await this.screens.click(6);
+                },
+            ], device
+        );
     }
 }
 

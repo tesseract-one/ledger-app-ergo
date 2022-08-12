@@ -1,7 +1,7 @@
 const { expect } = require('chai')
     .use(require('chai-bytes'));
 const { assert } = require('chai');
-const { Transaction, TxId } = require('ergo-lib-wasm-nodejs');
+const { Transaction, TxId, Tokens, Token, TokenId, TokenAmount, I64 } = require('ergo-lib-wasm-nodejs');
 const { toNetwork } = require('./helpers/common');
 const { TEST_DATA } = require('./helpers/data');
 const { UnsignedTransactionBuilder } = require('./helpers/transaction');
@@ -56,11 +56,11 @@ describe("Transaction Tests", function () {
 
         it("can sign tx with zero data inputs", async function () {
             this.timeout(10000);
-            const builder = new UnsignedTransactionBuilder()
+            const unsignedTransaction = new UnsignedTransactionBuilder()
                 .input(TEST_DATA.address0, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address)
-                .change(TEST_DATA.changeAddress);
-            const unsignedTransaction = builder.build();
+                .change(TEST_DATA.changeAddress)
+                .build();
             await this.screenFlows.signTx.do(
                 () => this.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network)),
                 signatures => {
@@ -72,11 +72,11 @@ describe("Transaction Tests", function () {
 
         it("can not sign tx with zero inputs", async function () {
             this.timeout(10000);
-            const builder = new UnsignedTransactionBuilder()
+            const unsignedTransaction = new UnsignedTransactionBuilder()
                 .dataInput(TEST_DATA.address0.address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address)
-                .change(TEST_DATA.changeAddress);
-            const unsignedTransaction = builder.build();
+                .change(TEST_DATA.changeAddress)
+                .build();
             await this.screenFlows.signTx.do(
                 () => this.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network)),
                 signatures => {
@@ -88,11 +88,11 @@ describe("Transaction Tests", function () {
 
         it("can not sign tx with zero outputs", async function () {
             this.timeout(10000);
-            const builder = new UnsignedTransactionBuilder()
+            const unsignedTransaction = new UnsignedTransactionBuilder()
                 .input(TEST_DATA.address0, TxId.zero(), 0)
                 .dataInput(TEST_DATA.address0.address, TxId.zero(), 0)
-                .change(TEST_DATA.changeAddress);
-            const unsignedTransaction = builder.build();
+                .change(TEST_DATA.changeAddress)
+                .build();
             await this.screenFlows.signTx.do(
                 () => this.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network)),
                 signatures => expect(signatures).to.not.exist,
@@ -101,6 +101,27 @@ describe("Transaction Tests", function () {
                     expect(error.name).to.be.equal('DeviceError');
                     expect(error.message).to.be.equal('Bad output count');
                 }
+            );
+        });
+
+        it("can sign tx with tokens", async function () {
+            this.timeout(10000);
+            const tokens = new Tokens();
+            const tokenId = TokenId.from_str('0000000000000000000000000000000000000000000000000000000000000000');
+            tokens.add(new Token(tokenId, TokenAmount.from_i64(I64.from_str('1000'))));
+            const unsignedTransaction = new UnsignedTransactionBuilder()
+                .input(TEST_DATA.address0, TxId.zero(), 0, tokens)
+                .dataInput(TEST_DATA.address0.address, TxId.zero(), 0)
+                .output('100000000', TEST_DATA.address1.address, tokens)
+                .change(TEST_DATA.changeAddress)
+                .tokenId(tokenId.as_bytes())
+                .build();
+            await this.screenFlows.signTxWithTokens.do(
+                () => this.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network)),
+                signatures => {
+                    expect(signatures).to.have.length(1);
+                },
+                error => assert.fail(error)
             );
         });
     })
