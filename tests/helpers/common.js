@@ -30,8 +30,18 @@ function toNetwork(prefix) {
     }
 }
 
+function getApplication(device) {
+    return '0x' + device.authToken.toString(16).padStart(8, 0);
+}
+
+function removeMasterNode(path) {
+    return path.replace(/^(m\/)/, '');
+}
+
 exports.sleep = sleep;
 exports.toHex = toHex;
 exports.toBytes = toBytes;
 exports.toArray = toArray;
 exports.toNetwork = toNetwork;
+exports.getApplication = getApplication;
+exports.removeMasterNode = removeMasterNode;

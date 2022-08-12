@@ -20,7 +20,6 @@ exports.mochaHooks = {
             await this.automation.connect();
             this.screens = new ScreenReader(this.automation);
             this.device = new ErgoLedgerApp(this.transport);
-            this.screenFlows = new ScreenFlows(this.screens, this.device);
         }
     },
     afterAll: async function () {
