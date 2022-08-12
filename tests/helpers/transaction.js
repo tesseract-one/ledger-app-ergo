@@ -295,7 +295,7 @@ function toUnsignedBox(ergoBox, contextExtension, signPath) {
         value: ergoBox.value().as_i64().to_str(),
         ergoTree: Buffer.from(ergoBox.ergo_tree().to_base16_bytes()),
         creationHeight: ergoBox.creation_height(),
-        tokens: common.toArray(ergoBox.tokens()),
+        tokens: common.toArray(ergoBox.tokens()).map(toToken),
         additionalRegisters: Buffer.from(ergoBox.serialized_additional_registers()),
         extension: Buffer.from(contextExtension.sigma_serialize_bytes()),
         signPath,
@@ -352,7 +352,11 @@ class ErgoUnsignedTransactionBuilder {
     build() {
         const fee = ergo.TxBuilder.SUGGESTED_TX_FEE();
         const targetBalance = ergo.BoxValue.from_i64(this.amount.checked_add(fee.as_i64()));
-        const boxSelection = new ergo.SimpleBoxSelector().select(this.inputs, targetBalance, new ergo.Tokens());
+        const targetTokens = new ergo.Tokens();
+        common.toArray(this.outputs)
+            .flatMap(output => common.toArray(output.tokens()))
+            .forEach(token => targetTokens.add(token));
+        const boxSelection = new ergo.SimpleBoxSelector().select(this.inputs, targetBalance, targetTokens);
         const txBuilder = ergo.TxBuilder.new(
             boxSelection,
             this.outputs,
