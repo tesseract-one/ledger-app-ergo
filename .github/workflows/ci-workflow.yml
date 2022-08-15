@@ -149,7 +149,7 @@ jobs:
           apt-get update && apt-get install -qy curl
           curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
           apt-get install -qy nodejs
-          nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --api-port 40000 --display headless" > speculos.log 2<&1 &
+          nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --api-port 40000 --display headless --seed \"jaguar swallow dinner course lend surround warm robot grape pear skate relief\"" > speculos.log 2<&1 &
           cd tests && npm install && npm run test
 
       - name: Upload Speculos log
