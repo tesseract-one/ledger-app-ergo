@@ -14,7 +14,7 @@ function toBytes(hex) {
 }
 
 function toArray(object) {
-    let array = [];
+    const array = [];
     for (let i = 0; i < object.len(); i++) {
         array.push(object.get(i));
     }
