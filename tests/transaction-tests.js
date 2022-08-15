@@ -87,7 +87,8 @@ describe("Transaction Tests", function () {
                 expect(signatures).to.have.length(1);
                 const unsigned = this.builder.buildErgo();
                 const signed = Transaction.from_unsigned_tx(unsigned, signatures);
-                // TODO verify signatures
+                const verificationResult = signed.verify_p2pk_input(0, this.builder.ergoBuilder.inputs.get(0));
+                expect(verificationResult).to.be.true;
             }
         );
 
