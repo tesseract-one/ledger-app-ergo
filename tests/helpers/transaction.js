@@ -5,15 +5,7 @@ const bip32 = require('bip32');
 const b32path = require('bip32-path');
 const common = require('./common');
 
-const minersFeeTree = Buffer.from([
-    0x10, 0x05, 0x04, 0x00, 0x04, 0x00, 0x0e, 0x36, 0x10, 0x02, 0x04, 0xa0, 0x0b, 0x08, 0xcd,
-    0x02, 0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0, 0x62, 0x95, 0xce, 0x87,
-    0x0b, 0x07, 0x02, 0x9b, 0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9, 0x59, 0xf2, 0x81, 0x5b, 0x16,
-    0xf8, 0x17, 0x98, 0xea, 0x02, 0xd1, 0x92, 0xa3, 0x9a, 0x8c, 0xc7, 0xa7, 0x01, 0x73, 0x00,
-    0x73, 0x01, 0x10, 0x01, 0x02, 0x04, 0x02, 0xd1, 0x96, 0x83, 0x03, 0x01, 0x93, 0xa3, 0x8c,
-    0xc7, 0xb2, 0xa5, 0x73, 0x00, 0x00, 0x01, 0x93, 0xc2, 0xb2, 0xa5, 0x73, 0x01, 0x00, 0x74,
-    0x73, 0x02, 0x73, 0x03, 0x83, 0x01, 0x08, 0xcd, 0xee, 0xac, 0x93, 0xb1, 0xa5, 0x73, 0x04
-]);
+const minersFeeTree = '1005040004000e36100204a00b08cd0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ea02d192a39a8cc7a701730073011001020402d19683030193a38cc7b2a57300000193c2b2a57301007473027303830108cdeeac93b1a57304';
 
 function serializeBip32Path(path) {
     let arr = path.toPathArray();
@@ -325,6 +317,7 @@ class ErgoUnsignedTransactionBuilder {
         this.inputs = ergo.ErgoBoxes.empty();
         this.dataInputs = new ergo.DataInputs();
         this.outputs = ergo.ErgoBoxCandidates.empty();
+        this.feeAmount = ergo.TxBuilder.SUGGESTED_TX_FEE();
         this.changeAddress = null;
     }
 
@@ -344,14 +337,17 @@ class ErgoUnsignedTransactionBuilder {
         return this;
     }
 
+    fee(amount) {
+        this.feeAmount = amount;
+    }
+
     change(address) {
         this.changeAddress = address;
         return this;
     }
 
     build() {
-        const fee = ergo.TxBuilder.SUGGESTED_TX_FEE();
-        const targetBalance = ergo.BoxValue.from_i64(this.amount.checked_add(fee.as_i64()));
+        const targetBalance = ergo.BoxValue.from_i64(this.amount.checked_add(this.feeAmount.as_i64()));
         const targetTokens = new ergo.Tokens();
         common.toArray(this.outputs)
             .flatMap(output => common.toArray(output.tokens()))
@@ -361,7 +357,7 @@ class ErgoUnsignedTransactionBuilder {
             boxSelection,
             this.outputs,
             0,
-            fee,
+            this.feeAmount,
             this.changeAddress,
             ergo.BoxValue.SAFE_USER_MIN()
         );
@@ -409,6 +405,20 @@ class UnsignedTransactionBuilder {
         const boxCandidate = toBoxCandidate(output);
         this.outputs.push(boxCandidate);
         this.ergoBuilder.output(output);
+        return this;
+    }
+
+    fee(value) {
+        const amount = ergo.BoxValue.from_i64(ergo.I64.from_str(value));
+        const builder = new ergo.ErgoBoxCandidateBuilder(
+            amount,
+            ergo.Contract.new(ergo.ErgoTree.from_base16_bytes(minersFeeTree)),
+            0
+        );
+        const output = builder.build();
+        const boxCandidate = toBoxCandidate(output);
+        this.outputs.push(boxCandidate);
+        this.ergoBuilder.fee(amount);
         return this;
     }
 

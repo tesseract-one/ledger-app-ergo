@@ -20,8 +20,8 @@ function signTxFlows(device, auth, address, tokens = undefined) {
         [
             { header: null, body: 'Confirm Transaction' },
             { header: 'P2PK Path', body: removeMasterNode(address.path.toString()) },
-            { header: 'Transaction Amount', body: '1.000000000' },
-            { header: 'Transaction Fee', body: '0.000000000' }
+            { header: 'Transaction Amount', body: '0.999000000' },
+            { header: 'Transaction Fee', body: '0.001000000' }
         ]
     ];
     if (tokens) {
@@ -74,6 +74,7 @@ describe("Transaction Tests", function () {
                 .input(address, TxId.zero(), 0)
                 .dataInput(address.address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address)
+                .fee('1000000')
                 .change(TEST_DATA.changeAddress);
             return { address, builder };
         }, signTxFlowCount).do(
@@ -95,6 +96,7 @@ describe("Transaction Tests", function () {
             const unsignedTransaction = new UnsignedTransactionBuilder()
                 .input(address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address)
+                .fee('1000000')
                 .change(TEST_DATA.changeAddress)
                 .build();
             return { address, unsignedTransaction };
@@ -170,6 +172,7 @@ describe("Transaction Tests", function () {
                 .input(address, TxId.zero(), 0, tokens)
                 .dataInput(address.address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address, tokens)
+                .fee('1000000')
                 .change(TEST_DATA.changeAddress)
                 .tokenIds([tokenId.as_bytes()])
                 .build();
@@ -197,6 +200,7 @@ describe("Transaction Tests", function () {
                 .input(address, TxId.zero(), 0, tokens)
                 .dataInput(address.address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address)
+                .fee('1000000')
                 .change(TEST_DATA.changeAddress)
                 .tokenIds([tokenId.as_bytes()])
                 .build();
@@ -224,6 +228,7 @@ describe("Transaction Tests", function () {
                 .input(address, TxId.zero(), 0)
                 .dataInput(address.address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address, tokens)
+                .fee('1000000')
                 .change(TEST_DATA.changeAddress)
                 .tokenIds([tokenId.as_bytes()])
                 .build();
@@ -254,6 +259,7 @@ describe("Transaction Tests", function () {
                 .input(address, TxId.zero(), 0, tokens)
                 .dataInput(address.address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address, tokens2)
+                .fee('1000000')
                 .change(TEST_DATA.changeAddress)
                 .tokenIds([
                     tokenId.as_bytes(),
