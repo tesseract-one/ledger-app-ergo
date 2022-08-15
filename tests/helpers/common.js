@@ -1,4 +1,4 @@
-const { NetworkPrefix } = require("ergo-lib-wasm-nodejs");
+const { NetworkPrefix, MinerAddress, Address } = require("ergo-lib-wasm-nodejs");
 const { Network } = require("ledger-ergo-js");
 
 async function sleep(ms) {
@@ -38,6 +38,15 @@ function removeMasterNode(path) {
     return path.replace(/^(m\/)/, '');
 }
 
+function getMinerAddress(network) {
+    switch (network) {
+        case NetworkPrefix.Mainnet:
+            return Address.from_base58(MinerAddress.mainnet_fee_address());
+        case NetworkPrefix.Testnet:
+            return Address.from_base58(MinerAddress.testnet_fee_address());
+    }
+}
+
 exports.sleep = sleep;
 exports.toHex = toHex;
 exports.toBytes = toBytes;
@@ -45,3 +54,4 @@ exports.toArray = toArray;
 exports.toNetwork = toNetwork;
 exports.getApplication = getApplication;
 exports.removeMasterNode = removeMasterNode;
+exports.getMinerAddress = getMinerAddress;

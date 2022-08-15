@@ -4,8 +4,7 @@ const crypto = require('crypto');
 const bip32 = require('bip32');
 const b32path = require('bip32-path');
 const common = require('./common');
-
-const minersFeeTree = '1005040004000e36100204a00b08cd0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ea02d192a39a8cc7a701730073011001020402d19683030193a38cc7b2a57300000193c2b2a57301007473027303830108cdeeac93b1a57304';
+const { TEST_DATA } = require('./data');
 
 function serializeBip32Path(path) {
     let arr = path.toPathArray();
@@ -368,6 +367,7 @@ class ErgoUnsignedTransactionBuilder {
 
 class UnsignedTransactionBuilder {
     constructor() {
+        this.network = TEST_DATA.network;
         this.ergoBuilder = new ErgoUnsignedTransactionBuilder();
         this.inputs = [];
         this.dataInputs = [];
@@ -412,7 +412,7 @@ class UnsignedTransactionBuilder {
         const amount = ergo.BoxValue.from_i64(ergo.I64.from_str(value));
         const builder = new ergo.ErgoBoxCandidateBuilder(
             amount,
-            ergo.Contract.new(ergo.ErgoTree.from_base16_bytes(minersFeeTree)),
+            ergo.Contract.pay_to_address(common.getMinerAddress(this.network)),
             0
         );
         const output = builder.build();
