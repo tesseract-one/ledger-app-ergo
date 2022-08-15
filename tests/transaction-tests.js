@@ -8,7 +8,7 @@ const { UnsignedTransactionBuilder } = require('./helpers/transaction');
 
 const signTxFlowCount = [3, 2];
 
-function signTxFlows(device, auth, address, tokens = false) {
+function signTxFlows(device, auth, address, tokens = undefined) {
     const flows = [
         [
             { header: null, body: 'Confirm Attest Input' }
@@ -25,8 +25,7 @@ function signTxFlows(device, auth, address, tokens = false) {
         ]
     ];
     if (tokens) {
-        flows[2].push({ header: 'Token [1]', body: '29d2S7v...TmBhfV2' });
-        flows[2].push({ header: 'Token [1]', body: 'T: 1000' });
+        flows[2] = flows[2].concat(tokens);
     }
     if (auth) {
         flows[0].push({ header: 'Application', body: getApplication(device) });
@@ -172,7 +171,7 @@ describe("Transaction Tests", function () {
                 .dataInput(address.address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address, tokens)
                 .change(TEST_DATA.changeAddress)
-                .tokenId(tokenId.as_bytes())
+                .tokenIds([tokenId.as_bytes()])
                 .build();
             return { address, unsignedTransaction };
         }, signTxFlowCount).do(
@@ -180,7 +179,100 @@ describe("Transaction Tests", function () {
                 return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
             },
             function (signatures) {
-                expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address, true));
+                const tokens = [
+                    { header: 'Token [1]', body: '29d2S7v...TmBhfV2' },
+                    { header: 'Token [1]', body: 'T: 1000' }
+                ];
+                expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address, tokens));
+                expect(signatures).to.have.length(1);
+            }
+        );
+
+        new AuthTokenFlows("can sign tx with burned tokens", () => {
+            const address = TEST_DATA.address0;
+            const tokens = new Tokens();
+            const tokenId = TokenId.from_str('1111111111111111111111111111111111111111111111111111111111111111');
+            tokens.add(new Token(tokenId, TokenAmount.from_i64(I64.from_str('1000'))));
+            const unsignedTransaction = new UnsignedTransactionBuilder()
+                .input(address, TxId.zero(), 0, tokens)
+                .dataInput(address.address, TxId.zero(), 0)
+                .output('100000000', TEST_DATA.address1.address)
+                .change(TEST_DATA.changeAddress)
+                .tokenIds([tokenId.as_bytes()])
+                .build();
+            return { address, unsignedTransaction };
+        }, signTxFlowCount).do(
+            function () {
+                return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
+            },
+            function (signatures) {
+                const tokens = [
+                    { header: 'Token [1]', body: '29d2S7v...TmBhfV2' },
+                    { header: 'Token [1]', body: 'B: 1000; T: 0' }
+                ];
+                expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address, tokens));
+                expect(signatures).to.have.length(1);
+            }
+        );
+
+        new AuthTokenFlows("can sign tx with minted tokens", () => {
+            const address = TEST_DATA.address0;
+            const tokens = new Tokens();
+            const tokenId = TokenId.from_str('1111111111111111111111111111111111111111111111111111111111111111');
+            tokens.add(new Token(tokenId, TokenAmount.from_i64(I64.from_str('1000'))));
+            const unsignedTransaction = new UnsignedTransactionBuilder()
+                .input(address, TxId.zero(), 0)
+                .dataInput(address.address, TxId.zero(), 0)
+                .output('100000000', TEST_DATA.address1.address, tokens)
+                .change(TEST_DATA.changeAddress)
+                .tokenIds([tokenId.as_bytes()])
+                .build();
+            return { address, unsignedTransaction };
+        }, signTxFlowCount).do(
+            function () {
+                return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
+            },
+            function (signatures) {
+                const tokens = [
+                    { header: 'Token [1]', body: '29d2S7v...TmBhfV2' },
+                    { header: 'Token [1]', body: 'M: 1000; T: 1000' }
+                ];
+                expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address, tokens));
+                expect(signatures).to.have.length(1);
+            }
+        );
+
+        new AuthTokenFlows("can sign tx with few token ids", () => {
+            const address = TEST_DATA.address0;
+            const tokens = new Tokens();
+            const tokenId = TokenId.from_str('1111111111111111111111111111111111111111111111111111111111111111');
+            tokens.add(new Token(tokenId, TokenAmount.from_i64(I64.from_str('1000'))));
+            const tokens2 = new Tokens();
+            const tokenId2 = TokenId.from_str('0000000000000000000000000000000000000000000000000000000000000000');
+            tokens2.add(new Token(tokenId2, TokenAmount.from_i64(I64.from_str('1000'))));
+            const unsignedTransaction = new UnsignedTransactionBuilder()
+                .input(address, TxId.zero(), 0, tokens)
+                .dataInput(address.address, TxId.zero(), 0)
+                .output('100000000', TEST_DATA.address1.address, tokens2)
+                .change(TEST_DATA.changeAddress)
+                .tokenIds([
+                    tokenId.as_bytes(),
+                    tokenId2.as_bytes()
+                ])
+                .build();
+            return { address, unsignedTransaction };
+        }, signTxFlowCount).do(
+            function () {
+                return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
+            },
+            function (signatures) {
+                const tokens = [
+                    { header: 'Token [1]', body: '29d2S7v...TmBhfV2' },
+                    { header: 'Token [1]', body: 'B: 1000; T: 0' },
+                    { header: 'Token [2]', body: '1111111...1111111' },
+                    { header: 'Token [2]', body: 'M: 1000; T: 1000' }
+                ];
+                expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address, tokens));
                 expect(signatures).to.have.length(1);
             }
         );

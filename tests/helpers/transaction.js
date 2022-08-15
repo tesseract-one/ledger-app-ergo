@@ -380,7 +380,7 @@ class UnsignedTransactionBuilder {
         this.changeMap = null;
     }
 
-    input(extendedAddress, txId, index, tokens) {
+    input(extendedAddress, txId, index, tokens = new ergo.Tokens()) {
         const ergoBox = createErgoBox(extendedAddress.address, txId, index, tokens);
         const contextExtension = new ergo.ContextExtension();
         const unsignedBox = toUnsignedBox(ergoBox, contextExtension, extendedAddress.path.toString());
@@ -412,8 +412,8 @@ class UnsignedTransactionBuilder {
         return this;
     }
 
-    tokenId(tokenId) {
-        this.distinctTokenIds.push(tokenId);
+    tokenIds(tokenIds) {
+        this.distinctTokenIds = tokenIds;
         return this;
     }
 
