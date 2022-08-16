@@ -20,7 +20,7 @@ function toUnsignedBox(ergoBox, contextExtension, signPath) {
         txId: ergoBox.tx_id().to_str(),
         index: ergoBox.index(),
         value: ergoBox.value().as_i64().to_str(),
-        ergoTree: Buffer.from(ergoBox.ergo_tree().to_base16_bytes()),
+        ergoTree: Buffer.from(ergoBox.ergo_tree().sigma_serialize_bytes()),
         creationHeight: ergoBox.creation_height(),
         tokens: common.toArray(ergoBox.tokens()).map(toToken),
         additionalRegisters: Buffer.from(ergoBox.serialized_additional_registers()),
@@ -39,7 +39,7 @@ function toToken(token) {
 function toBoxCandidate(output) {
     return {
         value: output.value().as_i64().to_str(),
-        ergoTree: Buffer.from(output.ergo_tree().to_base16_bytes(), 'hex'),
+        ergoTree: Buffer.from(output.ergo_tree().sigma_serialize_bytes()),
         creationHeight: output.creation_height(),
         tokens: common.toArray(output.tokens()).map(toToken),
         registers: Buffer.from(output.serialized_additional_registers()),
