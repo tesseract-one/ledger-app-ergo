@@ -29,6 +29,10 @@ function toUnsignedBox(ergoBox, contextExtension, signPath) {
     };
 }
 
+function toDataInput(dataInput) {
+    return dataInput.box_id().to_str();
+}
+
 function toToken(token) {
     return {
         id: token.id().to_str(),
@@ -109,6 +113,7 @@ class UnsignedTransactionBuilder {
         this.outputs = [];
         this.distinctTokenIds = [];
         this.changeMap = null;
+        this.ergoTransaction = null;
     }
 
     input(extendedAddress, txId, index, tokens = new ergo.Tokens()) {
@@ -167,11 +172,29 @@ class UnsignedTransactionBuilder {
             address: extendedAddress.toBase58(),
             path: extendedAddress.path.toString(),
         };
+        const sum = array => array
+            .map(e => ergo.I64.from_str(e.value))
+            .reduce((a, b) => a.checked_add(b), ergo.I64.from_str('0'));
+        const amount = sum(this.inputs).as_num() - sum(this.outputs).as_num();
+        const builder = new ergo.ErgoBoxCandidateBuilder(
+            ergo.BoxValue.from_i64(ergo.I64.from_str(amount.toString())),
+            ergo.Contract.pay_to_address(extendedAddress.address),
+            0
+        );
+        const output = builder.build();
+        const boxCandidate = toBoxCandidate(output);
+        this.outputs.push(boxCandidate);
         this.ergoBuilder.change(extendedAddress.address);
         return this;
     }
 
-    build() {
+    build(buildErgo = true) {
+        if (buildErgo) {
+            this.ergoTransaction = this.ergoBuilder.build();
+            this.dataInputs = common.toArray(this.ergoTransaction.data_inputs()).map(toDataInput);
+            this.outputs = common.toArray(this.ergoTransaction.output_candidates()).map(toBoxCandidate);
+            this.distinctTokenIds = this.ergoTransaction.distinct_token_ids();
+        }
         return {
             inputs: this.inputs,
             dataInputs: this.dataInputs,
@@ -179,10 +202,6 @@ class UnsignedTransactionBuilder {
             distinctTokenIds: this.distinctTokenIds,
             changeMap: this.changeMap,
         };
-    }
-
-    buildErgo() {
-        return this.ergoBuilder.build();
     }
 }
 

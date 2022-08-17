@@ -20,7 +20,7 @@ function signTxFlows(device, auth, address, tokens = undefined) {
         [
             { header: null, body: 'Confirm Transaction' },
             { header: 'P2PK Path', body: removeMasterNode(address.path.toString()) },
-            { header: 'Transaction Amount', body: '0.999000000' },
+            { header: 'Transaction Amount', body: '0.100000000' },
             { header: 'Transaction Fee', body: '0.001000000' }
         ]
     ];
@@ -40,6 +40,8 @@ describe("Transaction Tests", function () {
             return {
                 unsignedBox: new UnsignedTransactionBuilder()
                     .input(TEST_DATA.address0, TxId.zero(), 0)
+                    .output('100000000', TEST_DATA.address1.address)
+                    .change(TEST_DATA.changeAddress)
                     .build()
                     .inputs[0]
             };
@@ -85,7 +87,7 @@ describe("Transaction Tests", function () {
             function (signatures) {
                 expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address));
                 expect(signatures).to.have.length(1);
-                const unsigned = this.builder.buildErgo();
+                const unsigned = this.builder.ergoTransaction;
                 const signed = Transaction.from_unsigned_tx(unsigned, signatures);
                 const verificationResult = signed.verify_p2pk_input(0, this.builder.ergoBuilder.inputs.get(0));
                 expect(verificationResult).to.be.true;
@@ -116,8 +118,7 @@ describe("Transaction Tests", function () {
                 unsignedTransaction: new UnsignedTransactionBuilder()
                     .dataInput(TEST_DATA.address0.address, TxId.zero(), 0)
                     .output('100000000', TEST_DATA.address1.address)
-                    .change(TEST_DATA.changeAddress)
-                    .build()
+                    .build(false)
             };
         }, [0, 0]).do(
             function () {
@@ -134,8 +135,7 @@ describe("Transaction Tests", function () {
             const unsignedTransaction = new UnsignedTransactionBuilder()
                 .input(address, TxId.zero(), 0)
                 .dataInput(address.address, TxId.zero(), 0)
-                .change(TEST_DATA.changeAddress)
-                .build();
+                .build(false);
             return { address, unsignedTransaction };
         }, [2, 1]).do(
             function () {
@@ -175,7 +175,6 @@ describe("Transaction Tests", function () {
                 .output('100000000', TEST_DATA.address1.address, tokens)
                 .fee('1000000')
                 .change(TEST_DATA.changeAddress)
-                .tokenIds([tokenId.as_bytes()])
                 .build();
             return { address, unsignedTransaction };
         }, signTxFlowCount).do(
@@ -204,7 +203,7 @@ describe("Transaction Tests", function () {
                 .fee('1000000')
                 .change(TEST_DATA.changeAddress)
                 .tokenIds([tokenId.as_bytes()])
-                .build();
+                .build(false);
             return { address, unsignedTransaction };
         }, signTxFlowCount).do(
             function () {
@@ -232,7 +231,7 @@ describe("Transaction Tests", function () {
                 .fee('1000000')
                 .change(TEST_DATA.changeAddress)
                 .tokenIds([tokenId.as_bytes()])
-                .build();
+                .build(false);
             return { address, unsignedTransaction };
         }, signTxFlowCount).do(
             function () {
@@ -266,7 +265,7 @@ describe("Transaction Tests", function () {
                     tokenId.as_bytes(),
                     tokenId2.as_bytes()
                 ])
-                .build();
+                .build(false);
             return { address, unsignedTransaction };
         }, signTxFlowCount).do(
             function () {
