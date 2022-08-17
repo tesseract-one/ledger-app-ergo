@@ -93,8 +93,7 @@ class ErgoUnsignedTransactionBuilder {
             this.outputs,
             0,
             this.feeAmount,
-            this.changeAddress,
-            ergo.BoxValue.SAFE_USER_MIN()
+            this.changeAddress
         );
         txBuilder.set_data_inputs(this.dataInputs);
         return txBuilder.build();
