@@ -7,10 +7,11 @@ class AuthTokenFlows {
 
     do(action, success, failure) {
         const count = this.count;
-        const params = this.before();
+        const before = this.before;
         const run = auth => {
             it(`${this.name}${auth ? ' (with auth token)' : ''}`, async function () {
                 this.timeout(10000);
+                const params = before();
                 Object.assign(params, { test: this, auth });
                 this.device.useAuthToken(auth);
                 const promise = action.call(params);
