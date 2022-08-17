@@ -116,6 +116,14 @@ class UnsignedTransactionBuilder {
         this.ergoTransaction = null;
     }
 
+    inputFrom(ergoBox, path) {
+        const contextExtension = new ergo.ContextExtension();
+        const unsignedBox = toUnsignedBox(ergoBox, contextExtension, path.toString());
+        this.inputs.push(unsignedBox);
+        this.ergoBuilder.input(ergoBox);
+        return this;
+    }
+
     input(extendedAddress, txId, index, tokens = new ergo.Tokens()) {
         const ergoBox = createErgoBox(extendedAddress.address, txId, index, tokens);
         const contextExtension = new ergo.ContextExtension();

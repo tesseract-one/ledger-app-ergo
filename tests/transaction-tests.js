@@ -1,6 +1,6 @@
 const { expect } = require('chai')
     .use(require('chai-bytes'));
-const { Transaction, TxId, Tokens, Token, TokenId, TokenAmount, I64 } = require('ergo-lib-wasm-nodejs');
+const { Transaction, TxId, Tokens, Token, TokenId, TokenAmount, I64, ErgoBox } = require('ergo-lib-wasm-nodejs');
 const { toNetwork, getApplication, removeMasterNode } = require('./helpers/common');
 const { TEST_DATA } = require('./helpers/data');
 const { AuthTokenFlows } = require('./helpers/flow');
@@ -90,6 +90,43 @@ describe("Transaction Tests", function () {
                 const unsigned = this.builder.ergoTransaction;
                 const signed = Transaction.from_unsigned_tx(unsigned, signatures);
                 const verificationResult = signed.verify_p2pk_input(0, this.builder.ergoBuilder.inputs.get(0));
+                expect(verificationResult).to.be.true;
+            }
+        );
+
+        new AuthTokenFlows("can sign tx with additional registers", () => {
+            const address = TEST_DATA.address0;
+            const ergoBox = ErgoBox.from_json(`{
+                "boxId": "ef16f4a6db61a1c31aea55d3bf10e1fb6443cf08cff4a1cf2e3a4780e1312dba",
+                "value": 1000000000,
+                "ergoTree": "${address.address.to_ergo_tree().to_base16_bytes()}",
+                "assets": [],
+                "additionalRegisters": {
+                  "R5": "0e050102030405",
+                  "R4": "04f601"
+                },
+                "creationHeight": 0,
+                "transactionId": "0000000000000000000000000000000000000000000000000000000000000000",
+                "index": 0
+            }`);
+            const builder = new UnsignedTransactionBuilder()
+                .inputFrom(ergoBox, address.path)
+                .output('100000000', TEST_DATA.address1.address)
+                .fee('1000000')
+                .change(TEST_DATA.changeAddress);
+            return { address, builder };
+        }, signTxFlowCount).do(
+            function () {
+                const unsignedTransaction = this.builder.build();
+                return this.test.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network))
+            },
+            function (signatures) {
+                expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address));
+                expect(signatures).to.have.length(1);
+                const unsigned = this.builder.ergoTransaction;
+                const signed = Transaction.from_unsigned_tx(unsigned, signatures);
+                const ergoBox = this.builder.ergoBuilder.inputs.get(0);
+                const verificationResult = signed.verify_p2pk_input(0, ergoBox);
                 expect(verificationResult).to.be.true;
             }
         );
