@@ -34,6 +34,12 @@ function signTxFlows(device, auth, address, tokens = undefined) {
     return flows;
 };
 
+function verifySignatures(unsigned, signatures, ergoBox) {
+    const signed = Transaction.from_unsigned_tx(unsigned, signatures);
+    const verificationResult = signed.verify_p2pk_input(0, ergoBox);
+    expect(verificationResult).to.be.true;
+}
+
 describe("Transaction Tests", function () {
     context("Transaction Commands", function () {
         new AuthTokenFlows("can attest input", () => {
@@ -87,10 +93,8 @@ describe("Transaction Tests", function () {
             function (signatures) {
                 expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address));
                 expect(signatures).to.have.length(1);
-                const unsigned = this.builder.ergoTransaction;
-                const signed = Transaction.from_unsigned_tx(unsigned, signatures);
-                const verificationResult = signed.verify_p2pk_input(0, this.builder.ergoBuilder.inputs.get(0));
-                expect(verificationResult).to.be.true;
+                const ergoBox = this.builder.ergoBuilder.inputs.get(0);
+                verifySignatures(this.builder.ergoTransaction, signatures, ergoBox);
             }
         );
 
@@ -123,30 +127,29 @@ describe("Transaction Tests", function () {
             function (signatures) {
                 expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address));
                 expect(signatures).to.have.length(1);
-                const unsigned = this.builder.ergoTransaction;
-                const signed = Transaction.from_unsigned_tx(unsigned, signatures);
                 const ergoBox = this.builder.ergoBuilder.inputs.get(0);
-                const verificationResult = signed.verify_p2pk_input(0, ergoBox);
-                expect(verificationResult).to.be.true;
+                verifySignatures(this.builder.ergoTransaction, signatures, ergoBox);
             }
         );
 
         new AuthTokenFlows("can sign tx with zero data inputs", () => {
             const address = TEST_DATA.address0;
-            const unsignedTransaction = new UnsignedTransactionBuilder()
+            const builder = new UnsignedTransactionBuilder()
                 .input(address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address)
                 .fee('1000000')
-                .change(TEST_DATA.changeAddress)
-                .build();
-            return { address, unsignedTransaction };
+                .change(TEST_DATA.changeAddress);
+            return { address, builder };
         }, signTxFlowCount).do(
             function () {
-                return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
+                const unsignedTransaction = this.builder.build();
+                return this.test.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network));
             },
             function (signatures) {
                 expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address));
                 expect(signatures).to.have.length(1);
+                const ergoBox = this.builder.ergoBuilder.inputs.get(0);
+                verifySignatures(this.builder.ergoTransaction, signatures, ergoBox);
             }
         );
 
@@ -206,17 +209,17 @@ describe("Transaction Tests", function () {
             const tokens = new Tokens();
             const tokenId = TokenId.from_str('1111111111111111111111111111111111111111111111111111111111111111');
             tokens.add(new Token(tokenId, TokenAmount.from_i64(I64.from_str('1000'))));
-            const unsignedTransaction = new UnsignedTransactionBuilder()
+            const builder = new UnsignedTransactionBuilder()
                 .input(address, TxId.zero(), 0, tokens)
                 .dataInput(address.address, TxId.zero(), 0)
                 .output('100000000', TEST_DATA.address1.address, tokens)
                 .fee('1000000')
-                .change(TEST_DATA.changeAddress)
-                .build();
-            return { address, unsignedTransaction };
+                .change(TEST_DATA.changeAddress);
+            return { address, builder };
         }, signTxFlowCount).do(
             function () {
-                return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
+                const unsignedTransaction = this.builder.build();
+                return this.test.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network));
             },
             function (signatures) {
                 const tokens = [
@@ -225,6 +228,8 @@ describe("Transaction Tests", function () {
                 ];
                 expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address, tokens));
                 expect(signatures).to.have.length(1);
+                const ergoBox = this.builder.ergoBuilder.inputs.get(0);
+                verifySignatures(this.builder.ergoTransaction, signatures, ergoBox);
             }
         );
 
