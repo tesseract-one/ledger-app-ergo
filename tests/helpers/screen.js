@@ -1,3 +1,4 @@
+const { sleep } = require('./common');
 const makefile = require('./makefile');
 
 const MAIN_FLOW = [
@@ -78,10 +79,11 @@ class ScreenReader {
         this._automation.events.on("error", (err) => {
             this._currentScreen.reject(err);
         });
-        this.goNext();
+        this._currentScreen = resolver();
     }
 
     async ensureMainMenu() {
+        await this.goNext();
         let screen = await this.currentScreen();
         while (mainMenuScreenIndex(screen) >= 0 && mainMenuScreenIndex(screen) != 2) {
             await this.goNext();
@@ -115,6 +117,7 @@ class ScreenReader {
     }
 
     async readFlow() {
+        await sleep();
         let screens = [await this.currentScreen()];
         let screen = screens[0];
         do {
@@ -127,8 +130,9 @@ class ScreenReader {
     }
 
     async click(index) {
+        await sleep();
         for (let i = 0; i < index; i++) {
-            await this.goNext()
+            await this.goNext();
             await this.currentScreen();
         }
         await this._automation.pressButton('both');
