@@ -19,7 +19,7 @@
         "bip32-path": "^0.4.2",
         "bn.js": "^5.2.0",
         "create-hash": "1.2.0",
-        "ergo-lib-wasm-nodejs": "v0.20.0-alpha-6c87592",
+        "ergo-lib-wasm-nodejs": "v0.20.0-alpha-f25c3bf",
         "ledger-ergo-js": "^0.1.3"
     }
 }
