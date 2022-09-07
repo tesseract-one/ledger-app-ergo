@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   job_build_nano_debug:
-    name: Build boilerplate application for NanoS, X and S+
+    name: Build application for NanoS, X and S+
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -92,7 +92,7 @@ jobs:
         with:
           name: documentation
           path: doc/html
-          
+
   job_scan_build:
     name: Clang Static Analyzer
     runs-on: ubuntu-latest
@@ -152,4 +152,3 @@ jobs:
         with:
           name: speculos-log
           path: speculos.log
-
