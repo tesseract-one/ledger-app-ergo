@@ -36,7 +36,7 @@ function signTxFlows(device, auth, address, tokens = undefined) {
 
 function verifySignatures(unsigned, signatures, ergoBox) {
     const signed = Transaction.from_unsigned_tx(unsigned, signatures);
-    const verificationResult = signed.verify_p2pk_input(0, ergoBox);
+    const verificationResult = signed.verify_p2pk_input(ergoBox);
     expect(verificationResult).to.be.true;
 }
 
