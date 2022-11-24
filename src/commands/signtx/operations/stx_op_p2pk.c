@@ -3,6 +3,7 @@
 #include "../../../helpers/crypto.h"
 #include "../../../helpers/response.h"
 #include "../../../ergo/schnorr.h"
+#include "../../../ergo/network_id.h"
 #include "../stx_sw.h"
 #include "../stx_ui.h"
 
@@ -81,7 +82,7 @@ uint16_t stx_operation_p2pk_init(sign_transaction_operation_p2pk_ctx_t *ctx,
                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
         return SW_BIP32_BAD_PATH;
     }
-    if (network_id > 252) {
+    if (!network_id_is_supported(network_id)) {
         return SW_BAD_NET_TYPE_VALUE;
     }
 
@@ -232,13 +233,13 @@ uint16_t stx_operation_p2pk_add_output_tree_chunk(sign_transaction_operation_p2p
     return SW_OK;
 }
 
-uint16_t stx_operation_p2pk_add_output_tree_fee(sign_transaction_operation_p2pk_ctx_t *ctx,
-                                                bool is_mainnet) {
+uint16_t stx_operation_p2pk_add_output_tree_fee(sign_transaction_operation_p2pk_ctx_t *ctx) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_OPERATION_P2PK_STATE_OUTPUTS_STARTED);
     CHECK_SW_CALL_RESULT_OK(ctx, stx_output_info_set_fee(&ctx->transaction.ui.output));
     CHECK_TX_CALL_RESULT_OK(
         ctx,
-        ergo_tx_serializer_full_add_box_miners_fee_tree(&ctx->transaction.tx, is_mainnet));
+        ergo_tx_serializer_full_add_box_miners_fee_tree(&ctx->transaction.tx,
+                                                        network_id_is_mainnet(ctx->network_id)));
     CHECK_TX_FINISHED(ctx);
     return SW_OK;
 }

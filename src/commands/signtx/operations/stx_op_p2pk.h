@@ -88,8 +88,7 @@ uint16_t stx_operation_p2pk_add_output(sign_transaction_operation_p2pk_ctx_t *ct
 uint16_t stx_operation_p2pk_add_output_tree_chunk(sign_transaction_operation_p2pk_ctx_t *ctx,
                                                   buffer_t *data);
 
-uint16_t stx_operation_p2pk_add_output_tree_fee(sign_transaction_operation_p2pk_ctx_t *ctx,
-                                                bool is_mainnet);
+uint16_t stx_operation_p2pk_add_output_tree_fee(sign_transaction_operation_p2pk_ctx_t *ctx);
 
 uint16_t stx_operation_p2pk_add_output_tree_change(sign_transaction_operation_p2pk_ctx_t *ctx,
                                                    const uint32_t path[static MAX_BIP32_PATH],

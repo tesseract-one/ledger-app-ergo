@@ -252,13 +252,9 @@ static inline int handle_output_tree_chunk(sign_transaction_ctx_t *ctx, buffer_t
 
 static inline int handle_output_tree_fee(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
-    uint8_t is_mainnet;
-    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &is_mainnet));
     CHECK_PARAMS_FINISHED(ctx, cdata);
-    if (is_mainnet != 0x01 && is_mainnet != 0x02) return handler_err(ctx, SW_BAD_NET_TYPE_VALUE);
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx,
-                         stx_operation_p2pk_add_output_tree_fee(&ctx->p2pk, is_mainnet == 0x01));
+    CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_output_tree_fee(&ctx->p2pk));
     return show_output_screen_if_needed(ctx);
 }
 

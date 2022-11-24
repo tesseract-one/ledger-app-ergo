@@ -7,6 +7,7 @@
 #include <cx.h>
 
 #include "address.h"
+#include "network_id.h"
 #include "../common/base58.h"
 #include "../common/buffer.h"
 #include "../helpers/blake2b.h"
@@ -17,7 +18,7 @@ static inline bool _ergo_address_from_pubkey(uint8_t network,
                                              bool is_compressed) {
     BUFFER_FROM_ARRAY_EMPTY(buffer, address, ADDRESS_LEN);
 
-    if (network > 252) {
+    if (!network_id_is_valid(network)) {
         return false;
     }
     // P2PK + network id
