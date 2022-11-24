@@ -224,22 +224,25 @@ uint16_t stx_operation_p2pk_add_output(sign_transaction_operation_p2pk_ctx_t *ct
 uint16_t stx_operation_p2pk_add_output_tree_chunk(sign_transaction_operation_p2pk_ctx_t *ctx,
                                                   buffer_t *data) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_OPERATION_P2PK_STATE_OUTPUTS_STARTED);
-    // Add chunk to the output info. Output info doesn't change buffer state.
-    CHECK_SW_CALL_RESULT_OK(ctx, stx_output_info_add_tree_chunk(&ctx->transaction.ui.output, data));
-    // Add chunk to the serializer. Changes buffer.
+    // Make copy of the buffer (will not copy buffer data, only pointers).
+    buffer_t copy = *data;
+    // Add chunk to the serializer. Changes original buffer.
     CHECK_TX_CALL_RESULT_OK(ctx,
                             ergo_tx_serializer_full_add_box_ergo_tree(&ctx->transaction.tx, data));
+    // Add chunk to the output info. Uses copied buffer.
+    CHECK_SW_CALL_RESULT_OK(ctx,
+                            stx_output_info_add_tree_chunk(&ctx->transaction.ui.output, &copy));
     CHECK_TX_FINISHED(ctx);
     return SW_OK;
 }
 
 uint16_t stx_operation_p2pk_add_output_tree_fee(sign_transaction_operation_p2pk_ctx_t *ctx) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_OPERATION_P2PK_STATE_OUTPUTS_STARTED);
-    CHECK_SW_CALL_RESULT_OK(ctx, stx_output_info_set_fee(&ctx->transaction.ui.output));
     CHECK_TX_CALL_RESULT_OK(
         ctx,
         ergo_tx_serializer_full_add_box_miners_fee_tree(&ctx->transaction.tx,
                                                         network_id_is_mainnet(ctx->network_id)));
+    CHECK_SW_CALL_RESULT_OK(ctx, stx_output_info_set_fee(&ctx->transaction.ui.output));
     CHECK_TX_FINISHED(ctx);
     return SW_OK;
 }
@@ -249,11 +252,11 @@ uint16_t stx_operation_p2pk_add_output_tree_change(sign_transaction_operation_p2
                                                    uint8_t path_len,
                                                    const uint8_t pub_key[static PUBLIC_KEY_LEN]) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_OPERATION_P2PK_STATE_OUTPUTS_STARTED);
-    CHECK_SW_CALL_RESULT_OK(ctx,
-                            stx_output_info_set_bip32(&ctx->transaction.ui.output, path, path_len));
     CHECK_TX_CALL_RESULT_OK(
         ctx,
         ergo_tx_serializer_full_add_box_change_tree(&ctx->transaction.tx, pub_key));
+    CHECK_SW_CALL_RESULT_OK(ctx,
+                            stx_output_info_set_bip32(&ctx->transaction.ui.output, path, path_len));
     CHECK_TX_FINISHED(ctx);
     return SW_OK;
 }
