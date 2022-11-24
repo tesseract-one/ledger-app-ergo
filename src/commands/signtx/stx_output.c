@@ -1,5 +1,6 @@
 #include "stx_output.h"
 #include "../../sw.h"
+#include "../../common/macros.h"
 #include "../../common/base58.h"
 #include "../../ergo/ergo_tree.h"
 #include "../../ergo/address.h"
@@ -10,7 +11,7 @@ static inline uint8_t find_token_index(const token_table_t* table,
     for (uint8_t i = 0; i < table->count; i++) {
         if (memcmp(table->tokens[i], id, ERGO_ID_LEN) == 0) return i;
     }
-    return 0xFF;
+    return INDEX_NOT_EXIST;
 }
 
 ergo_tx_serializer_box_result_e stx_output_info_set_expected_type(
@@ -85,7 +86,7 @@ ergo_tx_serializer_box_result_e stx_output_info_add_token(sign_transaction_outpu
                                                           const uint8_t tn_id[static ERGO_ID_LEN],
                                                           uint64_t value) {
     uint8_t token_index = 0;
-    if ((token_index = find_token_index(ctx->tokens_table, tn_id)) == 0xFF) {
+    if (!IS_ELEMENT_FOUND(token_index = find_token_index(ctx->tokens_table, tn_id))) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_ID;
     }
     if (ctx->tokens[token_index] != 0) {
@@ -146,5 +147,5 @@ uint8_t stx_output_info_used_token_index(const sign_transaction_output_info_ctx_
     for (uint8_t i = 0; i < TOKEN_MAX_COUNT; i++) {
         if (ctx->tokens[i] > 0 && count++ == used_index) return i;
     }
-    return 0xFF;
+    return INDEX_NOT_EXIST;
 }

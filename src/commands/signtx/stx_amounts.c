@@ -6,7 +6,7 @@ static inline uint8_t find_token_index(const token_table_t *table,
     for (uint8_t i = 0; i < table->count; i++) {
         if (memcmp(table->tokens[i], id, ERGO_ID_LEN) == 0) return i;
     }
-    return 0xFF;
+    return INDEX_NOT_EXIST;
 }
 
 ergo_tx_serializer_input_result_e stx_amounts_add_input_token(
@@ -17,7 +17,7 @@ ergo_tx_serializer_input_result_e stx_amounts_add_input_token(
     (void) (box_id);
     // searching for token in table
     uint8_t index = 0;
-    if ((index = find_token_index(&ctx->tokens_table, tn_id)) == 0xFF) {
+    if (!IS_ELEMENT_FOUND(index = find_token_index(&ctx->tokens_table, tn_id))) {
         return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID;
     }
     // calculating proper token sum
@@ -54,7 +54,7 @@ ergo_tx_serializer_box_result_e stx_amounts_add_output_token(sign_transaction_am
                                                              uint64_t value) {
     UNUSED(type);
     uint8_t index = 0;
-    if ((index = find_token_index(&ctx->tokens_table, id)) == 0xFF) {
+    if (!IS_ELEMENT_FOUND(index = find_token_index(&ctx->tokens_table, id))) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_ID;
     }
     if (!checked_sub_i64(ctx->tokens[index],
@@ -79,34 +79,5 @@ uint8_t stx_amounts_non_zero_token_index(const sign_transaction_amounts_ctx_t *c
     for (uint8_t i = 0; i < TOKEN_MAX_COUNT; i++) {
         if (ctx->tokens[i] != 0 && count++ == zero_index) return i;
     }
-    return 0xFF;
+    return INDEX_NOT_EXIST;
 }
-
-// uint16_t stx_amounts_register_input_token_callback(sign_transaction_amounts_ctx_t *ctx,
-//                                                    ergo_tx_serializer_full_context_t *tx_ctx) {
-//     return sw_from_ser_res(
-//         ergo_tx_serializer_full_set_input_callback(tx_ctx, &input_token_cb, (void *) ctx));
-// }
-
-// uint16_t stx_amounts_register_output_callbacks(sign_transaction_amounts_ctx_t *ctx,
-//                                                ergo_tx_serializer_full_context_t *tx_ctx) {
-//     return sw_from_ser_res(ergo_tx_serializer_full_set_box_callbacks(tx_ctx,
-//                                                                      &output_type_cb,
-//                                                                      &output_token_cb,
-//                                                                      (void *) ctx));
-// }
-
-// void stx_amounts_remove_unused_tokens(sign_transaction_amounts_ctx_t *ctx) {
-//     uint8_t index = 0;
-//     while (index < ctx->tokens_table.count) {
-//         if (stx_amounts_is_token_used(&ctx->tokens[index])) {
-//             index++;
-//             continue;
-//         }
-//         for (uint8_t i = index; i < ctx->tokens_table.count - 1; i++) {
-//             ctx->tokens[i] = ctx->tokens[i + 1];
-//             memmove(ctx->tokens_table.tokens[i], ctx->tokens_table.tokens[i + 1], ERGO_ID_LEN);
-//         }
-//         ctx->tokens_table.count--;
-//     }
-// }

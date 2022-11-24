@@ -152,7 +152,7 @@ static NOINLINE uint16_t ui_stx_display_output_state(uint8_t screen,
         default: {        // Tokens
             screen -= 2;  // Decrease index for info screens
             uint8_t token_idx = stx_output_info_used_token_index(ctx->output, screen / 2);
-            if (token_idx == 0xFF) {  // error. bad index state
+            if (!IS_ELEMENT_FOUND(token_idx)) {  // error. bad index state
                 return SW_BAD_TOKEN_INDEX;
             }
             if (screen % 2 == 0) {  // Token ID
@@ -254,7 +254,7 @@ static NOINLINE uint16_t ui_stx_display_tx_state(uint8_t screen,
         default: {        // Tokens
             screen -= 2;  // Decrease index for info screens
             uint8_t token_idx = stx_amounts_non_zero_token_index(ctx->amounts, screen / 2);
-            if (token_idx == 0xFF) {  // error. bad index state
+            if (!IS_ELEMENT_FOUND(token_idx)) {  // error. bad index state
                 return SW_BAD_TOKEN_INDEX;
             }
             if (screen % 2 == 0) {  // Token ID

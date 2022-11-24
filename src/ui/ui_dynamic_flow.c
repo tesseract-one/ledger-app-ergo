@@ -3,11 +3,10 @@
 #include "../globals.h"
 #include "../constants.h"
 #include "../helpers/response.h"
+#include "../common/macros.h"
 #include "ui_menu.h"
 
 #include <ux.h>
-
-#define NONE_CURRENT_SCREEN 0xFF
 
 struct ui_dynamic_flow_ctx_t {
     uint8_t screen_count;
@@ -45,7 +44,7 @@ void bnnn_paging_edgecase() {
     } while (0)
 
 static inline void ui_dynamic_step_right() {
-    if (G_dynamic_flow_context.current_screen == NONE_CURRENT_SCREEN) {
+    if (G_dynamic_flow_context.current_screen == INDEX_NOT_EXIST) {
         G_dynamic_flow_context.current_screen = G_dynamic_flow_context.screen_count - 1;
         DISPLAY_DYNAMIC_STATE(bnnn_paging_edgecase);
     } else {
@@ -53,7 +52,7 @@ static inline void ui_dynamic_step_right() {
             G_dynamic_flow_context.current_screen++;
             DISPLAY_DYNAMIC_STATE(bnnn_paging_edgecase);
         } else {
-            G_dynamic_flow_context.current_screen = NONE_CURRENT_SCREEN;
+            G_dynamic_flow_context.current_screen = INDEX_NOT_EXIST;
             // go to the next static screen
             ux_flow_next();
         }
@@ -61,12 +60,12 @@ static inline void ui_dynamic_step_right() {
 }
 
 static inline void ui_dynamic_step_left() {
-    if (G_dynamic_flow_context.current_screen == NONE_CURRENT_SCREEN) {
+    if (G_dynamic_flow_context.current_screen == INDEX_NOT_EXIST) {
         G_dynamic_flow_context.current_screen = 0;
         DISPLAY_DYNAMIC_STATE(ux_flow_next);
     } else {
         if (G_dynamic_flow_context.current_screen == 0) {
-            G_dynamic_flow_context.current_screen = NONE_CURRENT_SCREEN;
+            G_dynamic_flow_context.current_screen = INDEX_NOT_EXIST;
             // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
             // weird behaviour.
             bnnn_paging_edgecase();
@@ -92,13 +91,13 @@ bool ui_add_dynamic_flow_screens(uint8_t *screen,
                                  ui_dynamic_flow_show_screen_cb show_cb,
                                  void *cb_ctx) {
     if (MAX_NUMBER_OF_SCREENS - *screen < 3) return false;
-    if (dynamic_screen_count == 0 || dynamic_screen_count == NONE_CURRENT_SCREEN) return false;
+    if (dynamic_screen_count == 0 || dynamic_screen_count == INDEX_NOT_EXIST) return false;
 
     G_ui_dynamic_step_params[0].title = title_storage;
     G_ui_dynamic_step_params[0].text = text_storage;
     G_dynamic_flow_context.cb_context = cb_ctx;
     G_dynamic_flow_context.screen_count = dynamic_screen_count;
-    G_dynamic_flow_context.current_screen = NONE_CURRENT_SCREEN;
+    G_dynamic_flow_context.current_screen = INDEX_NOT_EXIST;
     G_dynamic_flow_context.show_cb = show_cb;
 
     G_ux_flow[(*screen)++] = &ux_dynamic_upper_delimiter_step;
