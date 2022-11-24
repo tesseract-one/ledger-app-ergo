@@ -89,7 +89,7 @@ static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
                                    uint32_t app_session_id) {
     uint32_t app_session_id_in = 0;
     uint8_t network_id = 0;
-    // CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &network_id));
+    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &network_id));
     CHECK_CALL_RESULT_OK(ctx, read_bip32_path(cdata, ctx->p2pk.bip32.path, &ctx->p2pk.bip32.len));
     CHECK_READ_PARAM(ctx, !(has_token && !buffer_read_u32(cdata, &app_session_id_in, BE)));
     CHECK_PARAMS_FINISHED(ctx, cdata);
