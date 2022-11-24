@@ -55,22 +55,32 @@ static inline uint16_t read_bip32_path(buffer_t *input,
     return SW_OK;
 }
 
-static NOINLINE uint16_t bip32_public_key(buffer_t *input, uint8_t pub_key[static PUBLIC_KEY_LEN]) {
-    uint32_t bip32_path[MAX_BIP32_PATH];
-    uint8_t bip32_path_len;
-    uint16_t res = read_bip32_path(input, bip32_path, &bip32_path_len);
-    if (res != SW_OK) return res;
-    if (!bip32_path_validate(bip32_path,
-                             bip32_path_len,
+static inline uint16_t bip32_public_key(uint32_t path[MAX_BIP32_PATH],
+                                        uint8_t path_len,
+                                        uint8_t pub_key[static PUBLIC_KEY_LEN]) {
+    if (!bip32_path_validate(path,
+                             path_len,
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
         return SW_BIP32_BAD_PATH;
     }
-    if (crypto_generate_public_key(bip32_path, bip32_path_len, pub_key, NULL) != 0) {
+    if (crypto_generate_public_key(path, path_len, pub_key, NULL) != 0) {
         return SW_INTERNAL_CRYPTO_ERROR;
     }
     return SW_OK;
+}
+
+static inline int show_output_screen_if_needed(sign_transaction_ctx_t *ctx) {
+    // Should have switch for more ops
+    // Check if we have to show screen
+    if (stx_operation_p2pk_should_show_output_confirm_screen(&ctx->p2pk)) {
+        // Show it
+        CHECK_CALL_RESULT_OK(ctx, ui_stx_operation_p2pk_show_output_confirm_screen(&ctx->p2pk));
+        return 0;
+    }
+    // We don't need to show confirm screen
+    return res_ok();
 }
 
 static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
@@ -78,14 +88,15 @@ static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
                                    bool has_token,
                                    uint32_t app_session_id) {
     uint32_t app_session_id_in = 0;
-    CHECK_CALL_RESULT_OK(ctx,
-                         read_bip32_path(cdata, ctx->p2pk.bip32_path, &ctx->p2pk.bip32_path_len));
+    uint8_t network_id = 0;
+    // CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &network_id));
+    CHECK_CALL_RESULT_OK(ctx, read_bip32_path(cdata, ctx->p2pk.bip32.path, &ctx->p2pk.bip32.len));
     CHECK_READ_PARAM(ctx, !(has_token && !buffer_read_u32(cdata, &app_session_id_in, BE)));
     CHECK_PARAMS_FINISHED(ctx, cdata);
 
     CHECK_CALL_RESULT_OK(
         ctx,
-        stx_operation_p2pk_init(&ctx->p2pk, ctx->p2pk.bip32_path, ctx->p2pk.bip32_path_len));
+        stx_operation_p2pk_init(&ctx->p2pk, ctx->p2pk.bip32.path, ctx->p2pk.bip32.len, network_id));
 
     ctx->operation = SIGN_TRANSACTION_OPERATION_P2PK;
     ctx->state = SIGN_TRANSACTION_STATE_INITIALIZED;
@@ -97,8 +108,9 @@ static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
     }
 
     // switch beetwen operations if more will be added
-    CHECK_CALL_RESULT_OK(ctx,
-                         ui_stx_operation_p2pk_show_token_and_path(&ctx->p2pk, app_session_id_in));
+    CHECK_CALL_RESULT_OK(
+        ctx,
+        ui_stx_operation_p2pk_show_token_and_path(&ctx->p2pk, app_session_id_in, ctx));
     return 0;
 }
 
@@ -235,7 +247,7 @@ static inline int handle_output_tree_chunk(sign_transaction_ctx_t *ctx, buffer_t
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
     CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_output_tree_chunk(&ctx->p2pk, cdata));
-    return res_ok();
+    return show_output_screen_if_needed(ctx);
 }
 
 static inline int handle_output_tree_fee(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
@@ -247,30 +259,42 @@ static inline int handle_output_tree_fee(sign_transaction_ctx_t *ctx, buffer_t *
     // Should be switch if more ops added
     CHECK_CALL_RESULT_OK(ctx,
                          stx_operation_p2pk_add_output_tree_fee(&ctx->p2pk, is_mainnet == 0x01));
-    return res_ok();
+    return show_output_screen_if_needed(ctx);
 }
 
 static inline int handle_output_tree_change(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     uint8_t public_key[PUBLIC_KEY_LEN];
-    CHECK_CALL_RESULT_OK(ctx, bip32_public_key(cdata, public_key));
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_output_tree_change(&ctx->p2pk, public_key));
-    return res_ok();
+    CHECK_CALL_RESULT_OK(ctx,
+                         read_bip32_path(cdata,
+                                         ctx->p2pk.transaction.ui.output.bip32_path.path,
+                                         &ctx->p2pk.transaction.ui.output.bip32_path.len));
+    CHECK_CALL_RESULT_OK(ctx,
+                         bip32_public_key(ctx->p2pk.transaction.ui.output.bip32_path.path,
+                                          ctx->p2pk.transaction.ui.output.bip32_path.len,
+                                          public_key));
+    CHECK_CALL_RESULT_OK(
+        ctx,
+        stx_operation_p2pk_add_output_tree_change(&ctx->p2pk,
+                                                  ctx->p2pk.transaction.ui.output.bip32_path.path,
+                                                  ctx->p2pk.transaction.ui.output.bip32_path.len,
+                                                  public_key));
+    return show_output_screen_if_needed(ctx);
 }
 
 static inline int handle_output_tokens(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
     CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_output_tokens(&ctx->p2pk, cdata));
-    return res_ok();
+    return show_output_screen_if_needed(ctx);
 }
 
 static inline int handle_output_registers(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
     CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_output_registers(&ctx->p2pk, cdata));
-    return res_ok();
+    return show_output_screen_if_needed(ctx);
 }
 
 static inline int handle_sign_confirm(sign_transaction_ctx_t *ctx) {

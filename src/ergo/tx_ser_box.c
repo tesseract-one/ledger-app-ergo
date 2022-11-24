@@ -52,6 +52,17 @@ add_empty_registers_count(ergo_tx_serializer_box_context_t* context) {
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
 }
 
+static inline ergo_tx_serializer_box_result_e box_finished(
+    ergo_tx_serializer_box_context_t* context) {
+    if (context->callbacks.on_finished != NULL) {
+        CHECK_CALL_RESULT_OK(
+            context,
+            context->callbacks.on_finished(context->type, context->callbacks.context));
+    }
+    context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
+    return ERGO_TX_SERIALIZER_BOX_RES_OK;
+}
+
 static NOINLINE ergo_tx_serializer_box_result_e
 ergo_tree_added(ergo_tx_serializer_box_context_t* context) {
     if (context->callbacks.on_type != NULL) {
@@ -64,7 +75,7 @@ ergo_tree_added(ergo_tx_serializer_box_context_t* context) {
         context->state = ERGO_TX_SERIALIZER_BOX_STATE_TOKENS_ADDED;
         if (context->registers_size == 0) {
             CHECK_CALL_RESULT_OK(context, add_empty_registers_count(context));
-            context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
+            return box_finished(context);
         }
     } else {
         context->state = ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED;
@@ -233,7 +244,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
     if (context->tokens_count == 0) {
         if (context->registers_size == 0) {
             CHECK_CALL_RESULT_OK(context, add_empty_registers_count(context));
-            context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
+            return box_finished(context);
         } else {
             context->state = ERGO_TX_SERIALIZER_BOX_STATE_TOKENS_ADDED;
         }
@@ -258,8 +269,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_registers(
     }
     context->registers_size -= len;
     if (context->registers_size == 0) {
-        context->state = ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
-        return ERGO_TX_SERIALIZER_BOX_RES_OK;
+        return box_finished(context);
     }
     return ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA;
 }

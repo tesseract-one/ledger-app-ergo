@@ -43,11 +43,14 @@ typedef ergo_tx_serializer_box_result_e (*ergo_tx_serializer_box_token_cb)(
     const uint8_t[static ERGO_ID_LEN],
     uint64_t,
     void*);
+typedef ergo_tx_serializer_box_result_e (
+    *ergo_tx_serializer_box_finished_cb)(ergo_tx_serializer_box_type_e, void*);
 
 typedef struct {
     void* context;
     ergo_tx_serializer_box_type_cb on_type;
     ergo_tx_serializer_box_token_cb on_token;
+    ergo_tx_serializer_box_finished_cb on_finished;
 } ergo_tx_serializer_box_callbacks_t;
 
 typedef struct {
@@ -105,11 +108,14 @@ static inline bool ergo_tx_serializer_box_is_finished(
     return context->state == ERGO_TX_SERIALIZER_BOX_STATE_FINISHED;
 }
 
-static inline void ergo_tx_serializer_box_set_callbacks(ergo_tx_serializer_box_context_t* context,
-                                                        ergo_tx_serializer_box_type_cb on_type,
-                                                        ergo_tx_serializer_box_token_cb on_token,
-                                                        void* cb_context) {
+static inline void ergo_tx_serializer_box_set_callbacks(
+    ergo_tx_serializer_box_context_t* context,
+    ergo_tx_serializer_box_type_cb on_type,
+    ergo_tx_serializer_box_token_cb on_token,
+    ergo_tx_serializer_box_finished_cb on_finished,
+    void* cb_context) {
     context->callbacks.on_type = on_type;
     context->callbacks.on_token = on_token;
+    context->callbacks.on_finished = on_finished;
     context->callbacks.context = cb_context;
 }

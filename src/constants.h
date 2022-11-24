@@ -99,3 +99,8 @@
  * Max length of TX data part
  */
 #define MAX_TX_DATA_PART_LEN 32768
+
+/**
+ * Max length of BIP32 path string
+ */
+#define MAX_BIP32_STRING_LEN 60

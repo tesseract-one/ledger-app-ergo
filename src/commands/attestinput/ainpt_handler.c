@@ -118,7 +118,7 @@ static inline int handle_init(attest_input_ctx_t *ctx,
                                                      registers_size,
                                                      &ctx->hash));
 
-    ergo_tx_serializer_box_set_callbacks(&ctx->box, NULL, &box_token_cb, (void *) ctx);
+    ergo_tx_serializer_box_set_callbacks(&ctx->box, NULL, &box_token_cb, NULL, (void *) ctx);
 
     ctx->state = ATTEST_INPUT_STATE_INITIALIZED;
     ctx->session = session_id_new_random(ctx->session);
@@ -128,7 +128,7 @@ static inline int handle_init(attest_input_ctx_t *ctx,
         return send_response_attested_input_session_id(ctx->session);
     }
 
-    return ui_display_access_token(app_session_id_in);
+    return ui_display_access_token(app_session_id_in, ctx);
 }
 
 static inline int handle_tree_chunk(attest_input_ctx_t *ctx, buffer_t *cdata) {

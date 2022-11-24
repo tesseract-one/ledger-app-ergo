@@ -66,7 +66,8 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
                                              CONTEXT(G_context).chain_code);
     }
 
-    return ui_display_account(access_token,
+    return ui_display_account(&CONTEXT(G_context),
+                              access_token,
                               bip32_path,
                               bip32_path_len,
                               CONTEXT(G_context).raw_public_key,

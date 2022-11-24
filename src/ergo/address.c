@@ -11,9 +11,10 @@
 #include "../common/buffer.h"
 #include "../helpers/blake2b.h"
 
-bool ergo_address_from_pubkey(uint8_t network,
-                              const uint8_t public_key[static PUBLIC_KEY_LEN],
-                              uint8_t address[static ADDRESS_LEN]) {
+static inline bool _ergo_address_from_pubkey(uint8_t network,
+                                             const uint8_t* public_key,
+                                             uint8_t address[static ADDRESS_LEN],
+                                             bool is_compressed) {
     BUFFER_FROM_ARRAY_EMPTY(buffer, address, ADDRESS_LEN);
 
     if (network > 252) {
@@ -24,12 +25,18 @@ bool ergo_address_from_pubkey(uint8_t network,
         return false;
     }
 
-    // Compressed pubkey
-    if (!buffer_write_u8(&buffer, ((public_key[64] & 1) ? 0x03 : 0x02))) {
-        return false;
-    }
-    if (!buffer_write_bytes(&buffer, public_key + 1, 32)) {
-        return false;
+    if (is_compressed) {
+        if (!buffer_write_bytes(&buffer, public_key, COMPRESSED_PUBLIC_KEY_LEN)) {
+            return false;
+        }
+    } else {
+        // Compress pubkey
+        if (!buffer_write_u8(&buffer, ((public_key[64] & 1) ? 0x03 : 0x02))) {
+            return false;
+        }
+        if (!buffer_write_bytes(&buffer, public_key + 1, COMPRESSED_PUBLIC_KEY_LEN - 1)) {
+            return false;
+        }
     }
 
     uint8_t hash[BLAKE2B_256_DIGEST_LEN] = {0};
@@ -43,4 +50,16 @@ bool ergo_address_from_pubkey(uint8_t network,
     }
 
     return true;
+}
+
+bool ergo_address_from_pubkey(uint8_t network,
+                              const uint8_t public_key[static PUBLIC_KEY_LEN],
+                              uint8_t address[static ADDRESS_LEN]) {
+    return _ergo_address_from_pubkey(network, public_key, address, false);
+}
+
+bool ergo_address_from_compressed_pubkey(uint8_t network,
+                                         const uint8_t public_key[static COMPRESSED_PUBLIC_KEY_LEN],
+                                         uint8_t address[static ADDRESS_LEN]) {
+    return _ergo_address_from_pubkey(network, public_key, address, true);
 }
