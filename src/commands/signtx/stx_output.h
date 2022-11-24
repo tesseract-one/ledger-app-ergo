@@ -77,8 +77,6 @@ uint8_t stx_output_info_used_tokens_count(const sign_transaction_output_info_ctx
 uint8_t stx_output_info_used_token_index(const sign_transaction_output_info_ctx_t* ctx,
                                          uint8_t used_index);
 
-bool stx_output_info_has_used_tokens(const sign_transaction_output_info_ctx_t* ctx);
-
 static inline bool stx_output_info_is_finished(const sign_transaction_output_info_ctx_t* ctx) {
     return ctx->type == SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32_FINISHED ||
            ctx->type == SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS_FINISHED ||

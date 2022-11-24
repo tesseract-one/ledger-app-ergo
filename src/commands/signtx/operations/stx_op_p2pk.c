@@ -286,7 +286,7 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
         return false;
     if (!stx_output_info_is_finished(&ctx->transaction.ui.output)) return false;
     if (ctx->transaction.ui.output.type == SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE_FINISHED) {
-        return stx_output_info_has_used_tokens(&ctx->transaction.ui.output);
+        return stx_output_info_used_tokens_count(&ctx->transaction.ui.output) > 0;
     }
     return true;
 }

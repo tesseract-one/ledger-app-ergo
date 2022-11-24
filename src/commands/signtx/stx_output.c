@@ -126,13 +126,6 @@ ergo_tx_serializer_box_result_e stx_output_info_set_finished(
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
 }
 
-bool stx_output_info_has_used_tokens(const sign_transaction_output_info_ctx_t* ctx) {
-    for (uint8_t i = 0; i < ctx->tokens_table->count; i++) {
-        if (ctx->tokens[i] > 0) return true;
-    }
-    return false;
-}
-
 uint8_t stx_output_info_used_tokens_count(const sign_transaction_output_info_ctx_t* ctx) {
     uint8_t count = 0;
     for (uint8_t i = 0; i < TOKEN_MAX_COUNT; i++) {
