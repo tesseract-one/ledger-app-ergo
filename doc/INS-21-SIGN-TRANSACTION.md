@@ -21,6 +21,8 @@ Starts the P2PK transaction signing process for the private key with provided BI
 
 Ledger Application is clearing all internal buffers and preparing for transaction signing. The BIP44 path is stored inside the App.
 
+Ledger Application will show screen with BIP44 path and ask user for operation approval.
+
 #### Request
 | INS | P1 | P2 | Lc | Data |
 | --- | --- | --- | --- | --- |
@@ -29,6 +31,7 @@ Ledger Application is clearing all internal buffers and preparing for transactio
 ##### Data
 | Field | Size (B) | Description |
 | --- | --- | --- |
+| Network ID | 1 | Value: 0x00-0xFC (0-252). Ergo Network ID (0x00 - main, 0x10 - test) |
 | BIP44 path length | 1 | Value: 0x05-0x0A (5-10). The number of path components |
 | First derivation index | 4 | Big-endian. Value: 44’ |
 | Second derivation index | 4 | Big-endian. Value: 429’ (Ergo coin id) |
@@ -155,7 +158,7 @@ If you have a custom network, where Miners Fee tree is different from the test n
 ### Request
 | INS | P1 | P2 | Lc | Data |
 | --- | --- | --- | --- | --- |
-| 0x21 | 0x17 | Session ID | 0x01 | 0x01 - main net <br> 0x02 - test net |
+| 0x21 | 0x17 | Session ID | 0x00 | empty |
 
 ## 0x18 - Add Output Box: Change tree
 Add Change tree to the current Output Box with provided BIP44 path. Can be called only if “Ergo Tree Size” is 0.
