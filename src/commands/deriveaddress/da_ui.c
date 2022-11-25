@@ -73,6 +73,7 @@ int ui_display_address(derive_address_ctx_t* ctx,
     const ux_flow_step_t* b32_screen =
         ui_bip32_path_screen(bip32_path,
                              bip32_path_len,
+                             "Path",
                              ctx->bip32_path,
                              MEMBER_SIZE(derive_address_ctx_t, bip32_path));
     if (b32_screen == NULL) {

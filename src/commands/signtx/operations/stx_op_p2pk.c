@@ -310,21 +310,15 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
 
 // ===========================
 // UI
-
-// Step with icon and text
-UX_STEP_NOCB(ux_stx_stx_operation_p2pk_display_confirm_step,
-             pn,
-             {&C_icon_processing, "Start P2PK signing"});
-
 uint16_t ui_stx_operation_p2pk_show_token_and_path(sign_transaction_operation_p2pk_ctx_t *ctx,
                                                    uint32_t app_access_token,
+                                                   bool is_known_application,
                                                    void *sign_tx_ctx) {
     uint8_t screen = 0;
-    G_ux_flow[screen++] = &ux_stx_stx_operation_p2pk_display_confirm_step;
-
     const ux_flow_step_t *b32_step = ui_bip32_path_screen(
         ctx->bip32.path,
         ctx->bip32.len,
+        "P2PK Signing",
         ctx->ui_approve.bip32_path,
         MEMBER_SIZE(sign_transaction_operation_p2pk_ui_approve_data_ctx_t, bip32_path));
     if (b32_step == NULL) {
@@ -332,10 +326,11 @@ uint16_t ui_stx_operation_p2pk_show_token_and_path(sign_transaction_operation_p2
     }
     G_ux_flow[screen++] = b32_step;
 
-    if (!ui_stx_add_access_token_screens(&ctx->ui_approve.ui_approve,
-                                         &screen,
-                                         app_access_token,
-                                         sign_tx_ctx)) {
+    if (!ui_stx_add_operation_approve_screens(&ctx->ui_approve.ui_approve,
+                                              &screen,
+                                              app_access_token,
+                                              is_known_application,
+                                              sign_tx_ctx)) {
         return SW_SCREENS_BUFFER_OVERFLOW;
     }
     if (!ui_stx_display_screens(screen)) {

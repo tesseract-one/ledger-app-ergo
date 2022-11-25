@@ -102,15 +102,13 @@ static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
     ctx->state = SIGN_TRANSACTION_STATE_INITIALIZED;
     ctx->session = session_id_new_random(ctx->session);
 
-    if (is_known_application(app_session_id, app_session_id_in)) {
-        ctx->state = SIGN_TRANSACTION_STATE_APPROVED;
-        return send_response_sign_transaction_session_id(ctx->session);
-    }
-
     // switch beetwen operations if more will be added
-    CHECK_CALL_RESULT_OK(
-        ctx,
-        ui_stx_operation_p2pk_show_token_and_path(&ctx->p2pk, app_session_id_in, ctx));
+    CHECK_CALL_RESULT_OK(ctx,
+                         ui_stx_operation_p2pk_show_token_and_path(
+                             &ctx->p2pk,
+                             app_session_id_in,
+                             is_known_application(app_session_id, app_session_id_in),
+                             ctx));
     return 0;
 }
 

@@ -66,17 +66,19 @@ static NOINLINE void ui_stx_operation_approve_action(bool approved, void* contex
     ui_menu_main();
 }
 
-bool ui_stx_add_access_token_screens(sign_transaction_ui_aprove_ctx_t* ctx,
-                                     uint8_t* screen,
-                                     uint32_t app_access_token,
-                                     sign_transaction_ctx_t* sign_tx) {
+bool ui_stx_add_operation_approve_screens(sign_transaction_ui_aprove_ctx_t* ctx,
+                                          uint8_t* screen,
+                                          uint32_t app_access_token,
+                                          bool is_known_application,
+                                          sign_transaction_ctx_t* sign_tx) {
     if (MAX_NUMBER_OF_SCREENS - *screen < 3) return false;
 
-    if (app_access_token != 0) {
+    if (!is_known_application) {
         G_ux_flow[(*screen)++] = ui_application_id_screen(app_access_token, ctx->app_token);
     }
     ctx->app_token_value = app_access_token;
     ctx->sign_tx_context = sign_tx;
+    ctx->is_known_application = is_known_application;
 
     const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
     const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
@@ -231,17 +233,16 @@ bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
 // --- TX ACCEPT / REJECT FLOW
 
 // Fist flow step with icon and text
-UX_STEP_NOCB(ux_stx_display_tx_confirm_step, pn, {&C_icon_warning, "Confirm Transaction"});
+UX_STEP_NOCB(ux_stx_display_sign_confirm_step, pn, {&C_icon_warning, "Approve Signing"});
 
 // Callback for TX UI rendering
 static NOINLINE uint16_t ui_stx_display_tx_state(uint8_t screen,
                                                  char* title,
                                                  char* text,
                                                  void* context) {
-    sign_transaction_ui_transaction_confirm_ctx_t* ctx =
-        (sign_transaction_ui_transaction_confirm_ctx_t*) context;
-    uint8_t title_len = MEMBER_SIZE(sign_transaction_ui_transaction_confirm_ctx_t, title);
-    uint8_t text_len = MEMBER_SIZE(sign_transaction_ui_transaction_confirm_ctx_t, text);
+    sign_transaction_ui_sign_confirm_ctx_t* ctx = (sign_transaction_ui_sign_confirm_ctx_t*) context;
+    uint8_t title_len = MEMBER_SIZE(sign_transaction_ui_sign_confirm_ctx_t, title);
+    uint8_t text_len = MEMBER_SIZE(sign_transaction_ui_sign_confirm_ctx_t, text);
     memset(title, 0, title_len);
     memset(text, 0, text_len);
 
@@ -279,10 +280,10 @@ static NOINLINE uint16_t ui_stx_display_tx_state(uint8_t screen,
                 int64_t value = ctx->amounts->tokens[token_idx];
                 if (value < 0) {  // output > inputs
                     STRING_ADD_STATIC_TEXT(text, text_len, "Minting: ");
-                    format_u64(text, text_len, value);
+                    format_u64(text, text_len, -value);
                 } else {  // inputs > outputs
                     STRING_ADD_STATIC_TEXT(text, text_len, "Burning: ");
-                    format_u64(text, text_len, -value);
+                    format_u64(text, text_len, value);
                 }
             }
             break;
@@ -294,8 +295,7 @@ static NOINLINE uint16_t ui_stx_display_tx_state(uint8_t screen,
 // TX approve/reject callback
 static NOINLINE void ui_stx_operation_execute_action(bool approved, void* context) {
     G_context.is_ui_busy = false;
-    sign_transaction_ui_transaction_confirm_ctx_t* ctx =
-        (sign_transaction_ui_transaction_confirm_ctx_t*) context;
+    sign_transaction_ui_sign_confirm_ctx_t* ctx = (sign_transaction_ui_sign_confirm_ctx_t*) context;
     if (approved) {
         ctx->op_response_cb(ctx->op_cb_context);
     } else {
@@ -305,7 +305,7 @@ static NOINLINE void ui_stx_operation_execute_action(bool approved, void* contex
     ui_menu_main();
 }
 
-bool ui_stx_add_transaction_screens(sign_transaction_ui_transaction_confirm_ctx_t* ctx,
+bool ui_stx_add_transaction_screens(sign_transaction_ui_sign_confirm_ctx_t* ctx,
                                     uint8_t* screen,
                                     const sign_transaction_amounts_ctx_t* amounts,
                                     uint8_t op_screen_count,
@@ -314,11 +314,11 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_transaction_confirm_ctx_
                                     void* cb_context) {
     if (MAX_NUMBER_OF_SCREENS - *screen < 6) return false;
 
-    memset(ctx, 0, sizeof(sign_transaction_ui_transaction_confirm_ctx_t));
+    memset(ctx, 0, sizeof(sign_transaction_ui_sign_confirm_ctx_t));
 
     uint8_t tokens_count = stx_amounts_non_zero_tokens_count(amounts);
 
-    G_ux_flow[(*screen)++] = &ux_stx_display_tx_confirm_step;
+    G_ux_flow[(*screen)++] = &ux_stx_display_sign_confirm_step;
 
     if (!ui_add_dynamic_flow_screens(screen,
                                      op_screen_count + 2 + (2 * tokens_count),

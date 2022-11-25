@@ -36,6 +36,7 @@ typedef enum {
 typedef struct {
     uint32_t app_token_value;                // App token value
     char app_token[APPLICATION_ID_STR_LEN];  // App token string
+    bool is_known_application;
     void *sign_tx_context;
 } sign_transaction_ui_aprove_ctx_t;
 
@@ -60,4 +61,4 @@ typedef struct {
     ui_sign_transaction_operation_send_response_cb op_response_cb;
     void *op_cb_context;
     const sign_transaction_amounts_ctx_t *amounts;
-} sign_transaction_ui_transaction_confirm_ctx_t;
+} sign_transaction_ui_sign_confirm_ctx_t;

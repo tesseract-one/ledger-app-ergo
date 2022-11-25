@@ -55,6 +55,7 @@ int ui_display_account(extended_public_key_ctx_t* ctx,
     const ux_flow_step_t* b32_step =
         ui_bip32_path_screen(bip32_path,
                              bip32_path_len,
+                             "Path",
                              ctx->bip32_path,
                              MEMBER_SIZE(extended_public_key_ctx_t, bip32_path));
     if (b32_step == NULL) {

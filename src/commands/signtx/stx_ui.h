@@ -14,10 +14,11 @@
  * @return true if success, false if screens flow is full.
  *
  */
-bool ui_stx_add_access_token_screens(sign_transaction_ui_aprove_ctx_t* ctx,
-                                     uint8_t* screen,
-                                     uint32_t app_access_token,
-                                     sign_transaction_ctx_t* sign_tx);
+bool ui_stx_add_operation_approve_screens(sign_transaction_ui_aprove_ctx_t* ctx,
+                                          uint8_t* screen,
+                                          uint32_t app_access_token,
+                                          bool is_known_application,
+                                          sign_transaction_ctx_t* sign_tx);
 
 /**
  * Add output info and accept/reject screens to the UI.
@@ -36,7 +37,7 @@ bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
  * @return true if success, false if screens flow is full.
  *
  */
-bool ui_stx_add_transaction_screens(sign_transaction_ui_transaction_confirm_ctx_t* ctx,
+bool ui_stx_add_transaction_screens(sign_transaction_ui_sign_confirm_ctx_t* ctx,
                                     uint8_t* screen,
                                     const sign_transaction_amounts_ctx_t* amounts,
                                     uint8_t op_screen_count,

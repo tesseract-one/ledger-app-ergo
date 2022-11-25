@@ -42,7 +42,7 @@ typedef struct {
     union {
         sign_transaction_operation_p2pk_transaction_ctx_t transaction;
         sign_transaction_operation_p2pk_ui_approve_data_ctx_t ui_approve;
-        sign_transaction_ui_transaction_confirm_ctx_t ui_confirm;
+        sign_transaction_ui_sign_confirm_ctx_t ui_confirm;
     };
 } sign_transaction_operation_p2pk_ctx_t;
 
@@ -118,6 +118,7 @@ static inline bool stx_operation_p2pk_is_tx_finished(sign_transaction_operation_
  */
 uint16_t ui_stx_operation_p2pk_show_token_and_path(sign_transaction_operation_p2pk_ctx_t *ctx,
                                                    uint32_t app_access_token,
+                                                   bool is_known_application,
                                                    void *sign_tx_ctx);
 
 /**
