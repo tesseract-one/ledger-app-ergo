@@ -16,4 +16,4 @@ jobs:
         with:
           source: './src'
           extensions: 'h,c'
-          clangFormatVersion: 11
+          clangFormatVersion: 12
