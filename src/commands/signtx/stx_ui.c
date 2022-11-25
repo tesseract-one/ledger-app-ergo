@@ -63,7 +63,7 @@ bool ui_stx_add_access_token_screens(sign_transaction_ui_aprove_ctx_t* ctx,
 
     const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
     const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
-    ui_approve_reject_screens(ui_stx_operation_approve_action, approve, reject, (void*) ctx);
+    ui_approve_reject_screens(ui_stx_operation_approve_action, ctx, approve, reject);
 
     return true;
 }
@@ -201,8 +201,8 @@ bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
 
     if (!ui_add_dynamic_flow_screens(screen,
                                      2 + (2 * tokens_count),
-                                     ctx->text,
                                      ctx->title,
+                                     ctx->text,
                                      &ui_stx_display_output_state,
                                      (void*) ctx))
         return false;
@@ -211,7 +211,7 @@ bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
 
     const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
     const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
-    ui_approve_reject_screens(ui_stx_operation_output_confirm_action, approve, reject, NULL);
+    ui_approve_reject_screens(ui_stx_operation_output_confirm_action, NULL, approve, reject);
 
     ctx->network_id = network_id;
     ctx->output = output;
@@ -315,8 +315,8 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_transaction_confirm_ctx_
 
     if (!ui_add_dynamic_flow_screens(screen,
                                      op_screen_count + 2 + (2 * tokens_count),
-                                     ctx->text,
                                      ctx->title,
+                                     ctx->text,
                                      &ui_stx_display_tx_state,
                                      (void*) ctx))
         return false;
@@ -325,7 +325,7 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_transaction_confirm_ctx_
 
     const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
     const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
-    ui_approve_reject_screens(ui_stx_operation_execute_action, approve, reject, (void*) ctx);
+    ui_approve_reject_screens(ui_stx_operation_execute_action, ctx, approve, reject);
 
     ctx->op_screen_count = op_screen_count;
     ctx->op_screen_cb = screen_cb;
