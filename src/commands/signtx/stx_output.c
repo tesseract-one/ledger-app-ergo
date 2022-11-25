@@ -8,7 +8,8 @@
 
 #define STX_OUTPUT_SET_BOX_FINISHED(ctx) (ctx->state = ctx->state | 0x80)
 #define STX_OUTPUT_SET_TREE_SET(ctx)     (ctx->state = ctx->state | 0x40)
-#define STX_OUTPUT_SET_TYPE(ctx, type)   (ctx->state = (ctx->state & 0xC0) | (type & 0x3F))
+#define STX_OUTPUT_SET_TYPE(ctx, type) \
+    (ctx->state = (ctx->state & 0xC0) | (((uint8_t) type) & 0x3F))
 
 static inline uint8_t find_token_index(const token_table_t* table,
                                        const uint8_t id[static ERGO_ID_LEN]) {
