@@ -17,17 +17,34 @@
 #include "../../ui/ui_dynamic_flow.h"
 #include "../../ui/ui_menu.h"
 
-#define TOKEN_ID_CHARACTERS 7
+#define ERGO_ID_UI_CHARACTERS_HALF 7
 
 #define STRING_ADD_STATIC_TEXT(str, slen, text) \
     strncpy(str, text, slen);                   \
     slen -= sizeof(text) - 1;                   \
     str += sizeof(text) - 1
 
-static inline void base58_remove_middle(char* b58, size_t len) {
-    b58[TOKEN_ID_CHARACTERS] = b58[TOKEN_ID_CHARACTERS + 1] = b58[TOKEN_ID_CHARACTERS + 2] = '.';
-    memmove(b58 + TOKEN_ID_CHARACTERS + 3, b58 + len - TOKEN_ID_CHARACTERS, TOKEN_ID_CHARACTERS);
-    b58[2 * TOKEN_ID_CHARACTERS + 3] = '\0';
+static inline void id_string_remove_middle(char* str, size_t len) {
+    str[ERGO_ID_UI_CHARACTERS_HALF] = str[ERGO_ID_UI_CHARACTERS_HALF + 1] =
+        str[ERGO_ID_UI_CHARACTERS_HALF + 2] = '.';
+    memmove(str + ERGO_ID_UI_CHARACTERS_HALF + 3,
+            str + len - ERGO_ID_UI_CHARACTERS_HALF,
+            ERGO_ID_UI_CHARACTERS_HALF);
+    str[2 * ERGO_ID_UI_CHARACTERS_HALF + 3] = '\0';
+}
+
+static inline bool format_hex_id(const uint8_t* id, size_t id_len, char* out, size_t out_len) {
+    int len = format_hex(id, id_len, out, out_len);
+    if (len <= 0) return false;
+    id_string_remove_middle(out, len);
+    return true;
+}
+
+static inline bool format_b58_id(const uint8_t* id, size_t id_len, char* out, size_t out_len) {
+    int len = base58_encode(id, id_len, out, out_len);
+    if (len <= 0) return false;
+    id_string_remove_middle(out, len);
+    return true;
 }
 
 // ----- OPERATION APPROVE / REJECT FLOW
@@ -97,22 +114,16 @@ static inline uint16_t output_info_print_address(const sign_transaction_output_i
             if (!ergo_address_from_compressed_pubkey(network_id, ctx->public_key, raw_address)) {
                 return SW_ADDRESS_GENERATION_FAILED;
             }
-
-            int len = base58_encode(raw_address, ADDRESS_LEN, address, address_len);
-            if (len <= 0) {
+            if (!format_b58_id(raw_address, ADDRESS_LEN, address, address_len)) {
                 return SW_ADDRESS_FORMATTING_FAILED;
             }
-
-            base58_remove_middle(address, len);
             break;
         }
         case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT: {
             strncpy(title, "Script", title_len);
-            int len = base58_encode(ctx->tree_hash, ERGO_ID_LEN, address, address_len);
-            if (len <= 0) {
+            if (!format_b58_id(ctx->tree_hash, ERGO_ID_LEN, address, address_len)) {
                 return SW_ADDRESS_FORMATTING_FAILED;
             }
-            base58_remove_middle(address, len);
             break;
         }
         case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE: {
@@ -158,14 +169,12 @@ static NOINLINE uint16_t ui_stx_display_output_state(uint8_t screen,
             }
             if (screen % 2 == 0) {  // Token ID
                 snprintf(title, title_len, "Token [%d]", (int) (screen / 2) + 1);
-
-                int len = base58_encode(ctx->output->tokens_table->tokens[token_idx],
-                                        ERGO_ID_LEN,
-                                        text,
-                                        text_len);
-                if (len <= 0) return SW_BAD_TOKEN_ID;
-
-                base58_remove_middle(text, len);
+                if (!format_hex_id(ctx->output->tokens_table->tokens[token_idx],
+                                   ERGO_ID_LEN,
+                                   text,
+                                   text_len)) {
+                    return SW_ADDRESS_FORMATTING_FAILED;
+                }
             } else {  // Token Value
                 snprintf(title, title_len, "Token [%d] Value", (int) (screen / 2) + 1);
                 format_u64(text, text_len, ctx->output->tokens[token_idx]);
@@ -259,21 +268,19 @@ static NOINLINE uint16_t ui_stx_display_tx_state(uint8_t screen,
             }
             if (screen % 2 == 0) {  // Token ID
                 snprintf(title, title_len, "Token [%d]", (int) (screen / 2) + 1);
-
-                int len = base58_encode(ctx->amounts->tokens_table.tokens[token_idx],
-                                        ERGO_ID_LEN,
-                                        text,
-                                        text_len);
-                if (len <= 0) return SW_BAD_TOKEN_ID;
-
-                base58_remove_middle(text, len);
+                if (!format_hex_id(ctx->amounts->tokens_table.tokens[token_idx],
+                                   ERGO_ID_LEN,
+                                   text,
+                                   text_len)) {
+                    return SW_ADDRESS_FORMATTING_FAILED;
+                }
             } else {  // Token Value
                 snprintf(title, title_len, "Token [%d] Value", (int) (screen / 2) + 1);
                 int64_t value = ctx->amounts->tokens[token_idx];
-                if (value > 0) {
+                if (value < 0) {  // output > inputs
                     STRING_ADD_STATIC_TEXT(text, text_len, "Minting: ");
                     format_u64(text, text_len, value);
-                } else {
+                } else {  // inputs > outputs
                     STRING_ADD_STATIC_TEXT(text, text_len, "Burning: ");
                     format_u64(text, text_len, -value);
                 }
