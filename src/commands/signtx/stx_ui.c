@@ -79,8 +79,9 @@ static inline uint16_t output_info_print_address(const sign_transaction_output_i
                                                  uint8_t title_len,
                                                  char* address,
                                                  uint8_t address_len) {
-    switch (ctx->type) {
-        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32_FINISHED: {
+    if (!stx_output_info_is_finished(ctx)) return SW_BAD_STATE;
+    switch (stx_output_info_type(ctx)) {
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32: {
             strncpy(title, "Change", title_len);
             if (!bip32_path_format(ctx->bip32_path.path,
                                    ctx->bip32_path.len,
@@ -90,7 +91,7 @@ static inline uint16_t output_info_print_address(const sign_transaction_output_i
             }
             break;
         }
-        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS_FINISHED: {
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS: {
             uint8_t raw_address[ADDRESS_LEN];
             strncpy(title, "Address", title_len);
             if (!ergo_address_from_compressed_pubkey(network_id, ctx->public_key, raw_address)) {
@@ -105,7 +106,7 @@ static inline uint16_t output_info_print_address(const sign_transaction_output_i
             base58_remove_middle(address, len);
             break;
         }
-        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT_FINISHED: {
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT: {
             strncpy(title, "Script", title_len);
             int len = base58_encode(ctx->tree_hash, ERGO_ID_LEN, address, address_len);
             if (len <= 0) {
@@ -114,7 +115,7 @@ static inline uint16_t output_info_print_address(const sign_transaction_output_i
             base58_remove_middle(address, len);
             break;
         }
-        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE_FINISHED: {
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE: {
             strncpy(title, "Fee", title_len);
             strncpy(address, "Miners Fee", address_len);
             break;
@@ -166,8 +167,7 @@ static NOINLINE uint16_t ui_stx_display_output_state(uint8_t screen,
 
                 base58_remove_middle(text, len);
             } else {  // Token Value
-                snprintf(title, title_len, "Token [%d]", (int) (screen / 2) + 1);
-                STRING_ADD_STATIC_TEXT(text, text_len, "Value: ");
+                snprintf(title, title_len, "Token [%d] Value", (int) (screen / 2) + 1);
                 format_u64(text, text_len, ctx->output->tokens[token_idx]);
             }
             break;
@@ -268,7 +268,7 @@ static NOINLINE uint16_t ui_stx_display_tx_state(uint8_t screen,
 
                 base58_remove_middle(text, len);
             } else {  // Token Value
-                snprintf(title, title_len, "Token [%d]", (int) (screen / 2) + 1);
+                snprintf(title, title_len, "Token [%d] Value", (int) (screen / 2) + 1);
                 int64_t value = ctx->amounts->tokens[token_idx];
                 if (value > 0) {
                     STRING_ADD_STATIC_TEXT(text, text_len, "Minting: ");

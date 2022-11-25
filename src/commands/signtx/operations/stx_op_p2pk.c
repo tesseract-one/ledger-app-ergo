@@ -68,7 +68,7 @@ static NOINLINE ergo_tx_serializer_box_result_e
 p2pk_output_finished_cb(ergo_tx_serializer_box_type_e type, void *context) {
     UNUSED(type);
     sign_transaction_operation_p2pk_ctx_t *ctx = (sign_transaction_operation_p2pk_ctx_t *) context;
-    return stx_output_info_set_finished(&ctx->transaction.ui.output);
+    return stx_output_info_set_box_finished(&ctx->transaction.ui.output);
 }
 
 uint16_t stx_operation_p2pk_init(sign_transaction_operation_p2pk_ctx_t *ctx,
@@ -224,14 +224,30 @@ uint16_t stx_operation_p2pk_add_output(sign_transaction_operation_p2pk_ctx_t *ct
 uint16_t stx_operation_p2pk_add_output_tree_chunk(sign_transaction_operation_p2pk_ctx_t *ctx,
                                                   buffer_t *data) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_OPERATION_P2PK_STATE_OUTPUTS_STARTED);
-    // Make copy of the buffer (will not copy buffer data, only pointers).
-    buffer_t copy = *data;
-    // Add chunk to the serializer. Changes original buffer.
-    CHECK_TX_CALL_RESULT_OK(ctx,
-                            ergo_tx_serializer_full_add_box_ergo_tree(&ctx->transaction.tx, data));
-    // Add chunk to the output info. Uses copied buffer.
-    CHECK_SW_CALL_RESULT_OK(ctx,
-                            stx_output_info_add_tree_chunk(&ctx->transaction.ui.output, &copy));
+    // Get buffer pointers for output info.
+    const uint8_t *chunk = buffer_read_ptr(data);
+    uint16_t chunk_len = buffer_data_len(data);
+    // flag
+    bool is_finished = false;
+    // Add chunk to the serializer. Check is all tree added.
+    ergo_tx_serializer_full_result_e res =
+        ergo_tx_serializer_full_add_box_ergo_tree(&ctx->transaction.tx, data);
+    switch (res) {
+        case ERGO_TX_SERIALIZER_FULL_RES_OK: {
+            is_finished = true;
+            break;
+        }
+        case ERGO_TX_SERIALIZER_FULL_RES_MORE_DATA: {
+            is_finished = false;
+            break;
+        }
+        default:  // ERROR happened.
+            return handler_err(ctx, sw_from_ser_res(res));
+    }
+    // Add chunk to the output info. Uses copied pointers.
+    CHECK_SW_CALL_RESULT_OK(
+        ctx,
+        stx_output_info_add_tree_chunk(&ctx->transaction.ui.output, chunk, chunk_len, is_finished));
     CHECK_TX_FINISHED(ctx);
     return SW_OK;
 }
@@ -285,7 +301,8 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
         ctx->state != SIGN_TRANSACTION_OPERATION_P2PK_STATE_TX_FINISHED)
         return false;
     if (!stx_output_info_is_finished(&ctx->transaction.ui.output)) return false;
-    if (ctx->transaction.ui.output.type == SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE_FINISHED) {
+    if (stx_output_info_type(&ctx->transaction.ui.output) ==
+        SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE) {
         return stx_output_info_used_tokens_count(&ctx->transaction.ui.output) > 0;
     }
     return true;
