@@ -210,12 +210,16 @@ bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
 
     memset(ctx, 0, sizeof(sign_transaction_ui_output_confirm_ctx_t));
 
-    uint8_t tokens_count = stx_output_info_used_tokens_count(output);
-
     G_ux_flow[(*screen)++] = &ux_stx_display_output_confirm_step;
 
+    uint8_t info_screen_count = 1;  // Address screen
+    if (stx_output_info_type(output) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32) {
+        uint8_t tokens_count = stx_output_info_used_tokens_count(output);
+        info_screen_count += 1 + (2 * tokens_count);  // value screen + tokens (2 for each)
+    }
+
     if (!ui_add_dynamic_flow_screens(screen,
-                                     2 + (2 * tokens_count),
+                                     info_screen_count,
                                      ctx->title,
                                      ctx->text,
                                      &ui_stx_display_output_state,
