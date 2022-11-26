@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../constants.h"
+#include "../../ergo/address.h"
 
 /**
  * Send APDU response with address public key.

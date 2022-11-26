@@ -66,26 +66,6 @@
 #define PRIVATE_KEY_LEN 32
 
 /**
- * Length of P2PK Address in bytes.
- */
-#define P2PK_ADDRESS_LEN (COMPRESSED_PUBLIC_KEY_LEN + 5)  // 4 bytes of checksum + 1 byte prefix
-
-/**
- * Length of P2SH Address in bytes.
- */
-#define P2SH_HASH_LEN 24  // 192bits
-
-/**
- * Length of P2SH Address in bytes.
- */
-#define P2SH_ADDRESS_LEN (P2SH_HASH_LEN + 5)  // 4 bytes of checksum + 1 byte prefix
-
-/**
- * Length of P2PK Address string in chars.
- */
-#define P2PK_ADDRESS_STRING_MAX_LEN 55
-
-/**
  * Length of Extended Public Key.
  */
 #define EXTENDED_PUBLIC_KEY_LEN (COMPRESSED_PUBLIC_KEY_LEN + CHAIN_CODE_LEN)

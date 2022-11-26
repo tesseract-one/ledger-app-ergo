@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "../constants.h"
+#include "address.h"
 
 #define ERGO_TREE_P2PK_PREFIX_LEN 3
 #define ERGO_TREE_P2PK_LEN        (COMPRESSED_PUBLIC_KEY_LEN + ERGO_TREE_P2PK_PREFIX_LEN)

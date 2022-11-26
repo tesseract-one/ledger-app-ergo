@@ -22,7 +22,7 @@ static inline bool _ergo_address_from_pubkey(uint8_t network,
         return false;
     }
     // P2PK + network id
-    if (!buffer_write_u8(&buffer, 0x01 + network)) {
+    if (!buffer_write_u8(&buffer, ERGO_ADDRESS_TYPE_P2PK + network)) {
         return false;
     }
 
@@ -46,7 +46,7 @@ static inline bool _ergo_address_from_pubkey(uint8_t network,
         return false;
     }
     // Checksum
-    if (!buffer_write_bytes(&buffer, hash, 4)) {
+    if (!buffer_write_bytes(&buffer, hash, ADDRESS_CHECKSUM_LEN)) {
         return false;
     }
 
@@ -73,7 +73,7 @@ bool ergo_address_from_script_hash(uint8_t network,
         return false;
     }
     // P2SH + network id
-    if (!buffer_write_u8(&buffer, 0x02 + network)) {
+    if (!buffer_write_u8(&buffer, ERGO_ADDRESS_TYPE_P2SH + network)) {
         return false;
     }
     if (!buffer_write_bytes(&buffer, hash, P2SH_HASH_LEN)) {
@@ -84,7 +84,7 @@ bool ergo_address_from_script_hash(uint8_t network,
         return false;
     }
     // Checksum
-    if (!buffer_write_bytes(&buffer, checksum, 4)) {
+    if (!buffer_write_bytes(&buffer, checksum, ADDRESS_CHECKSUM_LEN)) {
         return false;
     }
     return true;
