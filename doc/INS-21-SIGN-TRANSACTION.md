@@ -63,7 +63,7 @@ Ledger Application is clearing all internal buffers and preparing for transactio
 | Number of TX Outputs | 2 | Big-endian. |
 
 ## 0x11 - Add Token Ids
-This call adds Distinct Token Ids to the transaction. Up to 7 Ids can be added in a single call. The hard limit of tokens in a single transaction is 10.
+This call adds Distinct Token Ids to the transaction. Up to 7 Ids can be added in a single call. The hard limit of tokens in a single transaction is **20**.
 Must be called only if “Start Trasnaction data” call had “Number of TX Distinct Token Ids “ param set greater than zero. Must be called before setting Inputs.
 
 ### Request
@@ -143,7 +143,7 @@ This call starts the process of adding an Output Box to TX. It must be called af
 | Additional Registers Size | 4 | Size in bytes of serialized Additional Registers. Can be 0 if registers are empty. Big-endian. |
 
 ## 0x16 - Add Output Box: Ergo Tree chunk
-Adds serialized Ergo Tree chunk to the current Output Box. Can be called if the “Ergo Tree Size” of is not 0.
+Adds serialized Ergo Tree chunk to the current Output Box. Can be called if the “Ergo Tree Size” is not 0.
 
 ### Request
 | INS | P1 | P2 | Lc | Data |

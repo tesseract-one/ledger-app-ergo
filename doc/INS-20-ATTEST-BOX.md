@@ -11,7 +11,7 @@ A naive implementation could be to simply provide these amounts to Ledger withou
 
 To address such issues, Ledger Application implementation requires each transaction input to be verified before signing a transaction.
 
-The amount of unique tokens inside the transaction is hard limited to **10**, due to limited memory resources availability on Ledger hardware.
+The amount of unique tokens inside the transaction is hard limited to **20**, due to limited memory resources availability on Ledger hardware.
 
 ## 0x01 - Box start
 
