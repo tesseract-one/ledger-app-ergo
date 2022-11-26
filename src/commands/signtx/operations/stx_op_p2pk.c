@@ -2,9 +2,9 @@
 #include "../../../common/macros.h"
 #include "../../../helpers/crypto.h"
 #include "../../../helpers/response.h"
+#include "../../../helpers/sw_result.h"
 #include "../../../ergo/schnorr.h"
 #include "../../../ergo/network_id.h"
-#include "../stx_sw.h"
 #include "../stx_ui.h"
 
 #include <string.h>
@@ -22,7 +22,7 @@
     } while (0)
 
 #define CHECK_TX_CALL_RESULT_OK(_tctx, _tcall) \
-    CHECK_SW_CALL_RESULT_OK(_tctx, sw_from_ser_res(_tcall))
+    CHECK_SW_CALL_RESULT_OK(_tctx, sw_from_tx_full_result(_tcall))
 
 #define CHECK_TX_FINISHED(ctx)                                          \
     if (ergo_tx_serializer_full_is_finished(&ctx->transaction.tx)) {    \
@@ -242,7 +242,7 @@ uint16_t stx_operation_p2pk_add_output_tree_chunk(sign_transaction_operation_p2p
             break;
         }
         default:  // ERROR happened.
-            return handler_err(ctx, sw_from_ser_res(res));
+            return handler_err(ctx, sw_from_tx_full_result(res));
     }
     // Add chunk to the output info. Uses copied pointers.
     CHECK_SW_CALL_RESULT_OK(

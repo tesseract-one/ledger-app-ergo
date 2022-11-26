@@ -54,7 +54,7 @@ int ui_display_address(derive_address_ctx_t* ctx,
                        uint32_t app_access_token,
                        uint32_t* bip32_path,
                        uint8_t bip32_path_len,
-                       uint8_t raw_address[static ADDRESS_LEN]) {
+                       uint8_t raw_address[static P2PK_ADDRESS_LEN]) {
     if (!bip32_path_validate(bip32_path,
                              bip32_path_len,
                              BIP32_HARDENED(44),
@@ -85,11 +85,11 @@ int ui_display_address(derive_address_ctx_t* ctx,
     memset(ctx->address, 0, MEMBER_SIZE(derive_address_ctx_t, address));
     if (!send) {
         int result = base58_encode(raw_address,
-                                   ADDRESS_LEN,
+                                   P2PK_ADDRESS_LEN,
                                    ctx->address,
                                    MEMBER_SIZE(derive_address_ctx_t, address));
 
-        if (result == -1 || result >= ADDRESS_STRING_MAX_LEN) {
+        if (result == -1 || result >= P2PK_ADDRESS_STRING_MAX_LEN) {
             return res_error(SW_ADDRESS_FORMATTING_FAILED);
         }
         G_ux_flow[screen++] = &ux_da_display_address_step;
@@ -106,7 +106,7 @@ int ui_display_address(derive_address_ctx_t* ctx,
     G_ux_flow[screen++] = FLOW_LOOP;
     G_ux_flow[screen++] = FLOW_END_STEP;
 
-    memmove(ctx->raw_address, raw_address, ADDRESS_LEN);
+    memmove(ctx->raw_address, raw_address, P2PK_ADDRESS_LEN);
 
     ux_flow_init(0, G_ux_flow, NULL);
 

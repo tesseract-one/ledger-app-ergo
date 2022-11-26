@@ -66,14 +66,24 @@
 #define PRIVATE_KEY_LEN 32
 
 /**
- * Length of Address in bytes.
+ * Length of P2PK Address in bytes.
  */
-#define ADDRESS_LEN (COMPRESSED_PUBLIC_KEY_LEN + 5)  // 4 bytes of checksum + 1 byte prefix
+#define P2PK_ADDRESS_LEN (COMPRESSED_PUBLIC_KEY_LEN + 5)  // 4 bytes of checksum + 1 byte prefix
 
 /**
- * Length of Address string in chars.
+ * Length of P2SH Address in bytes.
  */
-#define ADDRESS_STRING_MAX_LEN 55
+#define P2SH_HASH_LEN 24  // 192bits
+
+/**
+ * Length of P2SH Address in bytes.
+ */
+#define P2SH_ADDRESS_LEN (P2SH_HASH_LEN + 5)  // 4 bytes of checksum + 1 byte prefix
+
+/**
+ * Length of P2PK Address string in chars.
+ */
+#define P2PK_ADDRESS_STRING_MAX_LEN 55
 
 /**
  * Length of Extended Public Key.
@@ -99,6 +109,11 @@
  * Max length of TX data part
  */
 #define MAX_TX_DATA_PART_LEN 32768
+
+/**
+ * Max length of TX data chunk
+ */
+#define MAX_DATA_CHUNK_LEN 255
 
 /**
  * Max length of BIP32 path string

@@ -14,9 +14,9 @@
 
 static inline bool _ergo_address_from_pubkey(uint8_t network,
                                              const uint8_t* public_key,
-                                             uint8_t address[static ADDRESS_LEN],
+                                             uint8_t address[static P2PK_ADDRESS_LEN],
                                              bool is_compressed) {
-    BUFFER_FROM_ARRAY_EMPTY(buffer, address, ADDRESS_LEN);
+    BUFFER_FROM_ARRAY_EMPTY(buffer, address, P2PK_ADDRESS_LEN);
 
     if (!network_id_is_valid(network)) {
         return false;
@@ -55,12 +55,37 @@ static inline bool _ergo_address_from_pubkey(uint8_t network,
 
 bool ergo_address_from_pubkey(uint8_t network,
                               const uint8_t public_key[static PUBLIC_KEY_LEN],
-                              uint8_t address[static ADDRESS_LEN]) {
+                              uint8_t address[static P2PK_ADDRESS_LEN]) {
     return _ergo_address_from_pubkey(network, public_key, address, false);
 }
 
 bool ergo_address_from_compressed_pubkey(uint8_t network,
                                          const uint8_t public_key[static COMPRESSED_PUBLIC_KEY_LEN],
-                                         uint8_t address[static ADDRESS_LEN]) {
+                                         uint8_t address[static P2PK_ADDRESS_LEN]) {
     return _ergo_address_from_pubkey(network, public_key, address, true);
+}
+
+bool ergo_address_from_script_hash(uint8_t network,
+                                   const uint8_t hash[static P2SH_HASH_LEN],
+                                   uint8_t address[static P2SH_ADDRESS_LEN]) {
+    BUFFER_FROM_ARRAY_EMPTY(buffer, address, P2SH_ADDRESS_LEN);
+    if (!network_id_is_valid(network)) {
+        return false;
+    }
+    // P2SH + network id
+    if (!buffer_write_u8(&buffer, 0x02 + network)) {
+        return false;
+    }
+    if (!buffer_write_bytes(&buffer, hash, P2SH_HASH_LEN)) {
+        return false;
+    }
+    uint8_t checksum[BLAKE2B_256_DIGEST_LEN] = {0};
+    if (!blake2b_256(buffer_read_ptr(&buffer), buffer_data_len(&buffer), checksum)) {
+        return false;
+    }
+    // Checksum
+    if (!buffer_write_bytes(&buffer, checksum, 4)) {
+        return false;
+    }
+    return true;
 }

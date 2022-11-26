@@ -5,11 +5,6 @@
 #include "da_context.h"
 #include "../../constants.h"
 
-// /**
-//  * Callback to reuse action with approve/reject in step FLOW.
-//  */
-// typedef void (*action_validate_cb)(bool);
-
 /**
  * Display account on the device and ask confirmation to export.
  *
@@ -21,4 +16,4 @@ int ui_display_address(derive_address_ctx_t* ctx,
                        uint32_t app_access_token,
                        uint32_t* bip32_path,
                        uint8_t bip32_path_len,
-                       uint8_t raw_address[static ADDRESS_LEN]);
+                       uint8_t raw_address[static P2PK_ADDRESS_LEN]);

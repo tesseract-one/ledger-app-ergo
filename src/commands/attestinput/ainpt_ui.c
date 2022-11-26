@@ -3,7 +3,6 @@
 
 #include "ainpt_ui.h"
 #include "ainpt_response.h"
-#include "ainpt_sw.h"
 #include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../common/macros.h"

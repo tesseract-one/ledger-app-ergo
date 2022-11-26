@@ -3,7 +3,6 @@
 
 #include "stx_ui.h"
 #include "stx_response.h"
-#include "stx_sw.h"
 #include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../common/macros.h"
@@ -111,19 +110,24 @@ static inline uint16_t output_info_print_address(const sign_transaction_output_i
             break;
         }
         case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS: {
-            uint8_t raw_address[ADDRESS_LEN];
+            uint8_t raw_address[P2PK_ADDRESS_LEN];
             strncpy(title, "Address", title_len);
             if (!ergo_address_from_compressed_pubkey(network_id, ctx->public_key, raw_address)) {
                 return SW_ADDRESS_GENERATION_FAILED;
             }
-            if (!format_b58_id(raw_address, ADDRESS_LEN, address, address_len)) {
+            if (!format_b58_id(raw_address, P2PK_ADDRESS_LEN, address, address_len)) {
                 return SW_ADDRESS_FORMATTING_FAILED;
             }
             break;
         }
-        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT: {
-            strncpy(title, "Script", title_len);
-            if (!format_b58_id(ctx->tree_hash, ERGO_ID_LEN, address, address_len)) {
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT:
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT_HASH: {
+            strncpy(title, "Script Hash", title_len);
+            uint8_t raw_address[P2SH_ADDRESS_LEN];
+            if (!ergo_address_from_script_hash(network_id, ctx->tree_hash, raw_address)) {
+                return SW_ADDRESS_GENERATION_FAILED;
+            }
+            if (!format_b58_id(raw_address, P2SH_ADDRESS_LEN, address, address_len)) {
                 return SW_ADDRESS_FORMATTING_FAILED;
             }
             break;

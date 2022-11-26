@@ -6,6 +6,15 @@
 
 static const uint8_t C_ERGO_TREE_P2PK_PREFIX[ERGO_TREE_P2PK_PREFIX_LEN] = {0x00, 0x08, 0xcd};
 
+// clang-format off
+static const uint8_t C_ERGO_TREE_P2SH_PREFIX[ERGO_TREE_P2SH_PREFIX_LEN] = {
+    0x00, 0xea, 0x02, 0xd1, 0x93, 0xb4, 0xcb, 0xe4, 0xe3,
+    0x01, 0x0e, 0x04, 0x00, 0x04, 0x30, 0x0e, 0x18
+};
+// clang-format on
+
+static const uint8_t C_ERGO_TREE_P2SH_SUFFIX[ERGO_TREE_P2SH_SUFFIX_LEN] = {0xd4, 0x08, 0x01};
+
 static const uint8_t C_ERGO_TREE_MINERS_HASH_FEE_MAINNET[105] = {
     0x10, 0x05, 0x04, 0x00, 0x04, 0x00, 0x0e, 0x36, 0x10, 0x02, 0x04, 0xa0, 0x0b, 0x08, 0xcd,
     0x02, 0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0, 0x62, 0x95, 0xce, 0x87,
@@ -45,6 +54,20 @@ bool ergo_tree_parse_p2pk(const uint8_t tree[ERGO_TREE_P2PK_LEN],
         return false;
     }
     memmove(public_key, tree + ERGO_TREE_P2PK_PREFIX_LEN, COMPRESSED_PUBLIC_KEY_LEN);
+    return true;
+}
+
+bool ergo_tree_parse_p2sh(const uint8_t tree[ERGO_TREE_P2SH_LEN],
+                          uint8_t hash[static P2SH_HASH_LEN]) {
+    if (memcmp(tree, PIC(C_ERGO_TREE_P2SH_PREFIX), ERGO_TREE_P2SH_PREFIX_LEN) != 0) {
+        return false;
+    }
+    if (memcmp(tree + ERGO_TREE_P2SH_PREFIX_LEN + P2SH_HASH_LEN,
+               PIC(C_ERGO_TREE_P2SH_SUFFIX),
+               ERGO_TREE_P2SH_SUFFIX_LEN) != 0) {
+        return false;
+    }
+    memmove(hash, tree + ERGO_TREE_P2SH_PREFIX_LEN, P2SH_HASH_LEN);
     return true;
 }
 

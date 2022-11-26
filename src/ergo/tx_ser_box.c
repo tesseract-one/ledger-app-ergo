@@ -133,6 +133,9 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tree(
     if (context->ergo_tree_size < len) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MUCH_DATA);
     }
+    if (context->ergo_tree_size > len && len < MAX_DATA_CHUNK_LEN) {
+        return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_SMALL_CHUNK);
+    }
     if (!blake2b_update(context->hash, buffer_read_ptr(tree_chunk), len)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }

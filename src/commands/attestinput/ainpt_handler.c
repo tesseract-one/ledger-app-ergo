@@ -1,10 +1,10 @@
 #include "ainpt_handler.h"
-#include "ainpt_sw.h"
 #include "ainpt_response.h"
 #include "ainpt_ui.h"
 #include "../../globals.h"
 #include "../../helpers/session_id.h"
 #include "../../helpers/response.h"
+#include "../../helpers/sw_result.h"
 #include "../../common/int_ops.h"
 #include "../../common/macros.h"
 
@@ -32,20 +32,20 @@
     do {                                                                                         \
         ergo_tx_serializer_box_result_e res = _call;                                             \
         if (res != ERGO_TX_SERIALIZER_BOX_RES_OK && res != ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA) \
-            return handler_err(_ctx, sw_from_box_res(res));                                      \
+            return handler_err(_ctx, sw_from_tx_box_result(res));                                \
     } while (0)
 
-#define CHECK_CALL_BOX_FINISHED(_ctx, _call)                   \
-    do {                                                       \
-        ergo_tx_serializer_box_result_e res = _call;           \
-        switch (res) {                                         \
-            case ERGO_TX_SERIALIZER_BOX_RES_OK:                \
-                return check_box_finished(ctx);                \
-            case ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA:         \
-                break;                                         \
-            default:                                           \
-                return handler_err(ctx, sw_from_box_res(res)); \
-        }                                                      \
+#define CHECK_CALL_BOX_FINISHED(_ctx, _call)                         \
+    do {                                                             \
+        ergo_tx_serializer_box_result_e res = _call;                 \
+        switch (res) {                                               \
+            case ERGO_TX_SERIALIZER_BOX_RES_OK:                      \
+                return check_box_finished(ctx);                      \
+            case ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA:               \
+                break;                                               \
+            default:                                                 \
+                return handler_err(ctx, sw_from_tx_box_result(res)); \
+        }                                                            \
     } while (0)
 
 static inline int handler_err(attest_input_ctx_t *ctx, uint16_t err) {

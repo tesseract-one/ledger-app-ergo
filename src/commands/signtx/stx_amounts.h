@@ -6,7 +6,7 @@
 #include "../../constants.h"
 #include "../../ergo/tx_ser_full.h"
 #include "../../common/int_ops.h"
-#include "stx_sw.h"
+#include "../../sw.h"
 
 typedef struct {
     uint64_t fee;
@@ -43,15 +43,3 @@ uint8_t stx_amounts_non_zero_tokens_count(const sign_transaction_amounts_ctx_t *
 
 uint8_t stx_amounts_non_zero_token_index(const sign_transaction_amounts_ctx_t *ctx,
                                          uint8_t zero_index);
-
-// static inline bool stx_amounts_is_token_used(sign_transaction_token_amount_t *amount) {
-//     return amount->output > 0 || amount->input != amount->change;
-// }
-
-// void stx_amounts_remove_unused_tokens(sign_transaction_amounts_ctx_t *ctx);
-
-// uint16_t stx_amounts_register_input_token_callback(sign_transaction_amounts_ctx_t *ctx,
-//                                                    ergo_tx_serializer_full_context_t *tx_ctx);
-
-// uint16_t stx_amounts_register_output_callbacks(sign_transaction_amounts_ctx_t *ctx,
-//                                                ergo_tx_serializer_full_context_t *tx_ctx);

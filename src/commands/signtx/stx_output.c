@@ -4,6 +4,7 @@
 #include "../../common/base58.h"
 #include "../../ergo/ergo_tree.h"
 #include "../../ergo/address.h"
+#include "../../helpers/sw_result.h"
 #include <string.h>
 
 #define STX_OUTPUT_SET_BOX_FINISHED(ctx) (ctx->state = ctx->state | 0x80)
@@ -23,41 +24,14 @@ static inline ergo_tx_serializer_box_result_e maybe_finished(
     sign_transaction_output_info_ctx_t* ctx) {
     if (stx_output_info_is_finished(ctx)) {
         if (STX_OUTPUT_INFO_TYPE(ctx) == SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT) {
-            uint8_t hash[ERGO_ID_LEN];
+            uint8_t hash[BLAKE2B_256_DIGEST_LEN];
             if (!blake2b_256_finalize(&ctx->tree_hash_ctx, hash)) {
                 return ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER;
             }
-            memmove(ctx->tree_hash, hash, ERGO_ID_LEN);
+            memmove(ctx->tree_hash, hash, BLAKE2B_256_DIGEST_LEN);
         }
     }
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
-}
-
-static inline uint16_t map_box_result(ergo_tx_serializer_box_result_e res) {
-    switch (res) {
-        case ERGO_TX_SERIALIZER_BOX_RES_OK:
-            return SW_OK;
-        case ERGO_TX_SERIALIZER_BOX_RES_MORE_DATA:
-            return SW_OK;
-        case ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX:
-            return SW_BAD_TOKEN_INDEX;
-        case ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_ID:
-            return SW_BAD_TOKEN_ID;
-        case ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_VALUE:
-            return SW_BAD_TOKEN_VALUE;
-        case ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MANY_TOKENS:
-            return SW_TOO_MANY_TOKENS;
-        case ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MUCH_DATA:
-            return SW_TOO_MUCH_DATA;
-        case ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER:
-            return SW_HASHER_ERROR;
-        case ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER:
-            return SW_BUFFER_ERROR;
-        case ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW:
-            return SW_U64_OVERFLOW;
-        case ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE:
-            return SW_BAD_STATE;
-    }
 }
 
 ergo_tx_serializer_box_result_e stx_output_info_set_expected_type(
@@ -76,6 +50,7 @@ ergo_tx_serializer_box_result_e stx_output_info_set_expected_type(
             break;
         }
         case ERGO_TX_SERIALIZER_BOX_TYPE_TREE: {
+            // selects default one for this type. Method will change it based on content.
             STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS);
             break;
         }
@@ -93,7 +68,7 @@ uint16_t stx_output_info_set_bip32(sign_transaction_output_info_ctx_t* ctx,
     STX_OUTPUT_SET_TREE_SET(ctx);
     ctx->bip32_path.len = path_len;
     memmove(ctx->bip32_path.path, path, path_len * sizeof(uint32_t));
-    return map_box_result(maybe_finished(ctx));
+    return sw_from_tx_box_result(maybe_finished(ctx));
 }
 
 uint16_t stx_output_info_set_fee(sign_transaction_output_info_ctx_t* ctx) {
@@ -102,7 +77,7 @@ uint16_t stx_output_info_set_fee(sign_transaction_output_info_ctx_t* ctx) {
         return SW_BAD_STATE;
     }
     STX_OUTPUT_SET_TREE_SET(ctx);
-    return map_box_result(maybe_finished(ctx));
+    return sw_from_tx_box_result(maybe_finished(ctx));
 }
 
 uint16_t stx_output_info_add_tree_chunk(sign_transaction_output_info_ctx_t* ctx,
@@ -110,7 +85,8 @@ uint16_t stx_output_info_add_tree_chunk(sign_transaction_output_info_ctx_t* ctx,
                                         uint16_t len,
                                         bool is_finished) {
     if (STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS &&
-        STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT) {
+        STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT &&
+        STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT_HASH) {
         return SW_BAD_STATE;
     }
     if (STX_OUTPUT_INFO_IS_TREE_SET(ctx)) {
@@ -120,7 +96,12 @@ uint16_t stx_output_info_add_tree_chunk(sign_transaction_output_info_ctx_t* ctx,
         if (len == ERGO_TREE_P2PK_LEN && is_finished &&
             ergo_tree_parse_p2pk(chunk, ctx->public_key)) {  // has public key
             STX_OUTPUT_SET_TREE_SET(ctx);
-        } else {  // isn't public key. treating as script
+        }
+        if (len == ERGO_TREE_P2SH_LEN && is_finished &&
+            ergo_tree_parse_p2sh(chunk, ctx->tree_hash)) {  // has script hash
+            STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT_HASH);
+            STX_OUTPUT_SET_TREE_SET(ctx);
+        } else {  // isn't public key or hash. treating as script
             STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT);
             if (!blake2b_256_init(&ctx->tree_hash_ctx)) {
                 return SW_HASHER_ERROR;
@@ -135,7 +116,7 @@ uint16_t stx_output_info_add_tree_chunk(sign_transaction_output_info_ctx_t* ctx,
             STX_OUTPUT_SET_TREE_SET(ctx);
         }
     }
-    return map_box_result(maybe_finished(ctx));
+    return sw_from_tx_box_result(maybe_finished(ctx));
 }
 
 ergo_tx_serializer_box_result_e stx_output_info_add_token(sign_transaction_output_info_ctx_t* ctx,

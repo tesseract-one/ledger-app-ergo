@@ -1,5 +1,4 @@
 #include "stx_handler.h"
-#include "stx_sw.h"
 #include "stx_response.h"
 #include "stx_ui.h"
 #include "../../globals.h"

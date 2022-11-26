@@ -20,6 +20,7 @@ typedef enum {
     SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32,
     SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS,
     SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT,
+    SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT_HASH,
     SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE
 } sign_transaction_output_info_type_e;
 
@@ -30,7 +31,7 @@ typedef struct {
     union {
         cx_blake2b_t tree_hash_ctx;
         uint8_t public_key[COMPRESSED_PUBLIC_KEY_LEN];
-        uint8_t tree_hash[ERGO_ID_LEN];
+        uint8_t tree_hash[BLAKE2B_256_DIGEST_LEN];
         sign_transaction_bip32_path_t bip32_path;
     };
     const token_table_t* tokens_table;
