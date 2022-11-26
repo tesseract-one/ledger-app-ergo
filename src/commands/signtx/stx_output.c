@@ -96,9 +96,8 @@ uint16_t stx_output_info_add_tree_chunk(sign_transaction_output_info_ctx_t* ctx,
         if (len == ERGO_TREE_P2PK_LEN && is_finished &&
             ergo_tree_parse_p2pk(chunk, ctx->public_key)) {  // has public key
             STX_OUTPUT_SET_TREE_SET(ctx);
-        }
-        if (len == ERGO_TREE_P2SH_LEN && is_finished &&
-            ergo_tree_parse_p2sh(chunk, ctx->tree_hash)) {  // has script hash
+        } else if (len == ERGO_TREE_P2SH_LEN && is_finished &&
+                   ergo_tree_parse_p2sh(chunk, ctx->tree_hash)) {  // has script hash
             STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT_HASH);
             STX_OUTPUT_SET_TREE_SET(ctx);
         } else {  // isn't public key or hash. treating as script
