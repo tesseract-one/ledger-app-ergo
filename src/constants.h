@@ -38,7 +38,7 @@
 /**
  * Maximum number of tokens in TX.
  */
-#define TOKEN_MAX_COUNT 10
+#define TOKEN_MAX_COUNT 20
 
 /**
  * Length of Session Key.
