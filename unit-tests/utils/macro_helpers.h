@@ -1,4 +1,4 @@
-// macroses that can't be passed through CMake
+// macros that can't be passed through CMake
 #pragma once
 
 // UNUSED macro. Defined in the Makefile
