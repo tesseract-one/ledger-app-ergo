@@ -2,4 +2,4 @@
 #pragma once
 
 // UNUSED macro. Defined in the Makefile
-#define UNUSED(x)=(void)(x)
+#define UNUSED(x) (void)(x)
