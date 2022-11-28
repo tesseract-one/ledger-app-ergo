@@ -101,7 +101,7 @@ static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
     ctx->state = SIGN_TRANSACTION_STATE_INITIALIZED;
     ctx->session = session_id_new_random(ctx->session);
 
-    // switch beetwen operations if more will be added
+    // switch between operations if more will be added
     CHECK_CALL_RESULT_OK(ctx,
                          ui_stx_operation_p2pk_show_token_and_path(
                              &ctx->p2pk,
@@ -122,7 +122,7 @@ static inline int handle_tx_start(sign_transaction_ctx_t *ctx, buffer_t *cdata) 
     CHECK_READ_PARAM(ctx, buffer_read_u16(cdata, &outputs_count, BE));
     CHECK_PARAMS_FINISHED(ctx, cdata);
 
-    // switch beetwen operations if more will be added
+    // switch between operations if more will be added
     CHECK_CALL_RESULT_OK(ctx,
                          stx_operation_p2pk_start_tx(&ctx->p2pk,
                                                      inputs_count,
@@ -134,7 +134,7 @@ static inline int handle_tx_start(sign_transaction_ctx_t *ctx, buffer_t *cdata) 
 
 static inline int handle_tokens(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
-    // switch beetwen operations if more will be added
+    // switch between operations if more will be added
     CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_tokens(&ctx->p2pk, cdata));
     return res_ok();
 }

@@ -64,7 +64,7 @@ Ledger Application is clearing all internal buffers and preparing for transactio
 
 ## 0x11 - Add Token Ids
 This call adds Distinct Token Ids to the transaction. Up to 7 Ids can be added in a single call. The hard limit of tokens in a single transaction is **20**.
-Must be called only if “Start Trasnaction data” call had “Number of TX Distinct Token Ids “ param set greater than zero. Must be called before setting Inputs.
+Must be called only if “Start Transaction data” call had “Number of TX Distinct Token Ids “ param set greater than zero. Must be called before setting Inputs.
 
 ### Request
 | INS | P1 | P2 | Lc | Data |
@@ -80,7 +80,7 @@ Must be called only if “Start Trasnaction data” call had “Number of TX Dis
 | [Optional] Token Id 7 | 32 | Seventh token Id |
 
 ## 0x12 - Add Input Box frame
-This call adds Input Box to the current TX. It must be called after calling the “Start Trasnaction data” or “Token Ids” method. All inputs must be set before calling any other method. Inputs must be sent in the same order as they are in the original transaction.
+This call adds Input Box to the current TX. It must be called after calling the “Start Transaction data” or “Token Ids” method. All inputs must be set before calling any other method. Inputs must be sent in the same order as they are in the original transaction.
 
 ### Request
 | INS | P1 | P2 | Lc | Data |

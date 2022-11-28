@@ -39,7 +39,7 @@ ergo_tx_serializer_box_result_e stx_amounts_add_output(sign_transaction_amounts_
             break;
         }
         case ERGO_TX_SERIALIZER_BOX_TYPE_FEE:
-            if (!checked_sub_u64(ctx->value, value, &ctx->value)) {  // descrease TX out value.
+            if (!checked_sub_u64(ctx->value, value, &ctx->value)) {  // decrease TX out value.
                 return ERGO_TX_SERIALIZER_BOX_RES_ERR_U64_OVERFLOW;
             }
             if (!checked_add_u64(ctx->fee, value, &ctx->fee)) {  // add value to fee.
