@@ -96,7 +96,7 @@ static void test_format_hex(void **state) {
 
     uint8_t input1[1] = {0x00};
     char output1[2 * sizeof(input1) + 1] = {0};
-    assert_int_equal(2 * sizeof(input1) + 1,
+    assert_int_equal(2 * sizeof(input1),
                      format_hex(input1, sizeof(input1), output1, sizeof(output1)));
     assert_string_equal(output1, "00");
 
@@ -104,7 +104,7 @@ static void test_format_hex(void **state) {
                          0x8d, 0x9e, 0xc8, 0x5e, 0x40, 0xf4, 0xcb, 0x69, 0x7b, 0xae};
     char output[2 * sizeof(address) + 1] = {0};
 
-    assert_int_equal(2 * sizeof(address) + 1,
+    assert_int_equal(2 * sizeof(address),
                      format_hex(address, sizeof(address), output, sizeof(output)));
     assert_string_equal(output, "de0b295669a9fd93d5f28d9ec85e40f4cb697bae");
     assert_int_equal(-1, format_hex(address, sizeof(address), output, sizeof(address)));
