@@ -35,7 +35,7 @@ static void test_ergo_tx_serializer_table_init_too_many_tokens(void **state) {
     (void) state;
 
     ergo_tx_serializer_table_context_t context;
-    uint8_t tokens_count = 10;
+    uint8_t tokens_count = TOKEN_MAX_COUNT;
     token_table_t tokens_table = {
         1,
         {
