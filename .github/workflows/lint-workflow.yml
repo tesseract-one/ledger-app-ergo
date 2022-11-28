@@ -29,8 +29,8 @@ jobs:
           fetch-depth: 0
       
       - name: Check misspellings
-        uses: codespell-project/actions-codespell@2391250ab05295bddd51e36a8c6295edb6343b0e
+        uses: codespell-project/actions-codespell@bcf481f4d5cce7b92b65f05aebe8f552d4f1442c
         with:
           builtin: clear,rare
           check_filenames: true
-          ignore_words_list: afterAll
+          ignore_words_list: afterall
