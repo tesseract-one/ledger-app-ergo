@@ -197,7 +197,7 @@ describe("Transaction Tests", function () {
                 .dataInput(address.address, TxId.zero(), 0)
                 .build(false);
             return { address, unsignedTransaction };
-        }, [2, 1]).do(
+        }, [2, 2]).do(
             function () {
                 return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
             },
@@ -209,13 +209,15 @@ describe("Transaction Tests", function () {
                         { header: null, body: 'Confirm Attest Input' }
                     ],
                     [
-                        { header: null, body: 'Start P2PK signing' },
-                        { header: 'Path', body: removeMasterNode(this.address.path.toString()) }
+                        { header: 'P2PK Signing', body: removeMasterNode(this.address.path.toString()) },
+                        { header: 'Application', body: '0x00000000' },
+                        { header: null, body: 'Approve' },
+                        { header: null, body: 'Reject' }
                     ]
                 ];
                 if (this.auth) {
                     signTxNoOutputsFlows[0].push({ header: 'Application', body: getApplication(this.test.device) });
-                    signTxNoOutputsFlows.splice(1, 1);
+                    signTxNoOutputsFlows[1].splice(1, 1);
                 }
                 expect(this.flows).to.be.deep.equal(signTxNoOutputsFlows);
                 expect(error).to.be.an('error');
