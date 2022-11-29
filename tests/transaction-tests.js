@@ -1,25 +1,36 @@
 const { expect } = require('chai')
     .use(require('chai-bytes'));
 const { Transaction, TxId, Tokens, Token, TokenId, TokenAmount, I64, ErgoBox } = require('ergo-lib-wasm-nodejs');
-const { toNetwork, getApplication, removeMasterNode } = require('./helpers/common');
+const { toNetwork, getApplication, removeMasterNode, ellipsize } = require('./helpers/common');
 const { TEST_DATA } = require('./helpers/data');
 const { AuthTokenFlows } = require('./helpers/flow');
 const { UnsignedTransactionBuilder } = require('./helpers/transaction');
 
 const signTxFlowCount = [5, 5];
 
-function signTxFlows(device, auth, address, tokens = undefined) {
+function signTxFlows(device, auth, from, to, change, tokens = undefined) {
     const flows = [
         [
             { header: null, body: 'Confirm Attest Input' }
         ],
         [
-            { header: null, body: 'Start P2PK signing' },
-            { header: 'Path', body: removeMasterNode(address.path.toString()) }
+            { header: 'P2PK Signing', body: removeMasterNode(from.path.toString()) },
+            { header: 'Application', body: '0x00000000' },
+            { header: null, body: 'Approve' },
+            { header: null, body: 'Reject' }
         ],
         [
-            { header: null, body: 'Confirm Transaction' },
-            { header: 'P2PK Path', body: removeMasterNode(address.path.toString()) },
+            { header: null, body: 'Confirm Output' },
+            { header: 'Address', body: ellipsize(to.toBase58()) },
+            { header: 'Output Value', body: '0.100000000' }
+        ],
+        [
+            { header: null, body: 'Confirm Output' },
+            { header: 'Change', body: removeMasterNode(change.path.toString()) }
+        ],
+        [
+            { header: null, body: 'Approve Signing' },
+            { header: 'P2PK Path', body: removeMasterNode(from.path.toString()) },
             { header: 'Transaction Amount', body: '0.100000000' },
             { header: 'Transaction Fee', body: '0.001000000' }
         ]
@@ -29,7 +40,7 @@ function signTxFlows(device, auth, address, tokens = undefined) {
     }
     if (auth) {
         flows[0].push({ header: 'Application', body: getApplication(device) });
-        flows.splice(1, 1);
+        flows[1].splice(1, 1);
     }
     return flows;
 };
@@ -77,21 +88,24 @@ describe("Transaction Tests", function () {
         );
 
         new AuthTokenFlows("can sign tx", () => {
-            const address = TEST_DATA.address0;
+            const from = TEST_DATA.address0;
+            const to = TEST_DATA.address1;
+            const change = TEST_DATA.changeAddress;
             const builder = new UnsignedTransactionBuilder()
-                .input(address, TxId.zero(), 0)
-                .dataInput(address.address, TxId.zero(), 0)
-                .output('100000000', TEST_DATA.address1.address)
+                .input(from, TxId.zero(), 0)
+                .dataInput(from.address, TxId.zero(), 0)
+                .output('100000000', to.address)
                 .fee('1000000')
-                .change(TEST_DATA.changeAddress);
-            return { address, builder };
+                .change(change);
+            return { from, to, change, builder };
         }, signTxFlowCount).do(
             function () {
                 const unsignedTransaction = this.builder.build();
                 return this.test.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network))
             },
             function (signatures) {
-                expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address));
+                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change);
+                expect(this.flows).to.be.deep.equal(flows);
                 expect(signatures).to.have.length(1);
                 const ergoBox = this.builder.ergoBuilder.inputs.get(0);
                 verifySignatures(this.builder.ergoTransaction, signatures, ergoBox);

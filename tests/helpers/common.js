@@ -34,6 +34,10 @@ function getApplication(device) {
     return '0x' + device.authToken.toString(16).padStart(8, 0);
 }
 
+function ellipsize(address) {
+    return address.substring(0, 7) + '...' + address.substring(address.length - 7, address.length);
+}
+
 function removeMasterNode(path) {
     return path.replace(/^(m\/)/, '');
 }
@@ -53,5 +57,6 @@ exports.toBytes = toBytes;
 exports.toArray = toArray;
 exports.toNetwork = toNetwork;
 exports.getApplication = getApplication;
+exports.ellipsize = ellipsize;
 exports.removeMasterNode = removeMasterNode;
 exports.getMinerAddress = getMinerAddress;
