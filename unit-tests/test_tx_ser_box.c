@@ -392,6 +392,8 @@ static void test_ergo_tx_serializer_box_add_change_tree_bad_state(void **state) 
     (void) state;
 
     ergo_tx_serializer_box_context_t context;
+    memset(&context, 0, sizeof(ergo_tx_serializer_box_context_t));
+    context.state = ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED;
     const uint8_t raw_public_key[PUBLIC_KEY_LEN] = {0};
     assert_int_equal(
         ergo_tx_serializer_box_add_change_tree(&context, raw_public_key),
