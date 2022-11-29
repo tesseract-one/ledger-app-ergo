@@ -54,6 +54,7 @@ jobs:
         run: |
           cd unit-tests/
           make -C build test
+          ./build/test_tx_ser_box
 
       - name: Generate code coverage
         run: |
