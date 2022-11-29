@@ -113,11 +113,13 @@ describe("Transaction Tests", function () {
         );
 
         new AuthTokenFlows("can sign tx with additional registers", () => {
-            const address = TEST_DATA.address0;
+            const from = TEST_DATA.address0;
+            const to = TEST_DATA.address1;
+            const change = TEST_DATA.changeAddress;
             const ergoBox = ErgoBox.from_json(`{
                 "boxId": "ef16f4a6db61a1c31aea55d3bf10e1fb6443cf08cff4a1cf2e3a4780e1312dba",
                 "value": 1000000000,
-                "ergoTree": "${address.address.to_ergo_tree().to_base16_bytes()}",
+                "ergoTree": "${from.address.to_ergo_tree().to_base16_bytes()}",
                 "assets": [],
                 "additionalRegisters": {
                   "R5": "0e050102030405",
@@ -128,18 +130,19 @@ describe("Transaction Tests", function () {
                 "index": 0
             }`);
             const builder = new UnsignedTransactionBuilder()
-                .inputFrom(ergoBox, address.path)
-                .output('100000000', TEST_DATA.address1.address)
+                .inputFrom(ergoBox, from.path)
+                .output('100000000', to.address)
                 .fee('1000000')
-                .change(TEST_DATA.changeAddress);
-            return { address, builder };
+                .change(change);
+            return { from, to, change, builder };
         }, signTxFlowCount).do(
             function () {
                 const unsignedTransaction = this.builder.build();
                 return this.test.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network))
             },
             function (signatures) {
-                expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address));
+                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change);
+                expect(this.flows).to.be.deep.equal(flows);
                 expect(signatures).to.have.length(1);
                 const ergoBox = this.builder.ergoBuilder.inputs.get(0);
                 verifySignatures(this.builder.ergoTransaction, signatures, ergoBox);
