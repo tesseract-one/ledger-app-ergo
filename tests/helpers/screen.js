@@ -137,6 +137,21 @@ class ScreenReader {
         }
         await this._automation.pressButton('both');
     }
+
+    async clickOn(body) {
+        await sleep();
+        let firstScreen = await this.currentScreen();
+        let currentScreen;
+        do {
+            await this.goNext();
+            currentScreen = await this.currentScreen();
+            if (currentScreen.body == body) {
+                await this._automation.pressButton('both');
+                break;
+            }
+        } while (currentScreen.header !== firstScreen.header
+            && currentScreen.body !== firstScreen.body);
+    }
 }
 
 exports.MAIN_FLOW = MAIN_FLOW;

@@ -17,8 +17,13 @@ class AuthTokenFlows {
                 const promise = action.call(params);
                 const flows = [];
                 for (let i = 0; i < count[auth]; i++) {
-                    flows.push(await this.screens.readFlow());
-                    await this.screens.click(0);
+                    let flow = await this.screens.readFlow();
+                    flows.push(flow);
+                    if (flow.some(screen => screen.body == 'Approve')) {
+                        await this.screens.clickOn('Approve');
+                    } else {
+                        await this.screens.click(0);
+                    }
                 }
                 Object.assign(params, { flows });
                 try {

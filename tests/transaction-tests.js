@@ -6,7 +6,7 @@ const { TEST_DATA } = require('./helpers/data');
 const { AuthTokenFlows } = require('./helpers/flow');
 const { UnsignedTransactionBuilder } = require('./helpers/transaction');
 
-const signTxFlowCount = [3, 2];
+const signTxFlowCount = [5, 5];
 
 function signTxFlows(device, auth, address, tokens = undefined) {
     const flows = [
@@ -56,7 +56,7 @@ describe("Transaction Tests", function () {
                 return this.test.device.attestInput(this.unsignedBox);
             },
             function (attestedBox) {
-                const attestInputFlow = [ { header: null, body: 'Confirm Attest Input' } ];
+                const attestInputFlow = [{ header: null, body: 'Confirm Attest Input' }];
                 if (this.auth) {
                     attestInputFlow.push({ header: 'Application', body: getApplication(this.test.device) });
                 }
