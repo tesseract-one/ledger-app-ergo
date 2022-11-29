@@ -150,20 +150,23 @@ describe("Transaction Tests", function () {
         );
 
         new AuthTokenFlows("can sign tx with zero data inputs", () => {
-            const address = TEST_DATA.address0;
+            const from = TEST_DATA.address0;
+            const to = TEST_DATA.address1;
+            const change = TEST_DATA.changeAddress;
             const builder = new UnsignedTransactionBuilder()
-                .input(address, TxId.zero(), 0)
-                .output('100000000', TEST_DATA.address1.address)
+                .input(from, TxId.zero(), 0)
+                .output('100000000', to.address)
                 .fee('1000000')
-                .change(TEST_DATA.changeAddress);
-            return { address, builder };
+                .change(change);
+            return { from, to, change, builder };
         }, signTxFlowCount).do(
             function () {
                 const unsignedTransaction = this.builder.build();
                 return this.test.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network));
             },
             function (signatures) {
-                expect(this.flows).to.be.deep.equal(signTxFlows(this.test.device, this.auth, this.address));
+                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change);
+                expect(this.flows).to.be.deep.equal(flows);
                 expect(signatures).to.have.length(1);
                 const ergoBox = this.builder.ergoBuilder.inputs.get(0);
                 verifySignatures(this.builder.ergoTransaction, signatures, ergoBox);
