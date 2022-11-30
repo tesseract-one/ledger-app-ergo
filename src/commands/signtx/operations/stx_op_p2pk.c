@@ -46,9 +46,6 @@ p2pk_input_token_cb(const uint8_t box_id[static ERGO_ID_LEN],
 static NOINLINE ergo_tx_serializer_box_result_e
 p2pk_output_type_cb(ergo_tx_serializer_box_type_e type, uint64_t value, void *context) {
     sign_transaction_operation_p2pk_ctx_t *ctx = (sign_transaction_operation_p2pk_ctx_t *) context;
-    ergo_tx_serializer_box_result_e res =
-        stx_output_info_set_expected_type(&ctx->transaction.ui.output, type);
-    if (res != ERGO_TX_SERIALIZER_BOX_RES_OK) return res;
     return stx_amounts_add_output(&ctx->amounts, type, value);
 }
 

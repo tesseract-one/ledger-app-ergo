@@ -34,37 +34,13 @@ static inline ergo_tx_serializer_box_result_e maybe_finished(
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
 }
 
-ergo_tx_serializer_box_result_e stx_output_info_set_expected_type(
-    sign_transaction_output_info_ctx_t* ctx,
-    ergo_tx_serializer_box_type_e type) {
-    if (STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_UNKNOWN) {
-        return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE;
-    }
-    switch (type) {
-        case ERGO_TX_SERIALIZER_BOX_TYPE_FEE: {
-            STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE);
-            break;
-        }
-        case ERGO_TX_SERIALIZER_BOX_TYPE_CHANGE: {
-            STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32);
-            break;
-        }
-        case ERGO_TX_SERIALIZER_BOX_TYPE_TREE: {
-            // selects default one for this type. Method will change it based on content.
-            STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS);
-            break;
-        }
-    }
-    return ERGO_TX_SERIALIZER_BOX_RES_OK;
-}
-
 uint16_t stx_output_info_set_bip32(sign_transaction_output_info_ctx_t* ctx,
                                    const uint32_t path[MAX_BIP32_PATH],
                                    uint8_t path_len) {
-    if (STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32 &&
-        STX_OUTPUT_INFO_IS_TREE_SET(ctx)) {
+    if (STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_UNKNOWN) {
         return SW_BAD_STATE;
     }
+    STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32);
     STX_OUTPUT_SET_TREE_SET(ctx);
     ctx->bip32_path.len = path_len;
     memmove(ctx->bip32_path.path, path, path_len * sizeof(uint32_t));
@@ -72,10 +48,10 @@ uint16_t stx_output_info_set_bip32(sign_transaction_output_info_ctx_t* ctx,
 }
 
 uint16_t stx_output_info_set_fee(sign_transaction_output_info_ctx_t* ctx) {
-    if (STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE &&
-        STX_OUTPUT_INFO_IS_TREE_SET(ctx)) {
+    if (STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_UNKNOWN) {
         return SW_BAD_STATE;
     }
+    STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE);
     STX_OUTPUT_SET_TREE_SET(ctx);
     return sw_from_tx_box_result(maybe_finished(ctx));
 }
@@ -84,17 +60,17 @@ uint16_t stx_output_info_add_tree_chunk(sign_transaction_output_info_ctx_t* ctx,
                                         const uint8_t* chunk,
                                         uint16_t len,
                                         bool is_finished) {
-    if (STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS &&
-        STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT &&
-        STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT_HASH) {
+    if (STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_UNKNOWN &&
+        STX_OUTPUT_INFO_TYPE(ctx) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT) {
         return SW_BAD_STATE;
     }
     if (STX_OUTPUT_INFO_IS_TREE_SET(ctx)) {
         return SW_BAD_STATE;
     }
-    if (STX_OUTPUT_INFO_TYPE(ctx) == SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS) {
+    if (STX_OUTPUT_INFO_TYPE(ctx) == SIGN_TRANSACTION_OUTPUT_INFO_TYPE_UNKNOWN) {
         if (len == ERGO_TREE_P2PK_LEN && is_finished &&
             ergo_tree_parse_p2pk(chunk, ctx->public_key)) {  // has public key
+            STX_OUTPUT_SET_TYPE(ctx, SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS);
             STX_OUTPUT_SET_TREE_SET(ctx);
         } else if (len == ERGO_TREE_P2SH_LEN && is_finished &&
                    ergo_tree_parse_p2sh(chunk, ctx->tree_hash)) {  // has script hash

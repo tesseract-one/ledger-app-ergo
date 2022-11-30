@@ -52,10 +52,6 @@ static inline void stx_output_info_init(sign_transaction_output_info_ctx_t* ctx,
     ctx->tokens_table = tokens;
 }
 
-ergo_tx_serializer_box_result_e stx_output_info_set_expected_type(
-    sign_transaction_output_info_ctx_t* ctx,
-    ergo_tx_serializer_box_type_e type);
-
 uint16_t stx_output_info_set_bip32(sign_transaction_output_info_ctx_t* ctx,
                                    const uint32_t path[MAX_BIP32_PATH],
                                    uint8_t path_len);

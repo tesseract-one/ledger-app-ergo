@@ -30,7 +30,6 @@ ergo_tx_serializer_input_result_e stx_amounts_add_input_token(
 ergo_tx_serializer_box_result_e stx_amounts_add_output(sign_transaction_amounts_ctx_t *ctx,
                                                        ergo_tx_serializer_box_type_e type,
                                                        uint64_t value) {
-    uint64_t *sum;
     switch (type) {
         case ERGO_TX_SERIALIZER_BOX_TYPE_CHANGE: {
             if (!checked_sub_u64(ctx->value, value, &ctx->value)) {  // decrease TX out value.
