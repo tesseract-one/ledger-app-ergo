@@ -167,10 +167,10 @@ jobs:
           nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --api-port 40000 --display headless --model=${{ matrix.model }} --sdk=${{ matrix.SDK }} --seed \"jaguar swallow dinner course lend surround warm robot grape pear skate relief\"" > speculos.log 2<&1 &
           cd tests && npm install
           until `nc -w5 -z -v 127.0.0.1 9999`; do sleep 1; done;
-          npm run test
+          npm --model=${{matrix.model}} run test
 
       - name: Upload Speculos log
         uses: actions/upload-artifact@v3
         with:
-          name: speculos-log
+          name: speculos-${{matrix.model}}-log
           path: speculos.log

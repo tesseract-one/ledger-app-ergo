@@ -13,6 +13,12 @@ const ABOUT_FLOW = [
     { header: null, body: "Back" }
 ]
 
+const HEADER_Y_POSITIONS = {
+    nanos: 3,
+    nanosp: 28,
+    nanox: 28
+}
+
 function resolver() {
     let resolve, reject;
     let promise = new Promise((res, rej) => {
@@ -56,13 +62,15 @@ exports.mergePagedScreens = function (screens) {
 }
 
 class ScreenReader {
-    constructor(automation) {
+    constructor(automation, model) {
         this._automation = automation;
         this._currentScreen = {};
+        this._model = model;
 
         let line1 = null;
+        const header_y = HEADER_Y_POSITIONS[model];
         this._automation.events.on("text", (evt) => {
-            if (evt.y === 3) {
+            if (evt.y === header_y) {
                 line1 = evt.text;
                 return;
             }

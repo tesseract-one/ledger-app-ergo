@@ -10,7 +10,8 @@ const API_PORT = 40000;
 
 exports.mochaHooks = {
     beforeAll: async function () {
-        if (process.env.LEDGER_LIVE_HARDWARE) {
+        const model = process.env.npm_config_model;
+        if (model === "device") {
             this.transport = await HidTransport.create();
         } else {
             this.transport = await SpeculosTransport.open({
@@ -18,7 +19,7 @@ exports.mochaHooks = {
             });
             this.automation = new SpeculosAutomation(null, API_PORT);
             await this.automation.connect();
-            this.screens = new ScreenReader(this.automation);
+            this.screens = new ScreenReader(this.automation, model);
             this.device = new ErgoLedgerApp(this.transport);
         }
     },
