@@ -23,6 +23,7 @@ class SpeculosAutomation {
                             .map(str => str.slice(str.indexOf("{")))
                             .forEach((ascii) => {
                                 const json = JSON.parse(ascii);
+                                console.log("EVENT", json);
                                 if (json.text) {
                                     this.events.emit('text', json);
                                 }
