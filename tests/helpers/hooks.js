@@ -22,6 +22,13 @@ exports.mochaHooks = {
             this.device = new ErgoLedgerApp(this.transport);
         }
     },
+    beforeEach: async function () {
+        if (this.screens) {
+            if (!await this.screens.ensureMainMenu()) {
+                throw new Error("Emulator shows not a main flow!")
+            }
+        }
+    },
     afterAll: async function () {
         this.device = undefined;
         this.transport.close();

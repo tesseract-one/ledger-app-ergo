@@ -1,3 +1,5 @@
+const { sleep } = require("./common");
+
 class AuthTokenFlows {
     constructor(name, before, count = [1, 1]) {
         this.name = name;
@@ -10,7 +12,7 @@ class AuthTokenFlows {
         const before = this.before;
         const run = auth => {
             it(`${this.name}${auth ? ' (with auth token)' : ''}`, async function () {
-                this.timeout(15_000);
+                this.timeout(20_000);
                 const params = before();
                 Object.assign(params, { test: this, auth });
                 this.device.useAuthToken(auth);
@@ -35,6 +37,7 @@ class AuthTokenFlows {
                         throw error;
                     }
                 }
+                await sleep(1000);
             });
         }
         run(0);
