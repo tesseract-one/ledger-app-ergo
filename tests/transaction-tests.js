@@ -75,9 +75,13 @@ describe("Transaction Tests", function () {
                 return this.test.device.attestInput(this.unsignedBox);
             },
             function (attestedBox) {
-                const attestInputFlow = [{ header: null, body: 'Confirm Attest Input' }];
+                const attestInputFlow = [
+                    { header: null, body: 'Confirm Attest Input' },
+                    { header: null, body: 'Approve' },
+                    { header: null, body: 'Reject' }
+                ];
                 if (this.auth) {
-                    attestInputFlow.push({ header: 'Application', body: getApplication(this.test.device) });
+                    attestInputFlow.splice(1, 0, { header: 'Application', body: getApplication(this.test.device) });
                 }
                 expect(this.flows[0]).to.be.deep.equal(attestInputFlow);
                 expect(attestedBox).to.have.property('box');
