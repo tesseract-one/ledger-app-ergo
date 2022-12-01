@@ -14,8 +14,8 @@ const ABOUT_FLOW = [
 
 const SCREEN_LAST_LINE = {
     nanos: 17,
-    nanox: 48,
-    nanosp: 48
+    nanox: 42,
+    nanosp: 42
 };
 
 function resolver() {

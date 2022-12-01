@@ -133,7 +133,7 @@ jobs:
           # - model: nanox
           #   SDK: "2.0.2"
           # - model: nanosp
-          #   SDK: "1.0.3"
+          #   SDK: "1.0.4"
     
     needs: job_build_nano_debug
     runs-on: ubuntu-latest
