@@ -299,7 +299,7 @@ describe("Transaction Tests", function () {
                     { header: 'Token [1] Value', body: 'Burning: 1000' }
                 ];
                 let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change);
-                flows[4] = flows[4].concat(tokens);
+                flows[4].splice(4, 0, ...tokens);
                 expect(this.flows).to.be.deep.equal(flows);
                 expect(signatures).to.have.length(1);
             }
@@ -331,7 +331,7 @@ describe("Transaction Tests", function () {
                     { header: 'Token [1] Value', body: '1000' }
                 ];
                 let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change, tokens);
-                flows[4] = flows[4].concat([
+                flows[4].splice(4, 0, ...[
                     { header: 'Token [1]', body: '1111111...1111111' },
                     { header: 'Token [1] Value', body: 'Minting: 1000' }
                 ]);
@@ -372,7 +372,7 @@ describe("Transaction Tests", function () {
                     { header: 'Token [1] Value', body: '1000' }
                 ];
                 let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change, tokens);
-                flows[4] = flows[4].concat([
+                flows[4].splice(4, 0, ...[
                     { header: 'Token [1]', body: '1111111...1111111' },
                     { header: 'Token [1] Value', body: 'Burning: 1000' },
                     { header: 'Token [2]', body: '0000000...0000000' },
