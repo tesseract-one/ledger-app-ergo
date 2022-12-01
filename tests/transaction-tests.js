@@ -47,7 +47,7 @@ function signTxFlows(device, auth, from, to, change, tokens = undefined) {
         flows[2] = flows[2].concat(tokens);
     }
     if (auth) {
-        flows[0].push({ header: 'Application', body: getApplication(device) });
+        flows[0].splice(1, 0, { header: 'Application', body: getApplication(device) });
         flows[1].splice(1, 1);
     }
     return flows;
