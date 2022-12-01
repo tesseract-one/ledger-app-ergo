@@ -12,10 +12,10 @@ const ABOUT_FLOW = [
     { header: null, body: "Back" }
 ];
 
-const SCREEN_LINES = {
-    nanos: 2,
-    nanox: 4,
-    nanosp: 4
+const SCREEN_LAST_LINE = {
+    nanos: 17,
+    nanox: 48,
+    nanosp: 48
 };
 
 function resolver() {
@@ -78,6 +78,25 @@ class ScreenReader {
                 screen.body = events.reduce((acc, val) => acc + val.text, '');
                 events = [];
             }
+            // THIS IS THE UGLY HACK FOR BUGGY SPECULOS
+            // Sometimes it doesn't send full MAIN screen, and sends only header (on quick operations)
+            // We will set header 'null' for event
+            if (screen.header === MAIN_FLOW[0].header && screen.body !== MAIN_FLOW[0].body) {
+                screen.header = null;
+                if (this._currentScreen.resolve) {
+                    console.log("Ugly hack applied!");
+                    this._currentScreen.resolve(MAIN_FLOW[0]);
+                    this._currentScreen.resolve = null;
+                    this._currentScreen.reject = null;
+                } else {
+                    console.log("ERROR! Problems ugly hack doesn't have Promise.");
+                }
+                if (!screen.body) {
+                    console.log("ERROR! Ugly hack has empty screen body.");
+                    return;
+                }
+            }
+            // END OF THE UGLY HACK
             if (this._currentScreen.resolve) {
                 this._currentScreen.resolve(screen);
                 this._currentScreen.resolve = null;
@@ -97,10 +116,10 @@ class ScreenReader {
                 if (evt.y <= last.y) { screenFinished(); }
                 events.push(evt);
             }
-            if (events.length === SCREEN_LINES[model]) {
+            if (evt.y >= SCREEN_LAST_LINE[model]) {
                 screenFinished();
             } else {
-                timer = setTimeout(screenFinished, 100);
+                timer = setTimeout(screenFinished, 200);
             }
         });
         this._automation.events.on("error", (err) => {

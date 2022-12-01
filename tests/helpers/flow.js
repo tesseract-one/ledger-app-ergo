@@ -23,6 +23,14 @@ class AuthTokenFlows {
     do(action, success, failure) {
         const count = this.count;
         const before = this.before;
+
+        success = success ?? (function (result) {
+            throw new Error(`Success called: ${result}`);
+        });
+        failure = failure ?? (function (error) {
+            throw new Error(`Failure called: ${error}`);
+        });
+
         const run = auth => {
             it(`${this.name}${auth ? ' (with auth token)' : ''}`, async function () {
                 this.timeout(30_000);
@@ -32,23 +40,23 @@ class AuthTokenFlows {
                 const promise = suppressPomiseError(action.call(params));
                 const flows = [];
                 for (let i = 0; i < count[auth]; i++) {
-                    await sleep(500); // Allow action to show UI
+                    await sleep(1500); // Allow action to show UI
                     let flow = await this.screens.readFlow();
                     flows.push(flow);
                     await this.screens.clickOn('Approve');
                 }
                 Object.assign(params, { flows });
+                let result;
                 try {
-                    success.call(params, await restorePromiseError(promise));
+                    result = await restorePromiseError(promise);
                 } catch (error) {
-                    if (failure) {
-                        failure.call(params, error);
-                    } else {
-                        throw error;
-                    }
+                    failure.call(params, error);
+                    return;
                 }
+                success.call(params, result);
             });
         }
+
         run(0);
         run(1);
     }

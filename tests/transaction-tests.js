@@ -11,7 +11,9 @@ const signTxFlowCount = [5, 5];
 function signTxFlows(device, auth, from, to, change, tokens = undefined) {
     const flows = [
         [
-            { header: null, body: 'Confirm Attest Input' }
+            { header: null, body: 'Confirm Attest Input' },
+            { header: null, body: 'Approve' },
+            { header: null, body: 'Reject' }
         ],
         [
             { header: 'P2PK Signing', body: removeMasterNode(from.path.toString()) },
@@ -22,17 +24,23 @@ function signTxFlows(device, auth, from, to, change, tokens = undefined) {
         [
             { header: null, body: 'Confirm Output' },
             { header: 'Address', body: ellipsize(to.toBase58()) },
-            { header: 'Output Value', body: '0.100000000' }
+            { header: 'Output Value', body: '0.100000000' },
+            { header: null, body: 'Approve' },
+            { header: null, body: 'Reject' }
         ],
         [
             { header: null, body: 'Confirm Output' },
-            { header: 'Change', body: removeMasterNode(change.path.toString()) }
+            { header: 'Change', body: removeMasterNode(change.path.toString()) },
+            { header: null, body: 'Approve' },
+            { header: null, body: 'Reject' }
         ],
         [
             { header: null, body: 'Approve Signing' },
             { header: 'P2PK Path', body: removeMasterNode(from.path.toString()) },
             { header: 'Transaction Amount', body: '0.100000000' },
-            { header: 'Transaction Fee', body: '0.001000000' }
+            { header: 'Transaction Fee', body: '0.001000000' },
+            { header: null, body: 'Approve' },
+            { header: null, body: 'Reject' }
         ]
     ];
     if (tokens) {
@@ -184,11 +192,11 @@ describe("Transaction Tests", function () {
             function () {
                 return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
             },
-            function () {
-                throw new Error("Success should not be called!");
-            },
-            function (failure) {
-                expect(failure).to.exist;
+            null,
+            function (error) {
+                expect(error).to.be.an('error');
+                expect(error.name).to.be.equal('DeviceError');
+                expect(error.message).to.be.equal('Bad output count');
             }
         );
 
@@ -203,12 +211,13 @@ describe("Transaction Tests", function () {
             function () {
                 return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
             },
-            function (signatures) {
-                expect(signatures).to.not.exist;
-            }, function (error) {
+            null,
+            function (error) {
                 const signTxNoOutputsFlows = [
                     [
-                        { header: null, body: 'Confirm Attest Input' }
+                        { header: null, body: 'Confirm Attest Input' },
+                        { header: null, body: 'Approve' },
+                        { header: null, body: 'Reject' }
                     ],
                     [
                         { header: 'P2PK Signing', body: removeMasterNode(this.address.path.toString()) },
@@ -218,7 +227,7 @@ describe("Transaction Tests", function () {
                     ]
                 ];
                 if (this.auth) {
-                    signTxNoOutputsFlows[0].push({ header: 'Application', body: getApplication(this.test.device) });
+                    signTxNoOutputsFlows[0].splice(1, 0, { header: 'Application', body: getApplication(this.test.device) });
                     signTxNoOutputsFlows[1].splice(1, 1);
                 }
                 expect(this.flows).to.be.deep.equal(signTxNoOutputsFlows);
