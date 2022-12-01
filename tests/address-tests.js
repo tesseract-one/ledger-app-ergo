@@ -2,6 +2,7 @@ const { expect } = require('chai')
     .use(require('chai-bytes'));
 const { toHex, getApplication, removeMasterNode } = require('./helpers/common');
 const { TEST_DATA } = require('./helpers/data');
+const { mergePagedScreens } = require("./helper/screen");
 const { AuthTokenFlows } = require('./helpers/flow');
 
 describe("Address Tests", function () {
@@ -33,14 +34,12 @@ describe("Address Tests", function () {
                 const addressFlow = [
                     { header: null, body: 'Confirm Address' },
                     { header: 'Path', body: removeMasterNode(this.address.path.toString()) },
-                    { header: 'Address (1/3)', body: this.address.toBase58().substring(0, 19) },
-                    { header: 'Address (2/3)', body: this.address.toBase58().substring(19, 36) },
-                    { header: 'Address (3/3)', body: this.address.toBase58().substring(36) }
+                    { header: 'Address', body: this.address.toBase58() },
                 ];
                 if (this.auth) {
                     addressFlow.push({ header: 'Application', body: getApplication(this.test.device) });
                 }
-                expect(this.flows[0]).to.be.deep.equal(addressFlow);
+                expect(mergePagedScreens(this.flows[0])).to.be.deep.equal(addressFlow);
                 expect(show).to.be.true;
             }
         );

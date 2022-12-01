@@ -13,12 +13,6 @@ const ABOUT_FLOW = [
     { header: null, body: "Back" }
 ]
 
-const HEADER_Y_POSITIONS = {
-    nanos: 3,
-    nanosp: 28,
-    nanox: 28
-}
-
 function resolver() {
     let resolve, reject;
     let promise = new Promise((res, rej) => {
@@ -62,20 +56,22 @@ exports.mergePagedScreens = function (screens) {
 }
 
 class ScreenReader {
-    constructor(automation, model) {
+    constructor(automation) {
         this._automation = automation;
         this._currentScreen = {};
-        this._model = model;
 
-        let line1 = null;
-        const header_y = HEADER_Y_POSITIONS[model];
-        this._automation.events.on("text", (evt) => {
-            if (evt.y === header_y) {
-                line1 = evt.text;
-                return;
+        let lines = [];
+        let timer = undefined;
+        const screenFinished = () => {
+            const screen = { header: null, body: null };
+            timer = undefined;
+            if (lines.length === 1) {
+                screen.body = lines.pop();
+            } else {
+                screen.header = lines.shift();
+                screen.body = lines.reduce((acc, val) => acc + val, '');
+                lines = [];
             }
-            const screen = { header: line1, body: evt.text };
-            line1 = null;
             if (this._currentScreen.resolve) {
                 this._currentScreen.resolve(screen);
                 this._currentScreen.resolve = null;
@@ -83,6 +79,13 @@ class ScreenReader {
             } else {
                 this._currentScreen.promise = Promise.resolve(screen);
             }
+        };
+        this._automation.events.on("text", function (evt) {
+            if (timer !== undefined) {
+                clearTimeout(timer);
+            }
+            lines.push(evt.text);
+            timer = setTimeout(screenFinished, 100);
         });
         this._automation.events.on("error", (err) => {
             this._currentScreen.reject(err);

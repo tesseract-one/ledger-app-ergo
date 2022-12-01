@@ -10,8 +10,8 @@ const API_PORT = 40000;
 
 exports.mochaHooks = {
     beforeAll: async function () {
-        const model = process.env.npm_config_model;
-        if (model === "device") {
+        this.model = process.env.npm_config_model;
+        if (this.model === "device") {
             this.transport = await HidTransport.create();
         } else {
             this.transport = await SpeculosTransport.open({
@@ -19,12 +19,13 @@ exports.mochaHooks = {
             });
             this.automation = new SpeculosAutomation(null, API_PORT);
             await this.automation.connect();
-            this.screens = new ScreenReader(this.automation, model);
+            this.screens = new ScreenReader(this.automation);
             this.device = new ErgoLedgerApp(this.transport);
         }
     },
     beforeEach: async function () {
         if (this.screens) {
+            this.timeout(2000);
             if (!await this.screens.ensureMainMenu()) {
                 throw new Error("Emulator shows not a main flow!")
             }

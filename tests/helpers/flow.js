@@ -1,5 +1,3 @@
-const { sleep } = require("./common");
-
 class AuthTokenFlows {
     constructor(name, before, count = [1, 1]) {
         this.name = name;
@@ -37,7 +35,6 @@ class AuthTokenFlows {
                         throw error;
                     }
                 }
-                await sleep(1000);
             });
         }
         run(0);
