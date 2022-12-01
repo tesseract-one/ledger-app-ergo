@@ -10,7 +10,13 @@ exports.mochaHooks = {
     beforeAll: async function () {
         this.model = process.env.npm_config_model;
         const port = process.env.npm_config_port ?? API_PORT;
-        if (this.model === "device") {
+        if (!this.model) {
+            throw new Error("No model. Provide model with --model=<model> parameter");
+        }
+        if (["nanos", "nanox", "nanosp", "hid"].indexOf(this.model) < 0) {
+            throw new Error("Unknown model: "+this.model+", supports: nanos, nanox, nanosp, hid");
+        }
+        if (this.model === "hid") {
             this.transport = await HidTransport.create();
         } else {
             this.transport = await SpeculosTransport.open({
