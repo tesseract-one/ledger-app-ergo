@@ -16,7 +16,11 @@
 #include "../../ui/ui_dynamic_flow.h"
 #include "../../ui/ui_menu.h"
 
+#ifdef TARGET_NANOS
 #define ERGO_ID_UI_CHARACTERS_HALF 7
+#else
+#define ERGO_ID_UI_CHARACTERS_HALF 26
+#endif
 
 #define STRING_ADD_STATIC_TEXT(str, slen, text) \
     strncpy(str, text, slen);                   \
@@ -24,6 +28,7 @@
     str += sizeof(text) - 1
 
 static inline void id_string_remove_middle(char* str, size_t len) {
+    if (len <= 2 * ERGO_ID_UI_CHARACTERS_HALF + 3) return;
     str[ERGO_ID_UI_CHARACTERS_HALF] = str[ERGO_ID_UI_CHARACTERS_HALF + 1] =
         str[ERGO_ID_UI_CHARACTERS_HALF + 2] = '.';
     memmove(str + ERGO_ID_UI_CHARACTERS_HALF + 3,
