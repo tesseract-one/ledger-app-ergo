@@ -25,7 +25,7 @@ class AuthTokenFlows {
         const before = this.before;
 
         success = success ?? (function (result) {
-            throw new Error(`Success called: ${result}`);
+            throw new Error(`Success called: ${JSON.stringify(result)}`);
         });
         failure = failure ?? (function (error) {
             throw new Error(`Failure called: ${error}`);
