@@ -1,4 +1,3 @@
-const { sleep } = require('./common');
 const makefile = require('./makefile');
 
 const MAIN_FLOW = [
@@ -11,7 +10,13 @@ const ABOUT_FLOW = [
     { header: makefile.appName + " App", body: "(c) 2021 Ergo" },
     { header: "Version", body: makefile.version },
     { header: null, body: "Back" }
-]
+];
+
+const SCREEN_LINES = {
+    nanos: 2,
+    nanox: 4,
+    nanosp: 4
+};
 
 function resolver() {
     let resolve, reject;
@@ -56,21 +61,22 @@ exports.mergePagedScreens = function (screens) {
 }
 
 class ScreenReader {
-    constructor(automation) {
+    constructor(automation, model) {
         this._automation = automation;
         this._currentScreen = {};
+        this._model = model;
 
-        let lines = [];
+        let events = [];
         let timer = undefined;
         const screenFinished = () => {
             const screen = { header: null, body: null };
             timer = undefined;
-            if (lines.length === 1) {
-                screen.body = lines.pop();
+            if (events.length === 1) {
+                screen.body = events.pop().text;
             } else {
-                screen.header = lines.shift();
-                screen.body = lines.reduce((acc, val) => acc + val, '');
-                lines = [];
+                screen.header = events.shift().text;
+                screen.body = events.reduce((acc, val) => acc + val.text, '');
+                events = [];
             }
             if (this._currentScreen.resolve) {
                 this._currentScreen.resolve(screen);
@@ -84,8 +90,18 @@ class ScreenReader {
             if (timer !== undefined) {
                 clearTimeout(timer);
             }
-            lines.push(evt.text);
-            timer = setTimeout(screenFinished, 100);
+            if (events.length === 0) {
+                events.push(evt);
+            } else {
+                const last = events[events.length - 1];
+                if (evt.y <= last.y) { screenFinished(); }
+                events.push(evt);
+            }
+            if (events.length === SCREEN_LINES[model]) {
+                screenFinished();
+            } else {
+                timer = setTimeout(screenFinished, 100);
+            }
         });
         this._automation.events.on("error", (err) => {
             this._currentScreen.reject(err);
@@ -94,18 +110,15 @@ class ScreenReader {
     }
 
     async ensureMainMenu() {
-        await this.goNext();
-        let screen = await this.currentScreen();
+        let screen = await this.goNext();
         while (mainMenuScreenIndex(screen) >= 0 && mainMenuScreenIndex(screen) != 2) {
-            await this.goNext();
-            screen = await this.currentScreen();
+            screen = await this.goNext();
         }
         if (mainMenuScreenIndex(screen) < 0) {
             return false;
         }
         while (mainMenuScreenIndex(screen) > 0) {
-            await this.goPrevious();
-            screen = await this.currentScreen();
+            screen = await this.goPrevious();
         }
         if (mainMenuScreenIndex(screen) < 0) {
             return false;
@@ -118,50 +131,49 @@ class ScreenReader {
     }
 
     goNext() {
-        this._currentScreen = resolver();
-        return this._automation.pressButton('right');
+        return this.__pressAndWait('right');
     }
 
     goPrevious() {
-        this._currentScreen = resolver();
-        return this._automation.pressButton('left');
+        return this.__pressAndWait('left');
     }
 
     async readFlow() {
-        await sleep();
         let screens = [await this.currentScreen()];
-        let screen = screens[0];
+        let screen = null;
         do {
-            await this.goNext();
-            screen = await this.currentScreen();
+            screen = await this.goNext();
             screens.push(screen);
-        } while (screen.header !== screens[0].header && screen.body !== screens[0].body);
+        } while (screen.header !== screens[0].header || screen.body !== screens[0].body);
         screens.pop();
         return screens;
     }
 
     async click(index) {
-        await sleep();
+        await this.currentScreen();
         for (let i = 0; i < index; i++) {
             await this.goNext();
-            await this.currentScreen();
         }
-        await this._automation.pressButton('both');
+        await this.__pressAndWait('both');
     }
 
     async clickOn(body) {
-        await sleep();
         let firstScreen = await this.currentScreen();
         let currentScreen;
         do {
-            await this.goNext();
-            currentScreen = await this.currentScreen();
-            if (currentScreen.body == body) {
-                await this._automation.pressButton('both');
+            currentScreen = await this.goNext();
+            if (currentScreen.body === body) {
+                await this.__pressAndWait('both');
                 break;
             }
         } while (currentScreen.header !== firstScreen.header
-            && currentScreen.body !== firstScreen.body);
+            || currentScreen.body !== firstScreen.body);
+    }
+
+    async __pressAndWait(type) {
+        this._currentScreen = resolver();
+        await this._automation.pressButton(type);
+        return await this.currentScreen();
     }
 }
 

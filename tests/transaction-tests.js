@@ -184,9 +184,11 @@ describe("Transaction Tests", function () {
             function () {
                 return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
             },
-            function (signatures) {
-                expect(this.flows).to.be.empty;
-                expect(signatures).to.be.empty;
+            function () {
+                throw new Error("Succes should not be called!");
+            },
+            function (failure) {
+                expect(failure).to.exist;
             }
         );
 

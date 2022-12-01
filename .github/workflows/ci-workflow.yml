@@ -141,12 +141,8 @@ jobs:
     container:
       image: ghcr.io/ledgerhq/speculos:latest
       ports:
-        - 1234:1234
+        - 5000:5000
         - 9999:9999
-        - 40000:40000
-        - 41000:41000
-        - 42000:42000
-        - 43000:43000
       options: --entrypoint /bin/bash
 
     steps:
@@ -164,10 +160,10 @@ jobs:
           apt-get update && apt-get install -qy curl netcat
           curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
           apt-get install -qy nodejs
-          nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --api-port 40000 --display headless --model=${{ matrix.model }} --sdk=${{ matrix.SDK }} --seed \"jaguar swallow dinner course lend surround warm robot grape pear skate relief\"" > speculos.log 2<&1 &
+          nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --api-port 5000 --display headless --model=${{ matrix.model }} --sdk=${{ matrix.SDK }} --seed \"jaguar swallow dinner course lend surround warm robot grape pear skate relief\"" > speculos.log 2<&1 &
           cd tests && npm install
           until `nc -w5 -z -v 127.0.0.1 9999`; do sleep 1; done;
-          npm --model=${{matrix.model}} run test
+          npm --model=${{matrix.model}} --port 5000 run test
 
       - name: Upload Speculos log
         uses: actions/upload-artifact@v3

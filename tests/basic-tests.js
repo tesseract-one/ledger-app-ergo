@@ -2,6 +2,7 @@ const chai = require('chai');
 const { expect } = chai.use(require('chai-bytes'));
 const makefile = require('./helpers/makefile');
 const screen = require('./helpers/screen');
+const { sleep } = require("./helpers/common");
 
 describe("Basic Tests", function () {
     context("Basic Commands", function () {
@@ -35,7 +36,7 @@ describe("Basic Tests", function () {
 
         it("about flow is working", async function () {
             if (this.screens) {
-                this.timeout(5000);
+                this.timeout(10000);
                 const main = await this.screens.ensureMainMenu();
                 expect(main).to.be.equal(true);
                 await this.screens.click(1);

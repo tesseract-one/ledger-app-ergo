@@ -13,10 +13,12 @@ describe("Public Key Tests", function () {
             function (extendedPublicKey) {
                 const getExtendedPublicKeyFlow = [
                     { header: null, body: 'Ext PubKey Export' },
-                    { header: 'Path', body: removeMasterNode(this.account.path.toString()) }
+                    { header: 'Path', body: removeMasterNode(this.account.path.toString()) },
+                    { header: null, body: 'Approve' },
+                    { header: null, body: 'Reject' }
                 ];
                 if (this.auth) {
-                    getExtendedPublicKeyFlow.push({ header: 'Application', body: getApplication(this.test.device) });
+                    getExtendedPublicKeyFlow.splice(2, 0, { header: 'Application', body: getApplication(this.test.device) });
                 }
                 expect(this.flows[0]).to.be.deep.equal(getExtendedPublicKeyFlow);
                 expect(extendedPublicKey).to.be.deep.equal({

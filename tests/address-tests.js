@@ -14,10 +14,12 @@ describe("Address Tests", function () {
             function (derivedAddress) {
                 const deriveAddressFlow = [
                     { header: null, body: 'Confirm Send Address' },
-                    { header: 'Path', body: removeMasterNode(this.address.path.toString()) }
+                    { header: 'Path', body: removeMasterNode(this.address.path.toString()) },
+                    { header: null, body: 'Approve' },
+                    { header: null, body: 'Reject' }
                 ];
                 if (this.auth) {
-                    deriveAddressFlow.push({ header: 'Application', body: getApplication(this.test.device) });
+                    deriveAddressFlow.splice(2, 0, { header: 'Application', body: getApplication(this.test.device) });
                 }
                 expect(this.flows[0]).to.be.deep.equal(deriveAddressFlow);
                 expect(derivedAddress).to.be.deep.equal({
@@ -35,9 +37,11 @@ describe("Address Tests", function () {
                     { header: null, body: 'Confirm Address' },
                     { header: 'Path', body: removeMasterNode(this.address.path.toString()) },
                     { header: 'Address', body: this.address.toBase58() },
+                    { header: null, body: 'Approve' },
+                    { header: null, body: 'Reject' }
                 ];
                 if (this.auth) {
-                    addressFlow.push({ header: 'Application', body: getApplication(this.test.device) });
+                    addressFlow.splice(3, 0, { header: 'Application', body: getApplication(this.test.device) });
                 }
                 expect(mergePagedScreens(this.flows[0])).to.be.deep.equal(addressFlow);
                 expect(show).to.be.true;
