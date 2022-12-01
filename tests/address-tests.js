@@ -2,7 +2,7 @@ const { expect } = require('chai')
     .use(require('chai-bytes'));
 const { toHex, getApplication, removeMasterNode } = require('./helpers/common');
 const { TEST_DATA } = require('./helpers/data');
-const { mergePagedScreens } = require("./helper/screen");
+const { mergePagedScreens } = require("./helpers/screen");
 const { AuthTokenFlows } = require('./helpers/flow');
 
 describe("Address Tests", function () {
