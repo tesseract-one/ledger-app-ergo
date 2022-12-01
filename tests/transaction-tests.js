@@ -185,7 +185,7 @@ describe("Transaction Tests", function () {
                 return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
             },
             function () {
-                throw new Error("Succes should not be called!");
+                throw new Error("Success should not be called!");
             },
             function (failure) {
                 expect(failure).to.exist;
