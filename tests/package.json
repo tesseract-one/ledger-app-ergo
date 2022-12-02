@@ -16,6 +16,6 @@
         "@ledgerhq/hw-transport-node-hid": "6.27.8",
         "@ledgerhq/hw-transport-node-speculos-http": "6.27.8",
         "ergo-lib-wasm-nodejs": "v0.21.1",
-        "ledger-ergo-js": "^0.1.13"
+        "ledger-ergo-js": "^0.1.14"
     }
 }
