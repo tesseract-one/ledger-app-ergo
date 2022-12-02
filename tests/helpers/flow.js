@@ -37,13 +37,16 @@ class AuthTokenFlows {
                 const params = before();
                 Object.assign(params, { test: this, auth });
                 this.device.useAuthToken(auth);
+                this.screens.removeCurrentScreen(); // Wait for new screen in the readFlow
                 const promise = suppressPomiseError(action.call(params));
                 const flows = [];
                 for (let i = 0; i < count[auth]; i++) {
-                    await sleep(1500); // Allow action to show UI
                     let flow = await this.screens.readFlow();
                     flows.push(flow);
                     await this.screens.clickOn('Approve');
+                    if (i != count[auth] - 1 && await this.screens.isReadyMainScreen()) { // we have more flows
+                        this.screens.removeCurrentScreen(); // Wait for new screen in the readFlow
+                    }
                 }
                 Object.assign(params, { flows });
                 let result;

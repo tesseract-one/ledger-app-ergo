@@ -63,8 +63,8 @@ exports.mergePagedScreens = function (screens) {
 class ScreenReader {
     constructor(automation, model) {
         this._automation = automation;
-        this._currentScreen = {};
         this._model = model;
+        this._currentScreen = {};
 
         let events = [];
         let timer = undefined;
@@ -125,7 +125,7 @@ class ScreenReader {
         this._automation.events.on("error", (err) => {
             this._currentScreen.reject(err);
         });
-        this._currentScreen = resolver();
+        this.removeCurrentScreen();
     }
 
     async ensureMainMenu() {
@@ -147,6 +147,15 @@ class ScreenReader {
 
     currentScreen() {
         return this._currentScreen.promise;
+    }
+
+    async isReadyMainScreen() {
+        const screen = await this.currentScreen();
+        return mainMenuScreenIndex(screen) === 0;
+    }
+
+    removeCurrentScreen() {
+        this._currentScreen = resolver();
     }
 
     goNext() {
@@ -190,7 +199,7 @@ class ScreenReader {
     }
 
     async __pressAndWait(type) {
-        this._currentScreen = resolver();
+        this.removeCurrentScreen();
         await this._automation.pressButton(type);
         return await this.currentScreen();
     }
