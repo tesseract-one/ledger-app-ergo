@@ -8,7 +8,7 @@ const { UnsignedTransactionBuilder } = require('./helpers/transaction');
 
 const signTxFlowCount = [5, 5];
 
-function signTxFlows(device, auth, from, to, change, tokens = undefined) {
+function signTxFlows({ model, device }, auth, from, to, change, tokens = undefined) {
     const flows = [
         [
             { header: null, body: 'Confirm Attest Input' },
@@ -23,7 +23,7 @@ function signTxFlows(device, auth, from, to, change, tokens = undefined) {
         ],
         [
             { header: null, body: 'Confirm Output' },
-            { header: 'Address', body: ellipsize(to.toBase58()) },
+            { header: 'Address', body: ellipsize(model, to.toBase58()) },
             { header: 'Output Value', body: '0.100000000' },
             { header: null, body: 'Approve' },
             { header: null, body: 'Reject' }
@@ -116,7 +116,7 @@ describe("Transaction Tests", function () {
                 return this.test.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network))
             },
             function (signatures) {
-                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change);
+                let flows = signTxFlows(this.test, this.auth, this.from, this.to, this.change);
                 expect(this.flows).to.be.deep.equal(flows);
                 expect(signatures).to.have.length(1);
                 const ergoBox = this.builder.ergoBuilder.inputs.get(0);
@@ -153,7 +153,7 @@ describe("Transaction Tests", function () {
                 return this.test.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network))
             },
             function (signatures) {
-                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change);
+                let flows = signTxFlows(this.test, this.auth, this.from, this.to, this.change);
                 expect(this.flows).to.be.deep.equal(flows);
                 expect(signatures).to.have.length(1);
                 const ergoBox = this.builder.ergoBuilder.inputs.get(0);
@@ -177,7 +177,7 @@ describe("Transaction Tests", function () {
                 return this.test.device.signTx(unsignedTransaction, toNetwork(TEST_DATA.network));
             },
             function (signatures) {
-                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change);
+                let flows = signTxFlows(this.test, this.auth, this.from, this.to, this.change);
                 expect(this.flows).to.be.deep.equal(flows);
                 expect(signatures).to.have.length(1);
                 const ergoBox = this.builder.ergoBuilder.inputs.get(0);
@@ -254,7 +254,7 @@ describe("Transaction Tests", function () {
                 .output('100000000', to.address, tokens)
                 .fee('1000000')
                 .change(change);
-            return { from, to, change, builder };
+            return { from, to, change, builder, tokenId };
         }, signTxFlowCount).do(
             function () {
                 const unsignedTransaction = this.builder.build();
@@ -262,10 +262,10 @@ describe("Transaction Tests", function () {
             },
             function (signatures) {
                 const tokens = [
-                    { header: 'Token [1]', body: '1111111...1111111' },
+                    { header: 'Token [1]', body: ellipsize(this.test.model, this.tokenId.to_str()) },
                     { header: 'Token [1] Value', body: '1000' }
                 ];
-                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change, tokens);
+                let flows = signTxFlows(this.test, this.auth, this.from, this.to, this.change, tokens);
                 expect(this.flows).to.be.deep.equal(flows);
                 expect(signatures).to.have.length(1);
                 const ergoBox = this.builder.ergoBuilder.inputs.get(0);
@@ -288,17 +288,17 @@ describe("Transaction Tests", function () {
                 .change(change)
                 .tokenIds([tokenId.as_bytes()])
                 .build(false);
-            return { from, to, change, unsignedTransaction };
+            return { from, to, change, unsignedTransaction, tokenId };
         }, signTxFlowCount).do(
             function () {
                 return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
             },
             function (signatures) {
                 const tokens = [
-                    { header: 'Token [1]', body: '1111111...1111111' },
+                    { header: 'Token [1]', body: ellipsize(this.test.model, this.tokenId.to_str()) },
                     { header: 'Token [1] Value', body: 'Burning: 1000' }
                 ];
-                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change);
+                let flows = signTxFlows(this.test, this.auth, this.from, this.to, this.change);
                 flows[4].splice(4, 0, ...tokens);
                 expect(this.flows).to.be.deep.equal(flows);
                 expect(signatures).to.have.length(1);
@@ -320,19 +320,19 @@ describe("Transaction Tests", function () {
                 .change(change)
                 .tokenIds([tokenId.as_bytes()])
                 .build(false);
-            return { from, to, change, unsignedTransaction };
+            return { from, to, change, unsignedTransaction, tokenId };
         }, signTxFlowCount).do(
             function () {
                 return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
             },
             function (signatures) {
                 const tokens = [
-                    { header: 'Token [1]', body: '1111111...1111111' },
+                    { header: 'Token [1]', body: ellipsize(this.test.model, this.tokenId.to_str()) },
                     { header: 'Token [1] Value', body: '1000' }
                 ];
-                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change, tokens);
+                let flows = signTxFlows(this.test, this.auth, this.from, this.to, this.change, tokens);
                 flows[4].splice(4, 0, ...[
-                    { header: 'Token [1]', body: '1111111...1111111' },
+                    { header: 'Token [1]', body: ellipsize(this.test.model, this.tokenId.to_str()) },
                     { header: 'Token [1] Value', body: 'Minting: 1000' }
                 ]);
                 expect(this.flows).to.be.deep.equal(flows);
@@ -361,19 +361,19 @@ describe("Transaction Tests", function () {
                     tokenId2.as_bytes()
                 ])
                 .build(false);
-            return { from, to, change, unsignedTransaction };
+            return { from, to, change, unsignedTransaction, tokenId, tokenId2 };
         }, signTxFlowCount).do(
             function () {
                 return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
             },
             function (signatures) {
                 const tokens = [
-                    { header: 'Token [1]', body: '0000000...0000000' },
+                    { header: 'Token [1]', body: ellipsize(this.test.model, this.tokenId2.to_str()) },
                     { header: 'Token [1] Value', body: '1000' }
                 ];
-                let flows = signTxFlows(this.test.device, this.auth, this.from, this.to, this.change, tokens);
+                let flows = signTxFlows(this.test, this.auth, this.from, this.to, this.change, tokens);
                 flows[4].splice(4, 0, ...[
-                    { header: 'Token [1]', body: '1111111...1111111' },
+                    { header: 'Token [1]', body: ellipsize(this.test.model, this.tokenId.to_str()) },
                     { header: 'Token [1] Value', body: 'Burning: 1000' },
                     { header: 'Token [2]', body: '0000000...0000000' },
                     { header: 'Token [2] Value', body: 'Minting: 1000' }

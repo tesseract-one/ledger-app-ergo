@@ -34,8 +34,12 @@ function getApplication(device) {
     return '0x' + device.authToken.toString(16).padStart(8, 0);
 }
 
-function ellipsize(address) {
-    return address.substring(0, 7) + '...' + address.substring(address.length - 7, address.length);
+function ellipsize(model, string) {
+    let amount = 26;
+    if (model === 'nanos') {
+        amount = 7;
+    }
+    return string.substring(0, amount) + '...' + string.substring(string.length - amount, string.length);
 }
 
 function removeMasterNode(path) {
