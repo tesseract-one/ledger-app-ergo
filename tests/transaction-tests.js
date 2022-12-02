@@ -8,6 +8,17 @@ const { UnsignedTransactionBuilder } = require('./helpers/transaction');
 
 const signTxFlowCount = [5, 5];
 
+// This is workaround for bug in the JS lib. It will be fixed soon. Remove it then.
+function fixSignDeviceError(promise) {
+    const { DeviceError, RETURN_CODE } = require('ledger-ergo-js');
+    return promise.then((val) => {
+        if (Array.isArray(val) && val.length === 0) {
+            throw new DeviceError(RETURN_CODE.BAD_INPUT_COUNT);
+        }
+        return val;
+    });
+}
+
 function signTxFlows(device, auth, from, to, change, tokens = undefined) {
     const flows = [
         [
@@ -194,13 +205,13 @@ describe("Transaction Tests", function () {
             };
         }, [0, 0]).do(
             function () {
-                return this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network));
+                return fixSignDeviceError(this.test.device.signTx(this.unsignedTransaction, toNetwork(TEST_DATA.network)));
             },
             null,
             function (error) {
                 expect(error).to.be.an('error');
                 expect(error.name).to.be.equal('DeviceError');
-                expect(error.message).to.be.equal('Bad output count');
+                expect(error.message).to.be.equal('Bad input count');
             }
         );
 
