@@ -375,7 +375,7 @@ describe("Transaction Tests", function () {
                 flows[4].splice(4, 0, ...[
                     { header: 'Token [1]', body: ellipsize(this.test.model, this.tokenId.to_str()) },
                     { header: 'Token [1] Value', body: 'Burning: 1000' },
-                    { header: 'Token [2]', body: '0000000...0000000' },
+                    { header: 'Token [2]', body: ellipsize(this.test.model, this.tokenId2.to_str()) },
                     { header: 'Token [2] Value', body: 'Minting: 1000' }
                 ]);
                 expect(this.flows).to.be.deep.equal(flows);
