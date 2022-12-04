@@ -161,7 +161,7 @@ jobs:
           curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
           apt-get install -qy nodejs
           export SEED=`cat tests/seed.txt`
-          nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --api-port 5000 --display headless --model=${{ matrix.model }} --sdk=${{ matrix.SDK }} --seed \"${SEED}"" > speculos.log 2<&1 &
+          nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --api-port 5000 --display headless --model=${{ matrix.model }} --sdk=${{ matrix.SDK }} --seed \"${SEED}\"" > speculos.log 2<&1 &
           cd tests && npm install
           until `nc -w5 -z -v 127.0.0.1 9999`; do sleep 1; done;
           npm --model=${{matrix.model}} --port=5000 run test
