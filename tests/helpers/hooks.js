@@ -4,6 +4,10 @@ const { ErgoLedgerApp } = require('ledger-ergo-js');
 const SpeculosAutomation = require('./automation').SpeculosAutomation;
 const ScreenReader = require('./screen').ScreenReader;
 
+// Use IPV4 by default (for speculos)
+const dns = require('node:dns');
+dns.setDefaultResultOrder('ipv4first');
+
 const API_PORT = 5000;
 
 exports.mochaHooks = {
