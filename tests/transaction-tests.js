@@ -24,7 +24,7 @@ function signTxFlows({ model, device }, auth, from, to, change, tokens = undefin
         [
             { header: null, body: 'Confirm Output' },
             { header: 'Address', body: ellipsize(model, to.toBase58()) },
-            { header: 'Output Value', body: '0.100000000' },
+            { header: 'Output Value', body: '0.100000000 ERG' },
             { header: null, body: 'Approve' },
             { header: null, body: 'Reject' }
         ],
@@ -37,8 +37,8 @@ function signTxFlows({ model, device }, auth, from, to, change, tokens = undefin
         [
             { header: null, body: 'Approve Signing' },
             { header: 'P2PK Path', body: removeMasterNode(from.path.toString()) },
-            { header: 'Transaction Amount', body: '0.100000000' },
-            { header: 'Transaction Fee', body: '0.001000000' },
+            { header: 'Transaction Amount', body: '0.100000000 ERG' },
+            { header: 'Transaction Fee', body: '0.001000000 ERG' },
             { header: null, body: 'Approve' },
             { header: null, body: 'Reject' }
         ]
