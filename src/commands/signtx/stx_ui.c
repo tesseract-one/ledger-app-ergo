@@ -51,6 +51,15 @@ static inline bool format_b58_id(const uint8_t* id, size_t id_len, char* out, si
     return true;
 }
 
+static inline bool format_erg_amount(uint64_t amount, char* out, size_t out_len) {
+    int out_bytes = format_fpu64(out, out_len, amount, ERGO_ERG_FRACTION_DIGIT_COUNT);
+    if (out_bytes <= 0 || out_bytes > out_len - 5) return false;
+    out_len -= out_bytes;
+    out += out_bytes;
+    STRING_ADD_STATIC_TEXT(out, out_len, " ERG");
+    return true;
+}
+
 // ----- OPERATION APPROVE / REJECT FLOW
 
 static NOINLINE void ui_stx_operation_approve_action(bool approved, void* context) {
@@ -169,7 +178,9 @@ static NOINLINE uint16_t ui_stx_display_output_state(uint8_t screen,
                                              text_len);
         case 1: {  // Output Value
             strncpy(title, "Output Value", title_len);
-            format_fpu64(text, text_len, ctx->output->value, ERGO_ERG_FRACTION_DIGIT_COUNT);
+            if (!format_erg_amount(ctx->output->value, text, text_len)) {
+                return SW_BUFFER_ERROR;
+            }
             break;
         }
         default: {        // Tokens
@@ -266,12 +277,16 @@ static NOINLINE uint16_t ui_stx_display_tx_state(uint8_t screen,
     switch (screen) {
         case 0: {  // TX Value
             strncpy(title, "Transaction Amount", title_len);
-            format_fpu64(text, text_len, ctx->amounts->value, ERGO_ERG_FRACTION_DIGIT_COUNT);
+            if (!format_erg_amount(ctx->amounts->value, text, text_len)) {
+                return SW_BUFFER_ERROR;
+            }
             break;
         }
         case 1: {  // TX Fee
             strncpy(title, "Transaction Fee", title_len);
-            format_fpu64(text, text_len, ctx->amounts->fee, ERGO_ERG_FRACTION_DIGIT_COUNT);
+            if (!format_erg_amount(ctx->amounts->fee, text, text_len)) {
+                return SW_BUFFER_ERROR;
+            }
             break;
         }
         default: {        // Tokens
