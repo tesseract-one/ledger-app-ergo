@@ -63,7 +63,7 @@ gve_result_e gve_get_u64(buffer_t *buffer, uint64_t *val) {
     gve_result_e res = GVE_ERR_DATA_SIZE;
     while (shift < 64) {
         if ((res = gve_get_u8(buffer, &byte)) != GVE_OK) break;
-        *val |= (uint64_t)(byte & 0x7F) << shift;
+        *val |= (uint64_t) (byte & 0x7F) << shift;
         if ((byte & 0x80) == 0) {
             res = GVE_OK;
             break;

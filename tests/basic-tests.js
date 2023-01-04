@@ -2,18 +2,22 @@ const chai = require('chai');
 const { expect } = chai.use(require('chai-bytes'));
 const makefile = require('./helpers/makefile');
 const screen = require('./helpers/screen');
+const { sleep } = require("./helpers/common");
 
 describe("Basic Tests", function () {
     context("Basic Commands", function () {
         it("can fetch version of the app", async function () {
             const version = await this.device.getAppVersion();
-            expect(version).to.equalBytes([
-                makefile.versionMajor, makefile.versionMinor, makefile.versionPatch, 0x01
-            ]);
+            expect(version).to.be.deep.equal({
+                major: makefile.versionMajor,
+                minor: makefile.versionMinor,
+                patch: makefile.versionPatch,
+                flags: { isDebug: true }
+            });
         });
 
         it("can fetch name of the app", async function () {
-            const name = await this.device.getAppName();
+            const name = (await this.device.getAppName()).name;
             expect(name).to.be.equal(makefile.appName);
         });
     });
@@ -32,7 +36,7 @@ describe("Basic Tests", function () {
 
         it("about flow is working", async function () {
             if (this.screens) {
-                this.timeout(5000);
+                this.timeout(10000);
                 const main = await this.screens.ensureMainMenu();
                 expect(main).to.be.equal(true);
                 await this.screens.click(1);

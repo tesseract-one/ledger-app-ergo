@@ -11,10 +11,10 @@
 #include "../../helpers/response.h"
 #include "../../ergo/address.h"
 
-int send_response_address(uint8_t address[static ADDRESS_LEN]) {
-    BUFFER_NEW_LOCAL_EMPTY(response, ADDRESS_LEN);
+int send_response_address(uint8_t address[static P2PK_ADDRESS_LEN]) {
+    BUFFER_NEW_LOCAL_EMPTY(response, P2PK_ADDRESS_LEN);
 
-    if (!buffer_write_bytes(&response, address, ADDRESS_LEN)) {
+    if (!buffer_write_bytes(&response, address, P2PK_ADDRESS_LEN)) {
         return res_error(SW_BUFFER_ERROR);
     }
 

@@ -21,6 +21,8 @@ Starts the P2PK transaction signing process for the private key with provided BI
 
 Ledger Application is clearing all internal buffers and preparing for transaction signing. The BIP44 path is stored inside the App.
 
+Ledger Application will show screen with BIP44 path and ask user for operation approval.
+
 #### Request
 | INS | P1 | P2 | Lc | Data |
 | --- | --- | --- | --- | --- |
@@ -29,7 +31,8 @@ Ledger Application is clearing all internal buffers and preparing for transactio
 ##### Data
 | Field | Size (B) | Description |
 | --- | --- | --- |
-| BIP44 path length | 1 | Value: 0x02-0x0A (2-10). The number of path components |
+| Network ID | 1 | Value: 0x00-0xFC (0-252). Ergo Network ID (0x00 - main, 0x10 - test) |
+| BIP44 path length | 1 | Value: 0x05-0x0A (5-10). The number of path components |
 | First derivation index | 4 | Big-endian. Value: 44’ |
 | Second derivation index | 4 | Big-endian. Value: 429’ (Ergo coin id) |
 | [Optional] Third index | 4 | Big-endian. Any valid bip44 hardened value. |
@@ -60,8 +63,8 @@ Ledger Application is clearing all internal buffers and preparing for transactio
 | Number of TX Outputs | 2 | Big-endian. |
 
 ## 0x11 - Add Token Ids
-This call adds Distinct Token Ids to the transaction. Up to 7 Ids can be added in a single call. The hard limit of tokens in a single transaction is 10.
-Must be called only if “Start Trasnaction data” call had “Number of TX Distinct Token Ids “ param set greater than zero. Must be called before setting Inputs.
+This call adds Distinct Token Ids to the transaction. Up to 7 Ids can be added in a single call. The hard limit of tokens in a single transaction is **20**.
+Must be called only if “Start Transaction data” call had “Number of TX Distinct Token Ids “ param set greater than zero. Must be called before setting Inputs.
 
 ### Request
 | INS | P1 | P2 | Lc | Data |
@@ -77,7 +80,7 @@ Must be called only if “Start Trasnaction data” call had “Number of TX Dis
 | [Optional] Token Id 7 | 32 | Seventh token Id |
 
 ## 0x12 - Add Input Box frame
-This call adds Input Box to the current TX. It must be called after calling the “Start Trasnaction data” or “Token Ids” method. All inputs must be set before calling any other method. Inputs must be sent in the same order as they are in the original transaction.
+This call adds Input Box to the current TX. It must be called after calling the “Start Transaction data” or “Token Ids” method. All inputs must be set before calling any other method. Inputs must be sent in the same order as they are in the original transaction.
 
 ### Request
 | INS | P1 | P2 | Lc | Data |
@@ -140,7 +143,7 @@ This call starts the process of adding an Output Box to TX. It must be called af
 | Additional Registers Size | 4 | Size in bytes of serialized Additional Registers. Can be 0 if registers are empty. Big-endian. |
 
 ## 0x16 - Add Output Box: Ergo Tree chunk
-Adds serialized Ergo Tree chunk to the current Output Box. Can be called if the “Ergo Tree Size” of is not 0.
+Adds serialized Ergo Tree chunk to the current Output Box. Can be called if the “Ergo Tree Size” is not 0.
 
 ### Request
 | INS | P1 | P2 | Lc | Data |
@@ -155,7 +158,7 @@ If you have a custom network, where Miners Fee tree is different from the test n
 ### Request
 | INS | P1 | P2 | Lc | Data |
 | --- | --- | --- | --- | --- |
-| 0x21 | 0x17 | Session ID | 0x01 | 0x01 - main net <br> 0x02 - test net |
+| 0x21 | 0x17 | Session ID | 0x00 | empty |
 
 ## 0x18 - Add Output Box: Change tree
 Add Change tree to the current Output Box with provided BIP44 path. Can be called only if “Ergo Tree Size” is 0.
@@ -167,7 +170,7 @@ Add Change tree to the current Output Box with provided BIP44 path. Can be calle
 #### Data
 | Field | Size (B) | Description |
 | --- | --- | --- |
-| BIP44 path length | 1 | Value: 0x02-0x0A (2-10). The number of path components |
+| BIP44 path length | 1 | Value: 0x05-0x0A (5-10). The number of path components |
 | First derivation index | 4 | Big-endian. Value: 44’ |
 | Second derivation index | 4 | Big-endian. Value: 429’ (Ergo coin id) |
 | [Optional] Third index | 4 | Big-endian. Any valid bip44 hardened value. |

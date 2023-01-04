@@ -71,15 +71,18 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
         }
     }
     context->frames_processed++;
-    if (context->frames_processed == context->frames_count) {
+    if (context->frames_processed == context->frames_count) {  // finished. serializing input
         if (!blake2b_update(context->hash, box_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER);
         }
+        // adding empty input proof (array with len 0).
+        uint8_t empty_byte = 0;
+        if (!blake2b_update(context->hash, &empty_byte, 1)) {
+            return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER);
+        }
         if (context->context_extension_data_size == 0) {
-            uint16_t empty_extension = 0;
-            if (!blake2b_update(context->hash,
-                                (uint8_t*) &empty_extension,
-                                sizeof(empty_extension))) {
+            // adding empty extension
+            if (!blake2b_update(context->hash, &empty_byte, 1)) {
                 return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER);
             }
             context->state = ERGO_TX_SERIALIZER_INPUT_STATE_FINISHED;

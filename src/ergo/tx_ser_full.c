@@ -107,6 +107,8 @@ static inline ergo_tx_serializer_full_result_e map_box_result(ergo_tx_serializer
             return ERGO_TX_SERIALIZER_FULL_RES_ERR_U64_OVERFLOW;
         case ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE:
             return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
+        case ERGO_TX_SERIALIZER_BOX_RES_ERR_SMALL_CHUNK:
+            return ERGO_TX_SERIALIZER_FULL_RES_ERR_SMALL_CHUNK;
     }
 }
 

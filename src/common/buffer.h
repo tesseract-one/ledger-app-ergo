@@ -144,7 +144,7 @@ static inline uint16_t buffer_empty_space_len(const buffer_t *buffer) {
 }
 
 /**
- * Tell whether buffer can write bytes or not.
+ * Tell whether buffer has bytes to read or not.
  *
  * @param[in] buffer
  *   Pointer to input buffer struct.

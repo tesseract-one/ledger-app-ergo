@@ -10,4 +10,4 @@ Ledger Application checks that **P1**, **P2**, and **Lc** are all set to **0x00*
 
 ## Response
 
-Respone of this call is an array of ANSI encoded characters with application name ("Ergo").
+Response of this call is an array of ANSI encoded characters with application name ("Ergo").

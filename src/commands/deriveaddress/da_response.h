@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../constants.h"
+#include "../../ergo/address.h"
 
 /**
  * Send APDU response with address public key.
@@ -10,4 +11,4 @@
  * @return zero or positive integer if success, -1 otherwise.
  *
  */
-int send_response_address(uint8_t address[static ADDRESS_LEN]);
+int send_response_address(uint8_t address[static P2PK_ADDRESS_LEN]);

@@ -52,7 +52,7 @@ int format_u64(char *dst, size_t dst_len, uint64_t value);
 int format_fpu64(char *dst, size_t dst_len, const uint64_t value, uint8_t decimals);
 
 /**
- * Format byte buffer to uppercase hexadecimal string.
+ * Format byte buffer to lowercase hexadecimal string.
  *
  * @param[in]  in
  *   Pointer to input byte buffer.

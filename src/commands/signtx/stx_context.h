@@ -10,7 +10,6 @@ typedef struct {
     sign_transaction_state_e state;
     uint8_t session;
     sign_transaction_operation_type_e operation;
-    void *ui_context;
     union {
         sign_transaction_operation_p2pk_ctx_t p2pk;
     };

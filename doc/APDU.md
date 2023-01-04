@@ -16,7 +16,7 @@ Status words tend to be similar to common [APDU responses](https://www.eftlab.co
 | Size (B) | 1 | 1 | 1 | 1 | 1 | variable | 0 |
 
 Where:
-* **CLA=0xEE** is the APDU class number. As we don’t adhere to the strict APDU protocol, we can arbitrarily choose a value belonging to the "proprietary structure and coding of command/response" CLA range (0xD0-0xFE range)
+* **CLA=0xE0** is the APDU class number. As we don’t adhere to the strict APDU protocol, we can arbitrarily choose a value belonging to the "proprietary structure and coding of command/response" CLA range (0xD0-0xFE range)
 * **INS** is the instruction number
 * **P1** and **P2** are instruction parameters
 * **Lc** is the length of the data body encoded as uint8. Note: unlike standard APDU, ledger.js produces **Lc** of exactly 1 byte (even for empty data). Data of length >= 256 are not supported by ledger.js
@@ -25,7 +25,7 @@ Where:
 
 Upon receiving the APDU message, the Ledger Application checks:
 * RX size >= 5 (i.e., the request has all required APDU fields)
-* **CLA** is a valid CLA of the Ledger Ergo Application (**0xEE**)
+* **CLA** is a valid CLA of the Ledger Ergo Application (**0xE0**)
 * **INS** is a valid and enabled instruction
 * **Lc** is consistent with RX, i.e. **Lc** + 5 == RX
 * **INS** is not changed in the middle of the multi-APDU exchange.

@@ -22,6 +22,13 @@ uint8_t io_event(uint8_t channel);
 uint16_t io_exchange_al(uint8_t channel, uint16_t tx_len);
 
 /**
+ * Initialize the APDU I/O state.
+ *
+ * This function must be called before calling any other I/O function.
+ */
+void io_init(void);
+
+/**
  * Receive APDU command in G_io_apdu_buffer and update G_output_len.
  *
  * @return zero or positive integer if success, -1 otherwise.

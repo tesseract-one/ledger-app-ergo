@@ -38,7 +38,7 @@
 /**
  * Maximum number of tokens in TX.
  */
-#define TOKEN_MAX_COUNT 10
+#define TOKEN_MAX_COUNT 20
 
 /**
  * Length of Session Key.
@@ -66,16 +66,6 @@
 #define PRIVATE_KEY_LEN 32
 
 /**
- * Length of Address in bytes.
- */
-#define ADDRESS_LEN (COMPRESSED_PUBLIC_KEY_LEN + 5)  // 4 bytes of checksum + 1 byte prefix
-
-/**
- * Length of Address string in chars.
- */
-#define ADDRESS_STRING_MAX_LEN 55
-
-/**
  * Length of Extended Public Key.
  */
 #define EXTENDED_PUBLIC_KEY_LEN (COMPRESSED_PUBLIC_KEY_LEN + CHAIN_CODE_LEN)
@@ -99,3 +89,13 @@
  * Max length of TX data part
  */
 #define MAX_TX_DATA_PART_LEN 32768
+
+/**
+ * Max length of TX data chunk
+ */
+#define MAX_DATA_CHUNK_LEN 255
+
+/**
+ * Max length of BIP32 path string
+ */
+#define MAX_BIP32_STRING_LEN 60

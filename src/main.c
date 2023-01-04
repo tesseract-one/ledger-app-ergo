@@ -31,7 +31,6 @@
 #include "common/macros.h"
 
 uint8_t G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
-io_state_e G_io_state;
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
 global_ctx_t G_context;
@@ -46,9 +45,7 @@ void app_main() {
     // Structured APDU command
     command_t cmd;
 
-    // Reset length of APDU response
-    G_output_len = 0;
-    G_io_state = READY;
+    io_init();
 
     // Reset context
     clear_context(&G_context, CMD_NONE);
@@ -67,17 +64,20 @@ void app_main() {
 
                 // Receive command bytes in G_io_apdu_buffer
                 if ((input_len = io_recv_command()) < 0) {
+                    CLOSE_TRY;
                     return;
                 }
 
                 // Parse APDU command from G_io_apdu_buffer
                 if (!apdu_parser(&cmd, G_io_apdu_buffer, input_len)) {
                     io_send_sw(SW_WRONG_APDU_DATA_LENGTH);
+                    CLOSE_TRY;
                     continue;
                 }
 
                 // Dispatch structured APDU command to handler
                 if (apdu_dispatcher(&cmd) < 0) {
+                    CLOSE_TRY;
                     return;
                 }
             }

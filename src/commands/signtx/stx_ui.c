@@ -3,7 +3,6 @@
 
 #include "stx_ui.h"
 #include "stx_response.h"
-#include "stx_sw.h"
 #include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../common/macros.h"
@@ -11,41 +10,68 @@
 #include "../../common/int_ops.h"
 #include "../../common/base58.h"
 #include "../../common/format.h"
+#include "../../ergo/address.h"
 #include "../../ui/ui_application_id.h"
 #include "../../ui/ui_approve_reject.h"
+#include "../../ui/ui_dynamic_flow.h"
 #include "../../ui/ui_menu.h"
 
-#define CONTEXT(gctx) gctx.ctx.sign_tx
+#ifdef TARGET_NANOS
+#define ERGO_ID_UI_CHARACTERS_HALF 7
+#else
+#define ERGO_ID_UI_CHARACTERS_HALF 26
+#endif
 
 #define STRING_ADD_STATIC_TEXT(str, slen, text) \
     strncpy(str, text, slen);                   \
     slen -= sizeof(text) - 1;                   \
     str += sizeof(text) - 1
 
-#define DISPLAY_TX_STATE(ctx, switch_method)      \
-    do {                                          \
-        uint16_t res = ui_stx_display_state(ctx); \
-        if (res == SW_OK) {                       \
-            switch_method();                      \
-        } else {                                  \
-            res_error(res);                       \
-            clear_context(&G_context, CMD_NONE);  \
-            ui_menu_main();                       \
-        }                                         \
-    } while (0)
+static inline void id_string_remove_middle(char* str, size_t len) {
+    if (len <= 2 * ERGO_ID_UI_CHARACTERS_HALF + 3) return;
+    str[ERGO_ID_UI_CHARACTERS_HALF] = str[ERGO_ID_UI_CHARACTERS_HALF + 1] =
+        str[ERGO_ID_UI_CHARACTERS_HALF + 2] = '.';
+    memmove(str + ERGO_ID_UI_CHARACTERS_HALF + 3,
+            str + len - ERGO_ID_UI_CHARACTERS_HALF,
+            ERGO_ID_UI_CHARACTERS_HALF);
+    str[2 * ERGO_ID_UI_CHARACTERS_HALF + 3] = '\0';
+}
 
-#define TOKEN_ID_CHARACTERS 7
+static inline bool format_hex_id(const uint8_t* id, size_t id_len, char* out, size_t out_len) {
+    int len = format_hex(id, id_len, out, out_len);
+    if (len <= 0) return false;
+    id_string_remove_middle(out, len);
+    return true;
+}
 
-static NOINLINE void ui_stx_operation_approve_action(bool approved) {
-    sign_transaction_ui_aprove_ctx_t* ctx =
-        (sign_transaction_ui_aprove_ctx_t*) CONTEXT(G_context).ui_context;
+static inline bool format_b58_id(const uint8_t* id, size_t id_len, char* out, size_t out_len) {
+    int len = base58_encode(id, id_len, out, out_len);
+    if (len <= 0) return false;
+    id_string_remove_middle(out, len);
+    return true;
+}
+
+static inline bool format_erg_amount(uint64_t amount, char* out, size_t out_len) {
+    int out_bytes = format_fpu64(out, out_len, amount, ERGO_ERG_FRACTION_DIGIT_COUNT);
+    if (out_bytes <= 0 || out_bytes > out_len - 5) return false;
+    out_len -= out_bytes;
+    out += out_bytes;
+    STRING_ADD_STATIC_TEXT(out, out_len, " ERG");
+    return true;
+}
+
+// ----- OPERATION APPROVE / REJECT FLOW
+
+static NOINLINE void ui_stx_operation_approve_action(bool approved, void* context) {
+    sign_transaction_ui_aprove_ctx_t* ctx = (sign_transaction_ui_aprove_ctx_t*) context;
+    sign_transaction_ctx_t* sign_tx = (sign_transaction_ctx_t*) ctx->sign_tx_context;
 
     G_context.is_ui_busy = false;
 
     if (approved) {
         G_context.app_session_id = ctx->app_token_value;
-        CONTEXT(G_context).state = SIGN_TRANSACTION_STATE_APPROVED;
-        send_response_sign_transaction_session_id(CONTEXT(G_context).session);
+        sign_tx->state = SIGN_TRANSACTION_STATE_APPROVED;
+        send_response_sign_transaction_session_id(sign_tx->session);
     } else {
         res_deny();
     }
@@ -53,301 +79,251 @@ static NOINLINE void ui_stx_operation_approve_action(bool approved) {
     ui_menu_main();
 }
 
-bool ui_stx_add_access_token_screens(uint32_t app_access_token,
-                                     uint8_t* screen,
-                                     sign_transaction_ui_aprove_ctx_t* ctx) {
+bool ui_stx_add_operation_approve_screens(sign_transaction_ui_aprove_ctx_t* ctx,
+                                          uint8_t* screen,
+                                          uint32_t app_access_token,
+                                          bool is_known_application,
+                                          sign_transaction_ctx_t* sign_tx) {
     if (MAX_NUMBER_OF_SCREENS - *screen < 3) return false;
 
-    if (app_access_token != 0) {
+    if (!is_known_application) {
         G_ux_flow[(*screen)++] = ui_application_id_screen(app_access_token, ctx->app_token);
     }
     ctx->app_token_value = app_access_token;
+    ctx->sign_tx_context = sign_tx;
+    ctx->is_known_application = is_known_application;
 
     const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
     const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
-    ui_approve_reject_screens(ui_stx_operation_approve_action, approve, reject);
+    ui_approve_reject_screens(ui_stx_operation_approve_action, ctx, approve, reject);
 
     return true;
 }
 
-// This is a special function we must call for bnnn_paging to work properly in an edgecase.
-// It does some weird stuff with the `G_ux` global which is defined by the SDK.
-// No need to dig deeper into the code, a simple copy paste will do.
-void bnnn_paging_edgecase() {
-    G_ux.flow_stack[G_ux.stack_count - 1].prev_index =
-        G_ux.flow_stack[G_ux.stack_count - 1].index - 2;
-    G_ux.flow_stack[G_ux.stack_count - 1].index--;
-    ux_flow_relayout();
+// --- OUTPUT APPROVE / REJECT FLOW
+
+//  Fist flow step with icon and text
+UX_STEP_NOCB(ux_stx_display_output_confirm_step, pn, {&C_icon_warning, "Confirm Output"});
+
+static inline uint16_t output_info_print_address(const sign_transaction_output_info_ctx_t* ctx,
+                                                 uint8_t network_id,
+                                                 char* title,
+                                                 uint8_t title_len,
+                                                 char* address,
+                                                 uint8_t address_len) {
+    if (!stx_output_info_is_finished(ctx)) return SW_BAD_STATE;
+    switch (stx_output_info_type(ctx)) {
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32: {
+            strncpy(title, "Change", title_len);
+            if (!bip32_path_format(ctx->bip32_path.path,
+                                   ctx->bip32_path.len,
+                                   address,
+                                   address_len)) {
+                return SW_BIP32_FORMATTING_FAILED;
+            }
+            break;
+        }
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_ADDRESS: {
+            uint8_t raw_address[P2PK_ADDRESS_LEN];
+            strncpy(title, "Address", title_len);
+            if (!ergo_address_from_compressed_pubkey(network_id, ctx->public_key, raw_address)) {
+                return SW_ADDRESS_GENERATION_FAILED;
+            }
+            if (!format_b58_id(raw_address, P2PK_ADDRESS_LEN, address, address_len)) {
+                return SW_ADDRESS_FORMATTING_FAILED;
+            }
+            break;
+        }
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT:
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT_HASH: {
+            strncpy(title, "Script Hash", title_len);
+            uint8_t raw_address[P2SH_ADDRESS_LEN];
+            if (!ergo_address_from_script_hash(network_id, ctx->tree_hash, raw_address)) {
+                return SW_ADDRESS_GENERATION_FAILED;
+            }
+            if (!format_b58_id(raw_address, P2SH_ADDRESS_LEN, address, address_len)) {
+                return SW_ADDRESS_FORMATTING_FAILED;
+            }
+            break;
+        }
+        case SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE: {
+            strncpy(title, "Fee", title_len);
+            strncpy(address, "Miners Fee", address_len);
+            break;
+        }
+        default:
+            return SW_BAD_STATE;
+    }
+    return SW_OK;
 }
 
-static NOINLINE uint16_t ui_stx_display_state(sign_transaction_ui_confirm_ctx_t* ctx) {
-    char* title = ctx->title;
-    char* text = ctx->text;
-    uint8_t title_len = MEMBER_SIZE(sign_transaction_ui_confirm_ctx_t, title);
-    uint8_t text_len = MEMBER_SIZE(sign_transaction_ui_confirm_ctx_t, text);
+static NOINLINE uint16_t ui_stx_display_output_state(uint8_t screen,
+                                                     char* title,
+                                                     char* text,
+                                                     void* context) {
+    sign_transaction_ui_output_confirm_ctx_t* ctx =
+        (sign_transaction_ui_output_confirm_ctx_t*) context;
+    uint8_t title_len = MEMBER_SIZE(sign_transaction_ui_output_confirm_ctx_t, title);
+    uint8_t text_len = MEMBER_SIZE(sign_transaction_ui_output_confirm_ctx_t, text);
     memset(title, 0, title_len);
     memset(text, 0, text_len);
-    switch (ctx->state) {
-        case SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN: {
-            return ctx->op_screen_cb(ctx->op_screen_index,
-                                     title,
-                                     title_len,
-                                     text,
-                                     text_len,
-                                     ctx->op_cb_context);
-        }
-        case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
-            strncpy(title, "Transaction Amount", title_len);
-            uint64_t value = ctx->amounts->inputs;
-            if (!checked_sub_u64(value, ctx->amounts->fee, &value) ||
-                !checked_sub_u64(value, ctx->amounts->change, &value)) {
-                strncpy(text, "Bad TX. Outputs is bigger than inputs", text_len);
-            } else {
-                format_fpu64(text, text_len, value, ERGO_ERG_FRACTION_DIGIT_COUNT);
+
+    switch (screen) {
+        case 0:  // Output Address Info
+            return output_info_print_address(ctx->output,
+                                             ctx->network_id,
+                                             title,
+                                             title_len,
+                                             text,
+                                             text_len);
+        case 1: {  // Output Value
+            strncpy(title, "Output Value", title_len);
+            if (!format_erg_amount(ctx->output->value, text, text_len)) {
+                return SW_BUFFER_ERROR;
             }
             break;
         }
-        case SIGN_TRANSACTION_UI_STATE_TX_FEE: {
-            strncpy(title, "Transaction Fee", title_len);
-            format_fpu64(text, text_len, ctx->amounts->fee, ERGO_ERG_FRACTION_DIGIT_COUNT);
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
-            uint8_t token_idx = ctx->token_idx;
-            snprintf(title, title_len, "Token [%d]", (int) token_idx + 1);
-            int len = base58_encode(ctx->amounts->tokens_table.tokens[token_idx],
-                                    ERGO_ID_LEN,
-                                    text,
-                                    text_len);
-            text[TOKEN_ID_CHARACTERS] = text[TOKEN_ID_CHARACTERS + 1] =
-                text[TOKEN_ID_CHARACTERS + 2] = '.';
-            memmove(text + TOKEN_ID_CHARACTERS + 3,
-                    text + len - TOKEN_ID_CHARACTERS,
-                    TOKEN_ID_CHARACTERS);
-            text[2 * TOKEN_ID_CHARACTERS + 3] = '\0';
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {
-            uint8_t token_idx = ctx->token_idx;
-            snprintf(title, title_len, "Token [%d]", (int) token_idx + 1);
-            const sign_transaction_token_amount_t* amount = &ctx->amounts->tokens[token_idx];
-            uint64_t value = 0;
-            bool minting;
-            if (!checked_sub_u64(amount->input, amount->output, &value)) {
-                minting = true;
-                checked_sub_u64(amount->output, amount->input, &value);
-                checked_add_u64(value, amount->change, &value);
-            } else if (amount->change > value) {
-                minting = true;
-                checked_sub_u64(amount->change, value, &value);
-            } else {
-                minting = false;
-                checked_sub_u64(value, amount->change, &value);
+        default: {        // Tokens
+            screen -= 2;  // Decrease index for info screens
+            uint8_t token_idx = stx_output_info_used_token_index(ctx->output, screen / 2);
+            if (!IS_ELEMENT_FOUND(token_idx)) {  // error. bad index state
+                return SW_BAD_TOKEN_INDEX;
             }
-            if (minting || value != 0) {  // Minting or Burning
-                if (minting) {
-                    STRING_ADD_STATIC_TEXT(text, text_len, "M: ");
-                } else {
-                    STRING_ADD_STATIC_TEXT(text, text_len, "B: ");
+            if (screen % 2 == 0) {  // Token ID
+                snprintf(title, title_len, "Token [%d]", (int) (screen / 2) + 1);
+                if (!format_hex_id(ctx->output->tokens_table->tokens[token_idx],
+                                   ERGO_ID_LEN,
+                                   text,
+                                   text_len)) {
+                    return SW_ADDRESS_FORMATTING_FAILED;
                 }
-                int char_count = format_u64(text, text_len, value);
-                text_len -= char_count;
-                text += char_count;
-                STRING_ADD_STATIC_TEXT(text, text_len, "; ");
+            } else {  // Token Value
+                snprintf(title, title_len, "Token [%d] Value", (int) (screen / 2) + 1);
+                format_u64(text, text_len, ctx->output->tokens[token_idx]);
             }
-            STRING_ADD_STATIC_TEXT(text, text_len, "T: ");
-            format_u64(text, text_len, amount->output);
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_NONE: {
-            text[0] = title[0] = '\0';
             break;
         }
     }
     return SW_OK;
 }
 
-static inline void ui_stx_dynamic_step_right() {
-    sign_transaction_ui_confirm_ctx_t* ctx =
-        (sign_transaction_ui_confirm_ctx_t*) CONTEXT(G_context).ui_context;
-    switch (ctx->state) {
-        case SIGN_TRANSACTION_UI_STATE_NONE: {
-            if (ctx->amounts->tokens_table.count > 0) {
-                // TX has tokens. Show last token value
-                ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE;
-                ctx->token_idx = ctx->amounts->tokens_table.count - 1;
-            } else {
-                // TX doesn't have tokens. Show TX fee value
-                ctx->state = SIGN_TRANSACTION_UI_STATE_TX_FEE;
-                ctx->token_idx = 0;
-            }
-            // Fill screen with data
-            //
-            // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to account
-            // for `bnnn_paging`'s weird behaviour.
-            DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN: {
-            if (ctx->op_screen_index + 1 >= ctx->op_screen_count) {
-                ctx->state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
-            } else {
-                ctx->state = SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN;
-                ctx->op_screen_index++;
-            }
-            // Fill screen with data
-            //
-            // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to account
-            // for `bnnn_paging`'s weird behaviour.
-            DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
-            ctx->state = SIGN_TRANSACTION_UI_STATE_TX_FEE;
-            // Fill screen with data
-            //
-            // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to account
-            // for `bnnn_paging`'s weird behaviour.
-            DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TX_FEE: {
-            if (ctx->amounts->tokens_table.count > 0) {
-                ctx->token_idx = 0;
-                ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
-                // Fill screen with data
-                //
-                // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to
-                // account for `bnnn_paging`'s weird behaviour.
-                DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
-            } else {
-                ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
-                // go to the next static screen
-                ux_flow_next();
-            }
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
-            ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE;
-            // Fill screen with data
-            //
-            // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to account
-            // for `bnnn_paging`'s weird behaviour.
-            DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {
-            if (ctx->token_idx < ctx->amounts->tokens_table.count - 1) {
-                ctx->token_idx++;
-                ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
-                // Fill screen with data
-                //
-                // `bnnn_paging_edgecase()` is similar to `ux_flow_prev()` but updates layout to
-                // account for `bnnn_paging`'s weird behaviour.
-                DISPLAY_TX_STATE(ctx, bnnn_paging_edgecase);
-            } else {
-                ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
-                // go to the next static screen
-                ux_flow_next();
-            }
-            break;
-        }
-    }
-}
-
-static inline void ui_stx_dynamic_step_left() {
-    sign_transaction_ui_confirm_ctx_t* ctx =
-        (sign_transaction_ui_confirm_ctx_t*) CONTEXT(G_context).ui_context;
-    switch (ctx->state) {
-        case SIGN_TRANSACTION_UI_STATE_NONE: {
-            if (ctx->op_screen_count > 0) {
-                // Show screen from operation hook
-                ctx->state = SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN;
-                ctx->op_screen_index = 0;
-            } else {
-                // Show TX ERG value
-                ctx->state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
-            }
-            // Fill screen with data
-            // Move to the next step, which will display the screen.
-            DISPLAY_TX_STATE(ctx, ux_flow_next);
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN: {
-            if (ctx->op_screen_index > 0) {
-                ctx->op_screen_index--;
-                ctx->state = SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN;
-                // Fill screen with data
-                // Move to the next step, which will display the screen.
-                DISPLAY_TX_STATE(ctx, ux_flow_next);
-            } else {
-                ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
-                // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
-                // weird behaviour.
-                bnnn_paging_edgecase();
-            }
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TX_VALUE: {
-            if (ctx->op_screen_count > 0) {
-                ctx->op_screen_index = ctx->op_screen_count - 1;
-                ctx->state = SIGN_TRANSACTION_UI_STATE_OPERATION_SCREEN;
-                // Fill screen with data
-                // Move to the next step, which will display the screen.
-                DISPLAY_TX_STATE(ctx, ux_flow_next);
-            } else {
-                ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
-                // Similar to `ux_flow_prev()` but updates layout to account for `bnnn_paging`'s
-                // weird behaviour.
-                bnnn_paging_edgecase();
-            }
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TX_FEE: {
-            ctx->state = SIGN_TRANSACTION_UI_STATE_TX_VALUE;
-            // Fill screen with data
-            // Move to the next step, which will display the screen.
-            DISPLAY_TX_STATE(ctx, ux_flow_next);
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TOKEN_ID: {
-            if (ctx->token_idx == 0) {
-                ctx->state = SIGN_TRANSACTION_UI_STATE_TX_FEE;
-            } else {
-                ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE;
-                ctx->token_idx--;
-            }
-            // Fill screen with data
-            // Move to the next step, which will display the screen.
-            DISPLAY_TX_STATE(ctx, ux_flow_next);
-            break;
-        }
-        case SIGN_TRANSACTION_UI_STATE_TOKEN_VALUE: {
-            ctx->state = SIGN_TRANSACTION_UI_STATE_TOKEN_ID;
-            // Fill screen with data
-            // Move to the next step, which will display the screen.
-            DISPLAY_TX_STATE(ctx, ux_flow_next);
-            break;
-        }
-    }
-}
-
-// Step with icon and text
-UX_STEP_NOCB(ux_stx_display_tx_confirm_step, pn, {&C_icon_warning, "Confirm Transaction"});
-UX_STEP_INIT(ux_stx_dynamic_upper_delimiter_step, NULL, NULL, { ui_stx_dynamic_step_left(); });
-UX_STEP_INIT(ux_stx_dynamic_lower_delimiter_step, NULL, NULL, { ui_stx_dynamic_step_right(); });
-
-// Custom dynamic step
-static ux_layout_bnnn_paging_params_t G_ui_stx_dynamic_step_params[1];
-const ux_flow_step_t ux_stx_dynamic_step = {ux_layout_bnnn_paging_init,
-                                            G_ui_stx_dynamic_step_params,
-                                            NULL,
-                                            NULL};
-
-static NOINLINE void ui_stx_operation_execute_action(bool approved) {
+static NOINLINE void ui_stx_operation_output_confirm_action(bool approved, void* context) {
+    UNUSED(context);
     G_context.is_ui_busy = false;
-    sign_transaction_ui_confirm_ctx_t* ctx =
-        (sign_transaction_ui_confirm_ctx_t*) CONTEXT(G_context).ui_context;
+    if (approved) {
+        res_ok();
+    } else {
+        res_deny();
+    }
+    ui_menu_main();
+}
+
+bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
+                               uint8_t* screen,
+                               const sign_transaction_output_info_ctx_t* output,
+                               uint8_t network_id) {
+    if (MAX_NUMBER_OF_SCREENS - *screen < 6) return false;
+
+    memset(ctx, 0, sizeof(sign_transaction_ui_output_confirm_ctx_t));
+
+    G_ux_flow[(*screen)++] = &ux_stx_display_output_confirm_step;
+
+    uint8_t info_screen_count = 1;  // Address screen
+    if (stx_output_info_type(output) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32) {
+        uint8_t tokens_count = stx_output_info_used_tokens_count(output);
+        info_screen_count += 1 + (2 * tokens_count);  // value screen + tokens (2 for each)
+    }
+
+    if (!ui_add_dynamic_flow_screens(screen,
+                                     info_screen_count,
+                                     ctx->title,
+                                     ctx->text,
+                                     &ui_stx_display_output_state,
+                                     (void*) ctx))
+        return false;
+
+    if (MAX_NUMBER_OF_SCREENS - *screen < 2) return false;
+
+    const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
+    const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
+    ui_approve_reject_screens(ui_stx_operation_output_confirm_action, NULL, approve, reject);
+
+    ctx->network_id = network_id;
+    ctx->output = output;
+
+    return true;
+}
+
+// --- TX ACCEPT / REJECT FLOW
+
+// Fist flow step with icon and text
+UX_STEP_NOCB(ux_stx_display_sign_confirm_step, pn, {&C_icon_warning, "Approve Signing"});
+
+// Callback for TX UI rendering
+static NOINLINE uint16_t ui_stx_display_tx_state(uint8_t screen,
+                                                 char* title,
+                                                 char* text,
+                                                 void* context) {
+    sign_transaction_ui_sign_confirm_ctx_t* ctx = (sign_transaction_ui_sign_confirm_ctx_t*) context;
+    uint8_t title_len = MEMBER_SIZE(sign_transaction_ui_sign_confirm_ctx_t, title);
+    uint8_t text_len = MEMBER_SIZE(sign_transaction_ui_sign_confirm_ctx_t, text);
+    memset(title, 0, title_len);
+    memset(text, 0, text_len);
+
+    if (screen < ctx->op_screen_count) {  // Showing operation screen
+        return ctx->op_screen_cb(screen, title, title_len, text, text_len, ctx->op_cb_context);
+    }
+    screen -= ctx->op_screen_count;
+    switch (screen) {
+        case 0: {  // TX Value
+            strncpy(title, "Transaction Amount", title_len);
+            if (!format_erg_amount(ctx->amounts->value, text, text_len)) {
+                return SW_BUFFER_ERROR;
+            }
+            break;
+        }
+        case 1: {  // TX Fee
+            strncpy(title, "Transaction Fee", title_len);
+            if (!format_erg_amount(ctx->amounts->fee, text, text_len)) {
+                return SW_BUFFER_ERROR;
+            }
+            break;
+        }
+        default: {        // Tokens
+            screen -= 2;  // Decrease index for info screens
+            uint8_t token_idx = stx_amounts_non_zero_token_index(ctx->amounts, screen / 2);
+            if (!IS_ELEMENT_FOUND(token_idx)) {  // error. bad index state
+                return SW_BAD_TOKEN_INDEX;
+            }
+            if (screen % 2 == 0) {  // Token ID
+                snprintf(title, title_len, "Token [%d]", (int) (screen / 2) + 1);
+                if (!format_hex_id(ctx->amounts->tokens_table.tokens[token_idx],
+                                   ERGO_ID_LEN,
+                                   text,
+                                   text_len)) {
+                    return SW_ADDRESS_FORMATTING_FAILED;
+                }
+            } else {  // Token Value
+                snprintf(title, title_len, "Token [%d] Value", (int) (screen / 2) + 1);
+                int64_t value = ctx->amounts->tokens[token_idx];
+                if (value < 0) {  // output > inputs
+                    STRING_ADD_STATIC_TEXT(text, text_len, "Minting: ");
+                    format_u64(text, text_len, -value);
+                } else {  // inputs > outputs
+                    STRING_ADD_STATIC_TEXT(text, text_len, "Burning: ");
+                    format_u64(text, text_len, value);
+                }
+            }
+            break;
+        }
+    }
+    return SW_OK;
+}
+
+// TX approve/reject callback
+static NOINLINE void ui_stx_operation_execute_action(bool approved, void* context) {
+    G_context.is_ui_busy = false;
+    sign_transaction_ui_sign_confirm_ctx_t* ctx = (sign_transaction_ui_sign_confirm_ctx_t*) context;
     if (approved) {
         ctx->op_response_cb(ctx->op_cb_context);
     } else {
@@ -357,7 +333,7 @@ static NOINLINE void ui_stx_operation_execute_action(bool approved) {
     ui_menu_main();
 }
 
-bool ui_stx_add_transaction_screens(sign_transaction_ui_confirm_ctx_t* ctx,
+bool ui_stx_add_transaction_screens(sign_transaction_ui_sign_confirm_ctx_t* ctx,
                                     uint8_t* screen,
                                     const sign_transaction_amounts_ctx_t* amounts,
                                     uint8_t op_screen_count,
@@ -366,32 +342,36 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_confirm_ctx_t* ctx,
                                     void* cb_context) {
     if (MAX_NUMBER_OF_SCREENS - *screen < 6) return false;
 
-    memset(ctx, 0, sizeof(sign_transaction_ui_confirm_ctx_t));
+    memset(ctx, 0, sizeof(sign_transaction_ui_sign_confirm_ctx_t));
 
-    G_ui_stx_dynamic_step_params[0].text = ctx->text;
-    G_ui_stx_dynamic_step_params[0].title = ctx->title;
+    uint8_t tokens_count = stx_amounts_non_zero_tokens_count(amounts);
 
-    G_ux_flow[(*screen)++] = &ux_stx_display_tx_confirm_step;
-    G_ux_flow[(*screen)++] = &ux_stx_dynamic_upper_delimiter_step;
-    G_ux_flow[(*screen)++] = &ux_stx_dynamic_step;
-    G_ux_flow[(*screen)++] = &ux_stx_dynamic_lower_delimiter_step;
+    G_ux_flow[(*screen)++] = &ux_stx_display_sign_confirm_step;
+
+    if (!ui_add_dynamic_flow_screens(screen,
+                                     op_screen_count + 2 + (2 * tokens_count),
+                                     ctx->title,
+                                     ctx->text,
+                                     &ui_stx_display_tx_state,
+                                     (void*) ctx))
+        return false;
+
+    if (MAX_NUMBER_OF_SCREENS - *screen < 2) return false;
 
     const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
     const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
-    ui_approve_reject_screens(ui_stx_operation_execute_action, approve, reject);
+    ui_approve_reject_screens(ui_stx_operation_execute_action, ctx, approve, reject);
 
-    ctx->state = SIGN_TRANSACTION_UI_STATE_NONE;
     ctx->op_screen_count = op_screen_count;
     ctx->op_screen_cb = screen_cb;
     ctx->op_response_cb = response_cb;
     ctx->op_cb_context = cb_context;
-    ctx->token_idx = 0;
     ctx->amounts = amounts;
 
     return true;
 }
 
-bool ui_stx_display_screens(uint8_t screen_count, void* ui_context) {
+bool ui_stx_display_screens(uint8_t screen_count) {
     if (MAX_NUMBER_OF_SCREENS - screen_count < 2) return false;
 
     G_ux_flow[screen_count++] = FLOW_LOOP;
@@ -400,7 +380,6 @@ bool ui_stx_display_screens(uint8_t screen_count, void* ui_context) {
     ux_flow_init(0, G_ux_flow, NULL);
 
     G_context.is_ui_busy = true;
-    CONTEXT(G_context).ui_context = ui_context;
 
     return true;
 }

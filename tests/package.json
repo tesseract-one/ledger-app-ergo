@@ -7,17 +7,15 @@
     },
     "bin": "run-tests.js",
     "devDependencies": {
-        "chai": "^4.3.4",
+        "chai": "^4.3.7",
+        "chai-as-promised": "^7.1.1",
         "chai-bytes": "^0.1.2",
-        "mocha": "^9.1.1"
+        "mocha": "^10.1.0"
     },
     "dependencies": {
-        "@ledgerhq/hw-transport-node-hid": "6.6.0",
-        "@ledgerhq/hw-transport-node-speculos": "6.3.0",
-        "bip32": "^2.0.6",
-        "bip32-path": "^0.4.2",
-        "bn.js": "^5.2.0",
-        "create-hash": "1.2.0",
-        "ergo-lib-wasm-nodejs": "v0.14.0-alpha-e802933"
+        "@ledgerhq/hw-transport-node-hid": "6.27.8",
+        "@ledgerhq/hw-transport-node-speculos-http": "6.27.8",
+        "ergo-lib-wasm-nodejs": "v0.21.1",
+        "ledger-ergo-js": "^0.1.14"
     }
 }

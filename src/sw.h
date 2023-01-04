@@ -13,7 +13,7 @@
  */
 #define SW_WRONG_P1P2 0x6A86
 /**
- * Status word for either wrong Lc or lenght of APDU command less than 5.
+ * Status word for either wrong Lc or length of APDU command less than 5.
  */
 #define SW_WRONG_APDU_DATA_LENGTH 0x6A87
 /**
@@ -29,7 +29,7 @@
  */
 #define SW_BUSY 0xB000
 /**
- * Status word for wrong reponse length (buffer too small or too big).
+ * Status word for wrong response length (buffer too small or too big).
  */
 #define SW_WRONG_RESPONSE_LENGTH 0xB001
 
@@ -66,8 +66,7 @@
 #define SW_SCHNORR_SIGNING_FAILED     0xE017
 #define SW_BAD_FRAME_SIGNATURE        0xE018
 #define SW_BAD_NET_TYPE_VALUE         0xE019
+#define SW_SMALL_CHUNK                0xE01A
 
 #define SW_BIP32_FORMATTING_FAILED   0xE101
 #define SW_ADDRESS_FORMATTING_FAILED 0xE102
-
-#define SW_STACK_OVERFLOW 0xFFFF
