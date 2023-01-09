@@ -74,7 +74,8 @@ int handler_derive_address(buffer_t *cdata, bool display, bool has_access_token)
         return send_response_address(CONTEXT(G_context).raw_address);
     }
 
-    return ui_display_address(!display,
+    return ui_display_address(&CONTEXT(G_context),
+                              !display,
                               access_token,
                               bip32_path,
                               bip32_path_len,

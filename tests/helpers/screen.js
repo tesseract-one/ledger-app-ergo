@@ -10,7 +10,13 @@ const ABOUT_FLOW = [
     { header: makefile.appName + " App", body: "(c) 2021 Ergo" },
     { header: "Version", body: makefile.version },
     { header: null, body: "Back" }
-]
+];
+
+const SCREEN_LAST_LINE = {
+    nanos: 17,
+    nanox: 42,
+    nanosp: 42
+};
 
 function resolver() {
     let resolve, reject;
@@ -55,18 +61,42 @@ exports.mergePagedScreens = function (screens) {
 }
 
 class ScreenReader {
-    constructor(automation) {
+    constructor(automation, model) {
         this._automation = automation;
+        this._model = model;
         this._currentScreen = {};
 
-        let line1 = null;
-        this._automation.events.on("text", (evt) => {
-            if (evt.y === 3) {
-                line1 = evt.text;
-                return;
+        let events = [];
+        let timer = undefined;
+        const screenFinished = () => {
+            const screen = { header: null, body: null };
+            timer = undefined;
+            if (events.length === 1) {
+                screen.body = events.pop().text;
+            } else {
+                screen.header = events.shift().text;
+                screen.body = events.reduce((acc, val) => acc + val.text, '');
+                events = [];
             }
-            const screen = { header: line1, body: evt.text };
-            line1 = null;
+            // THIS IS THE UGLY HACK FOR BUGGY SPECULOS
+            // Sometimes it doesn't send full MAIN screen, and sends only header (on quick operations)
+            // We will set header 'null' for event
+            if (screen.header === MAIN_FLOW[0].header && screen.body !== MAIN_FLOW[0].body) {
+                screen.header = null;
+                if (this._currentScreen.resolve) {
+                    console.log("Ugly hack applied!");
+                    this._currentScreen.resolve(MAIN_FLOW[0]);
+                    this._currentScreen.resolve = null;
+                    this._currentScreen.reject = null;
+                } else {
+                    console.log("ERROR! Problems ugly hack doesn't have Promise.");
+                }
+                if (!screen.body) {
+                    console.log("ERROR! Ugly hack has empty screen body.");
+                    return;
+                }
+            }
+            // END OF THE UGLY HACK
             if (this._currentScreen.resolve) {
                 this._currentScreen.resolve(screen);
                 this._currentScreen.resolve = null;
@@ -74,25 +104,40 @@ class ScreenReader {
             } else {
                 this._currentScreen.promise = Promise.resolve(screen);
             }
+        };
+        this._automation.events.on("text", function (evt) {
+            if (timer !== undefined) {
+                clearTimeout(timer);
+            }
+            if (events.length === 0) {
+                events.push(evt);
+            } else {
+                const last = events[events.length - 1];
+                if (evt.y <= last.y) { screenFinished(); }
+                events.push(evt);
+            }
+            if (evt.y >= SCREEN_LAST_LINE[model]) {
+                screenFinished();
+            } else {
+                timer = setTimeout(screenFinished, 200);
+            }
         });
         this._automation.events.on("error", (err) => {
             this._currentScreen.reject(err);
         });
-        this.goNext();
+        this.removeCurrentScreen();
     }
 
     async ensureMainMenu() {
-        let screen = await this.currentScreen();
+        let screen = await this.goNext();
         while (mainMenuScreenIndex(screen) >= 0 && mainMenuScreenIndex(screen) != 2) {
-            await this.goNext();
-            screen = await this.currentScreen();
+            screen = await this.goNext();
         }
         if (mainMenuScreenIndex(screen) < 0) {
             return false;
         }
         while (mainMenuScreenIndex(screen) > 0) {
-            await this.goPrevious();
-            screen = await this.currentScreen();
+            screen = await this.goPrevious();
         }
         if (mainMenuScreenIndex(screen) < 0) {
             return false;
@@ -104,34 +149,59 @@ class ScreenReader {
         return this._currentScreen.promise;
     }
 
-    goNext() {
+    async isReadyMainScreen() {
+        const screen = await this.currentScreen();
+        return mainMenuScreenIndex(screen) === 0;
+    }
+
+    removeCurrentScreen() {
         this._currentScreen = resolver();
-        return this._automation.pressButton('right');
+    }
+
+    goNext() {
+        return this.__pressAndWait('right');
     }
 
     goPrevious() {
-        this._currentScreen = resolver();
-        return this._automation.pressButton('left');
+        return this.__pressAndWait('left');
     }
 
     async readFlow() {
         let screens = [await this.currentScreen()];
-        let screen = screens[0];
+        let screen = null;
         do {
-            await this.goNext();
-            screen = await this.currentScreen();
+            screen = await this.goNext();
             screens.push(screen);
-        } while (screen.header !== screens[0].header && screen.body !== screens[0].body);
+        } while (screen.header !== screens[0].header || screen.body !== screens[0].body);
         screens.pop();
         return screens;
     }
 
     async click(index) {
+        await this.currentScreen();
         for (let i = 0; i < index; i++) {
-            await this.goNext()
-            await this.currentScreen();
+            await this.goNext();
         }
-        await this._automation.pressButton('both');
+        await this.__pressAndWait('both');
+    }
+
+    async clickOn(body) {
+        let firstScreen = await this.currentScreen();
+        let currentScreen;
+        do {
+            currentScreen = await this.goNext();
+            if (currentScreen.body === body) {
+                await this.__pressAndWait('both');
+                break;
+            }
+        } while (currentScreen.header !== firstScreen.header
+            || currentScreen.body !== firstScreen.body);
+    }
+
+    async __pressAndWait(type) {
+        this.removeCurrentScreen();
+        await this._automation.pressButton(type);
+        return await this.currentScreen();
     }
 }
 

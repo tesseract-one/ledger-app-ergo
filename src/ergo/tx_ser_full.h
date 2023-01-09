@@ -30,7 +30,8 @@ typedef enum {
     ERGO_TX_SERIALIZER_FULL_RES_ERR_HASHER = 0x10,
     ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER = 0x11,
     ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE = 0x12,
-    ERGO_TX_SERIALIZER_FULL_RES_ERR_U64_OVERFLOW = 0x13
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_U64_OVERFLOW = 0x13,
+    ERGO_TX_SERIALIZER_FULL_RES_ERR_SMALL_CHUNK = 0x14
 } ergo_tx_serializer_full_result_e;
 
 typedef enum {
@@ -137,11 +138,16 @@ static inline ergo_tx_serializer_full_result_e ergo_tx_serializer_full_set_box_c
     ergo_tx_serializer_full_context_t* context,
     ergo_tx_serializer_box_type_cb on_type,
     ergo_tx_serializer_box_token_cb on_token,
+    ergo_tx_serializer_box_finished_cb on_finished,
     void* cb_context) {
     if (context->state != ERGO_TX_SERIALIZER_FULL_STATE_OUTPUTS_STARTED) {
         context->state = ERGO_TX_SERIALIZER_FULL_STATE_ERROR;
         return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
     }
-    ergo_tx_serializer_box_set_callbacks(&context->box_ctx, on_type, on_token, cb_context);
+    ergo_tx_serializer_box_set_callbacks(&context->box_ctx,
+                                         on_type,
+                                         on_token,
+                                         on_finished,
+                                         cb_context);
     return ERGO_TX_SERIALIZER_FULL_RES_OK;
 }

@@ -1,7 +1,7 @@
 {
     "env": {
-        "BOLOS_SDK": "/opt/bolos-sdk/nanos-secure-sdk",
-        "BOLOS_ENV": "/opt/bolos-devenv",
+        "BOLOS_SDK": "~/.ledger/sdk/nanos-secure-sdk",
+        "BOLOS_ENV": "~/.ledger/env",
         "GCC_COMPILER_NAME": "gcc-arm-none-eabi-10.3-2021.10"
     },
     "configurations": [

@@ -4,50 +4,56 @@ on: [push, pull_request]
 
 jobs:
   job_build_nano_debug:
-    name: Build boilerplate application for NanoS, X and S+
+    name: Build application for NanoS, X and S+
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
           - SDK: "$NANOS_SDK"
-            artifact: ergo-app-debug-nanoS
+            artifact: ergo-app-debug-nanos
           - SDK: "$NANOX_SDK"
-            artifact: ergo-app-debug-nanoX
+            artifact: ergo-app-debug-nanox
           - SDK: "$NANOSP_SDK"
-            artifact: ergo-app-debug-nanoSP
+            artifact: ergo-app-debug-nanosp
 
     container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           make BOLOS_SDK=${{ matrix.SDK }} DEBUG=1
 
       - name: Upload app binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.artifact }}
           path: bin
 
   job_unit_test:
-    name: Unit test
+    name: Unit tests
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build unit tests
         run: |
           cd unit-tests/
-          cmake -Bbuild -H. && make -C build && make -C build test
+          cmake -Bbuild -H. && make -C build
+
+      - name: Run unit tests
+        run: |
+          cd unit-tests/
+          make -C build test
 
       - name: Generate code coverage
         run: |
@@ -58,17 +64,17 @@ jobs:
           lcov --directory . -b "$(realpath build/)" --remove coverage.info '*/unit-tests/*' -o coverage.info && \
           genhtml coverage.info -o coverage
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: code-coverage
           path: unit-tests/coverage
 
       - name: Upload to codecov.io
         if: false
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./unit-tests/coverage.info
+          files: ./unit-tests/coverage.info
           flags: unittests
           name: codecov-app-ergo
           fail_ci_if_error: true
@@ -79,77 +85,89 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: HTML documentation
         run: doxygen .doxygen/Doxyfile
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: documentation
           path: doc/html
-          
+
   job_scan_build:
     name: Clang Static Analyzer
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Clone
+        uses: actions/checkout@v3
 
       - name: Build with Clang Static Analyzer
         run: |
           make clean
           scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
-      - uses: actions/upload-artifact@v2
+      
+      - name: Upload scan result
+        uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: scan-build
           path: scan-build
 
   job_test:
-    name: Test
+    name: Functional Tests
+
+    strategy: 
+      matrix:
+        include:
+          - model: nanos
+            SDK: "2.1"
+          # - model: nanox
+          #   SDK: "2.0.2"
+          # - model: nanosp
+          #   SDK: "1.0.4"
+    
     needs: job_build_nano_debug
     runs-on: ubuntu-latest
 
     container:
       image: ghcr.io/ledgerhq/speculos:latest
       ports:
-        - 1234:1234
+        - 5000:5000
         - 9999:9999
-        - 40000:40000
-        - 41000:41000
-        - 42000:42000
-        - 43000:43000
       options: --entrypoint /bin/bash
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download app binary
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
-          name: ergo-app-debug-nanoS
+          name: ergo-app-debug-${{matrix.model}}
           path: bin
 
       - name: Run test
         run: |
-          apt-get update && apt-get install -qy curl
-          curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
+          apt-get update && apt-get install -qy curl netcat
+          curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
           apt-get install -qy nodejs
-          nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --api-port 40000 --display headless" > speculos.log 2<&1 &
-          cd tests && npm install && npm run test
+          export SEED=`cat tests/seed.txt`
+          nohup bash -c "python /speculos/speculos.py bin/app.elf --apdu-port 9999 --api-port 5000 --display headless --model=${{ matrix.model }} --sdk=${{ matrix.SDK }} --seed \"${SEED}\"" > speculos.log 2<&1 &
+          cd tests && npm install
+          until `nc -w5 -z -v 127.0.0.1 9999`; do sleep 1; done;
+          npm --model=${{matrix.model}} --port=5000 run test
 
       - name: Upload Speculos log
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: speculos-log
+          name: speculos-${{matrix.model}}-log
           path: speculos.log
-

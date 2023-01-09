@@ -1,6 +1,5 @@
 #include "ainpt_response.h"
 #include "ainpt_context.h"
-#include "ainpt_sw.h"
 #include "../../globals.h"
 #include "../../helpers/response.h"
 #include "../../helpers/input_frame.h"
