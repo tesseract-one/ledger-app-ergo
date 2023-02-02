@@ -17,7 +17,8 @@
 
 #include <os.h>
 #include <ux.h>
-#include "../glyphs.h"
+
+#include "glyphs.h"
 
 #include "../globals.h"
 #include "ui_menu.h"

@@ -1,9 +1,10 @@
 #include <os.h>
 #include <ux.h>
 
+#include "glyphs.h"
+
 #include "stx_ui.h"
 #include "stx_response.h"
-#include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../common/macros.h"
 #include "../../helpers/response.h"

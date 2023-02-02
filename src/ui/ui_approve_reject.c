@@ -1,5 +1,6 @@
+#include "glyphs.h"
+
 #include "ui_approve_reject.h"
-#include "../glyphs.h"
 
 static ui_approve_reject_callback G_ui_approve_reject_callback;
 static void* G_ui_approve_reject_callback_context;
