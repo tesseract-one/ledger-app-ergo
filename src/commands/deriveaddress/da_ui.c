@@ -1,11 +1,12 @@
 #include <os.h>
 #include <ux.h>
 
+#include "glyphs.h"
+
 #include "da_ui.h"
 #include "da_response.h"
 #include "da_context.h"
 #include "../../sw.h"
-#include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../context.h"
 #include "../../common/base58.h"
