@@ -1,10 +1,7 @@
 # Compilation of Ledger's app
-src/glyphs.c
-src/glyphs.h
 bin/
+build/
 debug/
-dep/
-obj/
 
 # Unit tests and code coverage
 unit-tests/build/

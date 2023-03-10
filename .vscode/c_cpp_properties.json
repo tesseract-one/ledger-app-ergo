@@ -9,6 +9,7 @@
             "name": "Nano S",
             "includePath": [
                 "${workspaceFolder}/src",
+                "${workspaceFolder}/build/**",
                 "${env:BOLOS_ENV}/${env:GCC_COMPILER_NAME}/arm-none-eabi/include",
                 "${env:BOLOS_SDK}/include/*",
                 "${env:BOLOS_SDK}/lib_ux/include/*",

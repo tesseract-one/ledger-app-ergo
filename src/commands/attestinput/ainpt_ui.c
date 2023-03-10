@@ -1,9 +1,9 @@
 #include <os.h>
 #include <ux.h>
+#include <glyphs.h>
 
 #include "ainpt_ui.h"
 #include "ainpt_response.h"
-#include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../common/macros.h"
 #include "../../helpers/response.h"

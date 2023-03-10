@@ -1,9 +1,10 @@
 #include <os.h>
 #include <ux.h>
+#include <glyphs.h>
 
 #include "stx_ui.h"
 #include "stx_response.h"
-#include "../../glyphs.h"
+
 #include "../../globals.h"
 #include "../../common/macros.h"
 #include "../../helpers/response.h"
@@ -52,7 +53,7 @@ static inline bool format_b58_id(const uint8_t* id, size_t id_len, char* out, si
 
 static inline bool format_erg_amount(uint64_t amount, char* out, size_t out_len) {
     int out_bytes = format_fpu64(out, out_len, amount, ERGO_ERG_FRACTION_DIGIT_COUNT);
-    if (out_bytes <= 0 || out_bytes > out_len - 5) return false;
+    if (out_bytes <= 0 || out_len < 5 || (size_t) out_bytes > out_len - 5) return false;
     out_len -= out_bytes;
     out += out_bytes;
     STRING_ADD_STATIC_TEXT(out, out_len, " ERG");
