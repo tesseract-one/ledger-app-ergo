@@ -2,7 +2,6 @@ const chai = require('chai');
 const { expect } = chai.use(require('chai-bytes'));
 const makefile = require('./helpers/makefile');
 const screen = require('./helpers/screen');
-const { sleep } = require("./helpers/common");
 
 describe("Basic Tests", function () {
     context("Basic Commands", function () {

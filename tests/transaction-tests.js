@@ -23,7 +23,7 @@ function signTxFlows({ model, device }, auth, from, to, change, tokens = undefin
         ],
         [
             { header: null, body: 'Confirm Output' },
-            { header: 'Address', body: ellipsize(model, to.toBase58()) },
+            { header: 'Address', body: to.toBase58() },
             { header: 'Output Value', body: '0.100000000 ERG' },
             { header: null, body: 'Approve' },
             { header: null, body: 'Reject' }

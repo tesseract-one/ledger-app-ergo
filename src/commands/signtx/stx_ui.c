@@ -47,7 +47,6 @@ static inline bool format_hex_id(const uint8_t* id, size_t id_len, char* out, si
 static inline bool format_b58_id(const uint8_t* id, size_t id_len, char* out, size_t out_len) {
     int len = base58_encode(id, id_len, out, out_len);
     if (len <= 0) return false;
-    id_string_remove_middle(out, len);
     return true;
 }
 

@@ -1,4 +1,4 @@
-const { sleep } = require('./common');
+const { mergePagedScreens } = require('./screen');
 
 function suppressPomiseError(promise) {
     return promise.catch((reason) => ({ __rejected: true, reason }));
@@ -42,7 +42,7 @@ class AuthTokenFlows {
                 const flows = [];
                 for (let i = 0; i < count[auth]; i++) {
                     let flow = await this.screens.readFlow();
-                    flows.push(flow);
+                    flows.push(mergePagedScreens(flow));
                     await this.screens.clickOn('Approve');
                     if (i != count[auth] - 1 && await this.screens.isReadyMainScreen()) { // we have more flows
                         this.screens.removeCurrentScreen(); // Wait for new screen in the readFlow
