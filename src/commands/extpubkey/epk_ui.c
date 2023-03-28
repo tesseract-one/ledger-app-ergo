@@ -2,9 +2,10 @@
 #include <ux.h>
 #include <string.h>
 
+#include "glyphs.h"
+
 #include "epk_ui.h"
 #include "epk_response.h"
-#include "../../glyphs.h"
 #include "../../globals.h"
 #include "../../context.h"
 #include "../../sw.h"
