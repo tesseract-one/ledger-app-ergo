@@ -13,9 +13,7 @@
  *   Data size of the buffer.
  *
  */
-static inline void buffer_init(buffer_t *buffer,
-                               const uint8_t *ptr,
-                               size_t data_size) {
+static inline void buffer_init(buffer_t *buffer, const uint8_t *ptr, size_t data_size) {
     buffer->ptr = ptr;
     buffer->offset = 0;
     buffer->size = data_size;

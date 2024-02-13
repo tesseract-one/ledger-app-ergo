@@ -2,35 +2,34 @@
 
 #include "buffer_ext.h"
 
-#define RW_BUFFER_FROM_ARRAY_FULL(_name, _array, _size)  \
-    rw_buffer_t _name;                                   \
+#define RW_BUFFER_FROM_ARRAY_FULL(_name, _array, _size) \
+    rw_buffer_t _name;                                  \
     rw_buffer_init(&_name, _array, _size, _size)
 
 #define RW_BUFFER_FROM_ARRAY_EMPTY(_name, _array, _size) \
     rw_buffer_t _name;                                   \
     rw_buffer_init(&_name, _array, _size, 0)
 
-#define RW_BUFFER_FROM_VAR_FULL(_name, _var)   \
-    rw_buffer_t _name;                         \
+#define RW_BUFFER_FROM_VAR_FULL(_name, _var) \
+    rw_buffer_t _name;                       \
     rw_buffer_init(&_name, &_var, sizeof(_var), sizeof(_var))
 
 #define RW_BUFFER_FROM_VAR_EMPTY(_name, _var) \
-    rw_buffer_t _name;                           \
+    rw_buffer_t _name;                        \
     rw_buffer_init(&_name, &_var, sizeof(_var), 0)
 
-#define RW_BUFFER_NEW_LOCAL_EMPTY(_name, _size)  \
-    uint8_t __##_name[_size];                     \
-    rw_buffer_t _name;                              \
+#define RW_BUFFER_NEW_LOCAL_EMPTY(_name, _size) \
+    uint8_t __##_name[_size];                   \
+    rw_buffer_t _name;                          \
     rw_buffer_init(&_name, __##_name, _size, 0)
 
 /**
  * Struct for buffer with size and read+write offset.
  */
 typedef struct {
-    buffer_t read; /// read buffer. size is a write offset.
-    size_t size;   /// full allocated size of the buffer
+    buffer_t read;  /// read buffer. size is a write offset.
+    size_t size;    /// full allocated size of the buffer
 } rw_buffer_t;
-
 
 /**
  * Initialize buffer.
@@ -110,7 +109,7 @@ static inline const uint8_t *rw_buffer_read_ptr(const rw_buffer_t *buffer) {
  *
  */
 static inline uint8_t *rw_buffer_write_ptr(rw_buffer_t *buffer) {
-    return ((uint8_t* )buffer->read.ptr) + buffer->read.size;
+    return ((uint8_t *) buffer->read.ptr) + buffer->read.size;
 }
 
 /**
@@ -281,7 +280,9 @@ static inline bool rw_buffer_read_u8(rw_buffer_t *buffer, uint8_t *value) {
  * @return true if success, false otherwise.
  *
  */
-static inline bool rw_buffer_read_u16(rw_buffer_t *buffer, uint16_t *value, endianness_t endianness) {
+static inline bool rw_buffer_read_u16(rw_buffer_t *buffer,
+                                      uint16_t *value,
+                                      endianness_t endianness) {
     return buffer_read_u16(&buffer->read, value, endianness);
 }
 
@@ -298,7 +299,9 @@ static inline bool rw_buffer_read_u16(rw_buffer_t *buffer, uint16_t *value, endi
  * @return true if success, false otherwise.
  *
  */
-static inline bool rw_buffer_read_u32(rw_buffer_t *buffer, uint32_t *value, endianness_t endianness) {
+static inline bool rw_buffer_read_u32(rw_buffer_t *buffer,
+                                      uint32_t *value,
+                                      endianness_t endianness) {
     return buffer_read_u32(&buffer->read, value, endianness);
 }
 
@@ -315,7 +318,9 @@ static inline bool rw_buffer_read_u32(rw_buffer_t *buffer, uint32_t *value, endi
  * @return true if success, false otherwise.
  *
  */
-static inline bool rw_buffer_read_u64(rw_buffer_t *buffer, uint64_t *value, endianness_t endianness) {
+static inline bool rw_buffer_read_u64(rw_buffer_t *buffer,
+                                      uint64_t *value,
+                                      endianness_t endianness) {
     return buffer_read_u64(&buffer->read, value, endianness);
 }
 

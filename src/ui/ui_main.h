@@ -8,7 +8,7 @@
 /**
  * Global array for UI screen flow
  */
-extern ux_flow_step_t const *G_ux_flow_steps[MAX_NUMBER_OF_SCREENS + 1];
+extern ux_flow_step_t const* G_ux_flow_steps[MAX_NUMBER_OF_SCREENS + 1];
 
 static inline const ux_flow_step_t** ui_next_sreen_ptr(uint8_t* position) {
     if (*position >= MAX_NUMBER_OF_SCREENS) return NULL;
@@ -21,7 +21,7 @@ static inline bool ui_add_screen(const ux_flow_step_t* screen, uint8_t* position
     return true;
 }
 
-static inline bool ui_display_screens(uint8_t *postition) {
+static inline bool ui_display_screens(uint8_t* postition) {
     if (MAX_NUMBER_OF_SCREENS - *postition < 2) return false;
 
     G_ux_flow_steps[(*postition)++] = FLOW_LOOP;
@@ -35,4 +35,3 @@ static inline bool ui_display_screens(uint8_t *postition) {
 }
 
 #endif
-

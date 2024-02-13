@@ -8,4 +8,4 @@ void ui_menu_main(void);
 /**
  * Show about submenu (copyright, date).
  */
-void ui_menu_about(void); 
+void ui_menu_about(void);
