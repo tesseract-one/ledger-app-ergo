@@ -40,7 +40,7 @@ add_definitions(-include macro_helpers.h)
 
 include_directories(BEFORE SYSTEM ../src utils)
 
-# CX lirary shim for testing
+# CX library shim for testing
 add_library(cx SHARED utils/cx.c utils/blake2b-ref.c)
 
 add_executable(test_base58 test_base58.c)
