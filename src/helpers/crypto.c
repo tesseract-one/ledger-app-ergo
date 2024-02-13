@@ -35,7 +35,9 @@ uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                                                bip32_path_len,
                                                raw_private_key,
                                                chain_code);
-    if (result != CX_OK) { return (uint16_t)result; }
+    if (result != CX_OK) {
+        return (uint16_t) result;
+    }
 
     // new private_key from raw
     result = cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1,
@@ -43,7 +45,7 @@ uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                                                PRIVATE_KEY_SIZE,
                                                private_key);
     explicit_bzero(raw_private_key, sizeof(raw_private_key));
-    return (uint16_t)result;
+    return (uint16_t) result;
 }
 
 uint16_t crypto_generate_private_key(const uint32_t *bip32_path,

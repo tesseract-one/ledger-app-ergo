@@ -95,7 +95,8 @@ bool ui_stx_add_operation_approve_screens(sign_transaction_ui_aprove_ctx_t* ctx,
     ctx->sign_tx_context = sign_tx;
     ctx->is_known_application = is_known_application;
 
-    ui_approve_reject_screens(ui_stx_operation_approve_action, ctx,
+    ui_approve_reject_screens(ui_stx_operation_approve_action,
+                              ctx,
                               ui_next_sreen_ptr(screen),
                               ui_next_sreen_ptr(screen));
 
@@ -250,7 +251,9 @@ bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
     if (MAX_NUMBER_OF_SCREENS - *screen < 2) return false;
 
     ui_approve_reject_screens(ui_stx_operation_output_confirm_action,
-                              NULL, ui_next_sreen_ptr(screen), ui_next_sreen_ptr(screen));
+                              NULL,
+                              ui_next_sreen_ptr(screen),
+                              ui_next_sreen_ptr(screen));
 
     ctx->network_id = network_id;
     ctx->output = output;
@@ -364,8 +367,10 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_sign_confirm_ctx_t* ctx,
 
     if (MAX_NUMBER_OF_SCREENS - *screen < 2) return false;
 
-    ui_approve_reject_screens(ui_stx_operation_execute_action, ctx, 
-                              ui_next_sreen_ptr(screen), ui_next_sreen_ptr(screen));
+    ui_approve_reject_screens(ui_stx_operation_execute_action,
+                              ctx,
+                              ui_next_sreen_ptr(screen),
+                              ui_next_sreen_ptr(screen));
 
     ctx->op_screen_count = op_screen_count;
     ctx->op_screen_cb = screen_cb;

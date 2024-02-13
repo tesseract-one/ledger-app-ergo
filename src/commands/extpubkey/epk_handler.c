@@ -17,7 +17,6 @@
 #include "../../common/macros_ext.h"
 #include "../../helpers/session_id.h"
 
-
 #define COMMAND_ERROR_HANDLER handler_err
 #include "../../helpers/cmd_macros.h"
 
@@ -62,8 +61,7 @@ int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
     }
 
     if (is_known_application(access_token, app_connected_app_id())) {
-        return send_response_extended_pubkey(ctx->raw_public_key,
-                                             ctx->chain_code);
+        return send_response_extended_pubkey(ctx->raw_public_key, ctx->chain_code);
     }
 
     return ui_display_account(ctx,

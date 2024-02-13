@@ -232,7 +232,9 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
         if (gve_put_u64(&buffer, value) != GVE_OK) {
             return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
         }
-        if (!blake2b_update(context->hash, rw_buffer_read_ptr(&buffer), rw_buffer_data_len(&buffer))) {
+        if (!blake2b_update(context->hash,
+                            rw_buffer_read_ptr(&buffer),
+                            rw_buffer_data_len(&buffer))) {
             return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
         }
 

@@ -36,7 +36,7 @@ bool rw_buffer_write_u8(rw_buffer_t *buffer, uint8_t value) {
         return false;
     }
 
-    ((uint8_t *)buffer->read.ptr)[buffer->read.size] = value;
+    ((uint8_t *) buffer->read.ptr)[buffer->read.size] = value;
 
     rw_buffer_seek_write_cur(buffer, 1);
     return true;
@@ -48,9 +48,9 @@ bool rw_buffer_write_u16(rw_buffer_t *buffer, uint16_t value, endianness_t endia
     }
 
     if (endianness == BE) {
-        write_u16_be((uint8_t*)buffer->read.ptr, buffer->read.size, value);
+        write_u16_be((uint8_t *) buffer->read.ptr, buffer->read.size, value);
     } else {
-        write_u16_le((uint8_t*)buffer->read.ptr, buffer->read.size, value);
+        write_u16_le((uint8_t *) buffer->read.ptr, buffer->read.size, value);
     }
 
     rw_buffer_seek_write_cur(buffer, 2);
@@ -64,9 +64,9 @@ bool rw_buffer_write_u32(rw_buffer_t *buffer, uint32_t value, endianness_t endia
     }
 
     if (endianness == BE) {
-        write_u32_be((uint8_t*)buffer->read.ptr, buffer->size, value);
+        write_u32_be((uint8_t *) buffer->read.ptr, buffer->size, value);
     } else {
-        write_u32_le((uint8_t*)buffer->read.ptr, buffer->size, value);
+        write_u32_le((uint8_t *) buffer->read.ptr, buffer->size, value);
     }
 
     rw_buffer_seek_write_cur(buffer, 4);
@@ -80,9 +80,9 @@ bool rw_buffer_write_u64(rw_buffer_t *buffer, uint64_t value, endianness_t endia
     }
 
     if (endianness == BE) {
-        write_u64_be((uint8_t*)buffer->read.ptr, buffer->size, value);
+        write_u64_be((uint8_t *) buffer->read.ptr, buffer->size, value);
     } else {
-        write_u64_le((uint8_t*)buffer->read.ptr, buffer->size, value);
+        write_u64_le((uint8_t *) buffer->read.ptr, buffer->size, value);
     }
 
     rw_buffer_seek_write_cur(buffer, 8);
@@ -95,7 +95,7 @@ bool rw_buffer_write_bytes(rw_buffer_t *buffer, const uint8_t *from, size_t from
         return false;
     }
 
-    memmove((uint8_t*)buffer->read.ptr + buffer->size, from, from_len);
+    memmove((uint8_t *) buffer->read.ptr + buffer->size, from, from_len);
 
     rw_buffer_seek_write_cur(buffer, from_len);
 
@@ -105,7 +105,7 @@ bool rw_buffer_write_bytes(rw_buffer_t *buffer, const uint8_t *from, size_t from
 void rw_buffer_shift_data(rw_buffer_t *buffer) {
     if (buffer->read.offset == 0) return;
     size_t data_len = rw_buffer_data_len(buffer);
-    memmove((uint8_t*)buffer->read.ptr, buffer->read.ptr + buffer->read.offset, data_len);
+    memmove((uint8_t *) buffer->read.ptr, buffer->read.ptr + buffer->read.offset, data_len);
     buffer->read.size = data_len;
     buffer->read.offset = 0;
 }

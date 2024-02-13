@@ -41,8 +41,10 @@ int ui_display_access_token(uint32_t app_access_token, attest_input_ctx_t* conte
         ui_add_screen(ui_application_id_screen(app_access_token, context->ui.app_token), &screen);
     }
 
-    ui_approve_reject_screens(ui_action_attest_input, 
-                              context, ui_next_sreen_ptr(&screen), ui_next_sreen_ptr(&screen));
+    ui_approve_reject_screens(ui_action_attest_input,
+                              context,
+                              ui_next_sreen_ptr(&screen),
+                              ui_next_sreen_ptr(&screen));
     ui_display_screens(&screen);
 
     return 0;

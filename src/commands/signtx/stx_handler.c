@@ -16,7 +16,7 @@
 #define COMMAND_ERROR_HANDLER handler_err
 #include "../../helpers/cmd_macros.h"
 
-static inline int handler_err(sign_transaction_ctx_t* ctx, uint16_t err) {
+static inline int handler_err(sign_transaction_ctx_t *ctx, uint16_t err) {
     ctx->state = SIGN_TRANSACTION_STATE_ERROR;
     app_set_current_command(CMD_NONE);
     return res_error(err);
@@ -46,7 +46,7 @@ static inline uint16_t bip32_public_key(uint32_t path[MAX_BIP32_PATH],
     return SW_OK;
 }
 
-static inline int show_output_screen_if_needed(sign_transaction_ctx_t* ctx) {
+static inline int show_output_screen_if_needed(sign_transaction_ctx_t *ctx) {
     // Should have switch for more ops
     // Check if we have to show screen
     if (stx_operation_p2pk_should_show_output_confirm_screen(&ctx->p2pk)) {
@@ -65,7 +65,8 @@ static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
     uint32_t app_session_id_in = 0;
     uint8_t network_id = 0;
     CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &network_id));
-    CHECK_CALL_RESULT_SW_OK(ctx, read_bip32_path(cdata, ctx->p2pk.bip32.path, &ctx->p2pk.bip32.len));
+    CHECK_CALL_RESULT_SW_OK(ctx,
+                            read_bip32_path(cdata, ctx->p2pk.bip32.path, &ctx->p2pk.bip32.len));
     CHECK_READ_PARAM(ctx, !(has_token && !buffer_read_u32(cdata, &app_session_id_in, BE)));
     CHECK_PARAMS_FINISHED(ctx, cdata);
 
@@ -165,10 +166,10 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
         // Add new input. Should be switch if more ops added
         CHECK_CALL_RESULT_SW_OK(ctx,
                                 stx_operation_p2pk_add_input(&ctx->p2pk,
-                                                            id_buffer,
-                                                            value,
-                                                            frames_count,
-                                                            extension_len));
+                                                             id_buffer,
+                                                             value,
+                                                             frames_count,
+                                                             extension_len));
     }
     // Add tokens to the input. Swould be switch if more ops added
     CHECK_CALL_RESULT_SW_OK(
@@ -287,10 +288,7 @@ int handler_sign_transaction(buffer_t *cdata,
             }
             app_set_current_command(CMD_SIGN_TRANSACTION);
 
-            return handle_init_p2pk(ctx,
-                                    cdata,
-                                    session_or_token == 0x02,
-                                    app_connected_app_id());
+            return handle_init_p2pk(ctx, cdata, session_or_token == 0x02, app_connected_app_id());
         case SIGN_TRANSACTION_SUBCOMMAND_START_TX:
             CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
             CHECK_SESSION(ctx, session_or_token);

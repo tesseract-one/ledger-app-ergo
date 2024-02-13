@@ -71,8 +71,10 @@ int ui_display_account(extended_public_key_ctx_t* ctx,
         ui_add_screen(ui_application_id_screen(app_access_token, ctx->app_token), &screen);
     }
 
-    ui_approve_reject_screens(ui_action_get_extended_pubkey, ctx,
-                              ui_next_sreen_ptr(&screen), ui_next_sreen_ptr(&screen));
+    ui_approve_reject_screens(ui_action_get_extended_pubkey,
+                              ctx,
+                              ui_next_sreen_ptr(&screen),
+                              ui_next_sreen_ptr(&screen));
 
     ctx->app_token_value = app_access_token;
     memmove(ctx->raw_public_key, raw_pub_key, PUBLIC_KEY_LEN);

@@ -73,7 +73,8 @@ int ui_display_address(derive_address_ctx_t* ctx,
     ctx->send = send;
 
     uint8_t screen = 0;
-    ui_add_screen(send ? &ux_da_display_confirm_send_step : &ux_da_display_confirm_addr_step, &screen);
+    ui_add_screen(send ? &ux_da_display_confirm_send_step : &ux_da_display_confirm_addr_step,
+                  &screen);
 
     const ux_flow_step_t* b32_screen =
         ui_bip32_path_screen(bip32_path,
@@ -103,8 +104,10 @@ int ui_display_address(derive_address_ctx_t* ctx,
         ui_add_screen(ui_application_id_screen(app_access_token, ctx->app_id), &screen);
     }
 
-    ui_approve_reject_screens(ui_action_derive_address, ctx, 
-                              ui_next_sreen_ptr(&screen), ui_next_sreen_ptr(&screen));
+    ui_approve_reject_screens(ui_action_derive_address,
+                              ctx,
+                              ui_next_sreen_ptr(&screen),
+                              ui_next_sreen_ptr(&screen));
 
     memmove(ctx->raw_address, raw_address, P2PK_ADDRESS_LEN);
 

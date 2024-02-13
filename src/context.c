@@ -22,5 +22,5 @@ void app_init(void) {
 void app_set_current_command(command_e current_command) {
     explicit_bzero(&G_app_context.commands_ctx, MEMBER_SIZE(app_ctx_t, commands_ctx));
     app_set_ui_busy(false);
-    G_app_context.current_command = current_command;    
+    G_app_context.current_command = current_command;
 }

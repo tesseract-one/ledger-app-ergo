@@ -151,17 +151,14 @@ int handler_attest_input(buffer_t *cdata,
         return res_ui_busy();
     }
 
-    attest_input_ctx_t* ctx = app_attest_input_context();
+    attest_input_ctx_t *ctx = app_attest_input_context();
     switch (subcommand) {
         case ATTEST_INPUT_SUBCOMMAND_INIT:
             if (session_or_token != 0x01 && session_or_token != 0x02) {
                 return handler_err(ctx, SW_WRONG_P1P2);
             }
             app_set_current_command(CMD_ATTEST_INPUT_BOX);
-            return handle_init(ctx,
-                               cdata,
-                               session_or_token == 0x02,
-                               app_connected_app_id());
+            return handle_init(ctx, cdata, session_or_token == 0x02, app_connected_app_id());
         case ATTEST_INPUT_SUBCOMMAND_TREE_CHUNK:
             CHECK_COMMAND(ctx, CMD_ATTEST_INPUT_BOX);
             CHECK_SESSION(ctx, session_or_token);
