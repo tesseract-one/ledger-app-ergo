@@ -5,7 +5,7 @@
 //  Created by Yehor Popovych on 11.08.2021.
 //
 
-#include "varint.h"
+#include "gve.h"
 
 gve_result_e gve_get_i16(buffer_t *buffer, int16_t *val) {
     int32_t i32;
@@ -73,7 +73,7 @@ gve_result_e gve_get_u64(buffer_t *buffer, uint64_t *val) {
     return res;
 }
 
-gve_result_e gve_put_u64(buffer_t *buffer, uint64_t val) {
+gve_result_e gve_put_u64(rw_buffer_t *buffer, uint64_t val) {
     uint8_t out[10];
     size_t i = 0;
     do {
@@ -82,6 +82,5 @@ gve_result_e gve_put_u64(buffer_t *buffer, uint64_t val) {
         if (val) byte |= 0x80U;
         out[i++] = byte;
     } while (val);
-    return buffer_write_bytes(buffer, out, i) ? GVE_OK : GVE_ERR_DATA_SIZE;
-    ;
+    return rw_buffer_write_bytes(buffer, out, i) ? GVE_OK : GVE_ERR_DATA_SIZE;
 }

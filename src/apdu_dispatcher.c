@@ -1,19 +1,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "dispatcher.h"
-#include "../constants.h"
-#include "../globals.h"
-#include "../types.h"
-#include "../sw.h"
-#include "../helpers/io.h"
-#include "../common/buffer.h"
-#include "../commands/app_name.h"
-#include "../commands/app_version.h"
-#include "../commands/extpubkey/epk_handler.h"
-#include "../commands/deriveaddress/da_handler.h"
-#include "../commands/attestinput/ainpt_handler.h"
-#include "../commands/signtx/stx_handler.h"
+#include <io.h>
+
+#include "apdu_dispatcher.h"
+#include "constants.h"
+#include "sw.h"
+#include "commands/app_name.h"
+#include "commands/app_version.h"
+#include "commands/extpubkey/epk_handler.h"
+#include "commands/deriveaddress/da_handler.h"
+#include "commands/attestinput/ainpt_handler.h"
+#include "commands/signtx/stx_handler.h"
 
 int apdu_dispatcher(const command_t *cmd) {
     if (cmd->cla != CLA) {
@@ -21,7 +19,7 @@ int apdu_dispatcher(const command_t *cmd) {
     }
 
     buffer_t buf;
-    buffer_init(&buf, cmd->data, cmd->lc, cmd->lc);
+    buffer_init(&buf, cmd->data, cmd->lc);
 
     switch (cmd->ins) {
         case CMD_GET_APP_VERSION:

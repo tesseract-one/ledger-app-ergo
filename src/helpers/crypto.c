@@ -20,7 +20,6 @@
 #include <stdbool.h>  // bool
 
 #include "crypto.h"
-#include "globals.h"
 
 #define PRIVATE_KEY_SIZE 32
 
@@ -28,31 +27,23 @@ uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
                                    uint8_t chain_code[static CHAIN_CODE_LEN],
                                    const uint32_t *bip32_path,
                                    uint8_t bip32_path_len) {
-    uint8_t raw_private_key[PRIVATE_KEY_SIZE] = {0};
-    uint16_t result = 0;
-    BEGIN_TRY {
-        TRY {
-            // derive the seed with bip32_path
-            os_perso_derive_node_bip32(CX_CURVE_256K1,
-                                       bip32_path,
-                                       bip32_path_len,
-                                       raw_private_key,
-                                       chain_code);
-            // new private_key from raw
-            cx_ecfp_init_private_key(CX_CURVE_256K1,
-                                     raw_private_key,
-                                     sizeof(raw_private_key),
-                                     private_key);
-        }
-        CATCH_OTHER(e) {
-            result = e;
-        }
-        FINALLY {
-            explicit_bzero(raw_private_key, sizeof(raw_private_key));
-        }
-    }
-    END_TRY;
-    return result;
+    uint8_t raw_private_key[64] = {0};
+
+    // derive the seed with bip32_path
+    cx_err_t result = os_derive_bip32_no_throw(CX_CURVE_256K1,
+                                               bip32_path,
+                                               bip32_path_len,
+                                               raw_private_key,
+                                               chain_code);
+    if (result != CX_OK) { return (uint16_t)result; }
+
+    // new private_key from raw
+    result = cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1,
+                                               raw_private_key,
+                                               PRIVATE_KEY_SIZE,
+                                               private_key);
+    explicit_bzero(raw_private_key, sizeof(raw_private_key));
+    return (uint16_t)result;
 }
 
 uint16_t crypto_generate_private_key(const uint32_t *bip32_path,

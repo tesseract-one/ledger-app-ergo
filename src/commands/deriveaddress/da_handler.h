@@ -4,8 +4,7 @@
 #include <stdbool.h>  // bool
 #include <stdint.h>   // uint*_t
 
-#include "../../types.h"
-#include "../../common/buffer.h"
+#include <buffer.h>
 
 /**
  * Handler for CMD_DERIVE_ADDRESS command. If successfully parse BIP32 path,

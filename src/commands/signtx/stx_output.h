@@ -5,7 +5,7 @@
 #include <stdint.h>   // uint*_t
 #include <string.h>   // memset
 
-#include "../../common/bip32.h"
+#include "../../common/bip32_ext.h"
 #include "../../constants.h"
 #include "../../helpers/blake2b.h"
 #include "../../ergo/tx_ser_full.h"

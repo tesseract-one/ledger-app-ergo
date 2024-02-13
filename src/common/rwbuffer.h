@@ -1,47 +1,36 @@
 #pragma once
 
-#include <stdint.h>   // uint*_t
-#include <stddef.h>   // size_t
-#include <stdbool.h>  // bool
+#include "buffer_ext.h"
 
-#define BUFFER_FROM_ARRAY_FULL(name, array, size) \
-    buffer_t name;                                \
-    buffer_init(&name, array, size, size)
+#define RW_BUFFER_FROM_ARRAY_FULL(_name, _array, _size)  \
+    rw_buffer_t _name;                                   \
+    rw_buffer_init(&_name, _array, _size, _size)
 
-#define BUFFER_FROM_ARRAY_EMPTY(name, array, size) \
-    buffer_t name;                                 \
-    buffer_init(&name, array, size, 0)
+#define RW_BUFFER_FROM_ARRAY_EMPTY(_name, _array, _size) \
+    rw_buffer_t _name;                                   \
+    rw_buffer_init(&_name, _array, _size, 0)
 
-#define BUFFER_FROM_VAR_FULL(name, var) \
-    buffer_t name;                      \
-    buffer_init(&name, &var, sizeof(var), sizeof(var))
+#define RW_BUFFER_FROM_VAR_FULL(_name, _var)   \
+    rw_buffer_t _name;                         \
+    rw_buffer_init(&_name, &_var, sizeof(_var), sizeof(_var))
 
-#define BUFFER_FROM_VAR_EMPTY(name, var) \
-    buffer_t name;                       \
-    buffer_init(&name, &var, sizeof(var), 0)
+#define RW_BUFFER_FROM_VAR_EMPTY(_name, _var) \
+    rw_buffer_t _name;                           \
+    rw_buffer_init(&_name, &_var, sizeof(_var), 0)
 
-#define BUFFER_NEW_LOCAL_EMPTY(name, size) \
-    uint8_t __##name[size];                \
-    buffer_t name;                         \
-    buffer_init(&name, __##name, size, 0)
-
-/**
- * Enumeration for endianness.
- */
-typedef enum {
-    BE,  /// Big Endian
-    LE   /// Little Endian
-} endianness_t;
+#define RW_BUFFER_NEW_LOCAL_EMPTY(_name, _size)  \
+    uint8_t __##_name[_size];                     \
+    rw_buffer_t _name;                              \
+    rw_buffer_init(&_name, __##_name, _size, 0)
 
 /**
  * Struct for buffer with size and read+write offset.
  */
 typedef struct {
-    uint8_t *ptr;           /// Pointer to byte buffer
-    uint16_t size;          /// Size of byte buffer
-    uint16_t read_offset;   /// Read offset in byte buffer
-    uint16_t write_offset;  /// Write offset in byte buffer
-} buffer_t;
+    buffer_t read; /// read buffer. size is a write offset.
+    size_t size;   /// full allocated size of the buffer
+} rw_buffer_t;
+
 
 /**
  * Initialize buffer.
@@ -56,14 +45,12 @@ typedef struct {
  *   Data size of the buffer.
  *
  */
-static inline void buffer_init(buffer_t *buffer,
-                               uint8_t *ptr,
-                               uint16_t buf_size,
-                               uint16_t data_size) {
-    buffer->ptr = ptr;
+static inline void rw_buffer_init(rw_buffer_t *buffer,
+                                  uint8_t *ptr,
+                                  size_t buf_size,
+                                  size_t data_size) {
+    buffer_init(&buffer->read, ptr, data_size);
     buffer->size = buf_size;
-    buffer->read_offset = 0;
-    buffer->write_offset = data_size;
 }
 
 /**
@@ -73,9 +60,35 @@ static inline void buffer_init(buffer_t *buffer,
  *   Pointer to input buffer struct.
  *
  */
-static inline void buffer_empty(buffer_t *buffer) {
-    buffer->read_offset = 0;
-    buffer->write_offset = 0;
+static inline void rw_buffer_empty(rw_buffer_t *buffer) {
+    buffer->read.offset = 0;
+    buffer->read.size = 0;
+}
+
+/**
+ * Tell whether buffer has bytes to read or not.
+ *
+ * @param[in] buffer
+ *   Pointer to input buffer struct.
+ *
+ * @return length of the data in buffer.
+ *
+ */
+static inline size_t rw_buffer_data_len(const rw_buffer_t *buffer) {
+    return buffer_data_len(&buffer->read);
+}
+
+/**
+ * Tell whether buffer can write bytes or not.
+ *
+ * @param[in] buffer
+ *   Pointer to input buffer struct.
+ *
+ * @return length of the empty space in buffer.
+ *
+ */
+static inline size_t rw_buffer_empty_space_len(const rw_buffer_t *buffer) {
+    return buffer->size - buffer->read.size;
 }
 
 /**
@@ -85,8 +98,8 @@ static inline void buffer_empty(buffer_t *buffer) {
  *   Pointer to input buffer struct.
  *
  */
-static inline uint8_t *buffer_read_ptr(const buffer_t *buffer) {
-    return buffer->ptr + buffer->read_offset;
+static inline const uint8_t *rw_buffer_read_ptr(const rw_buffer_t *buffer) {
+    return buffer_read_ptr(&buffer->read);
 }
 
 /**
@@ -96,8 +109,8 @@ static inline uint8_t *buffer_read_ptr(const buffer_t *buffer) {
  *   Pointer to input buffer struct.
  *
  */
-static inline uint8_t *buffer_write_ptr(const buffer_t *buffer) {
-    return buffer->ptr + buffer->write_offset;
+static inline uint8_t *rw_buffer_write_ptr(rw_buffer_t *buffer) {
+    return ((uint8_t* )buffer->read.ptr) + buffer->read.size;
 }
 
 /**
@@ -111,8 +124,8 @@ static inline uint8_t *buffer_write_ptr(const buffer_t *buffer) {
  * @return true if success, false otherwise.
  *
  */
-static inline bool buffer_can_read(const buffer_t *buffer, uint16_t n) {
-    return (buffer->write_offset - buffer->read_offset) >= n;
+static inline bool rw_buffer_can_read(const rw_buffer_t *buffer, size_t n) {
+    return buffer_can_read(&buffer->read, n);
 }
 
 /**
@@ -126,34 +139,8 @@ static inline bool buffer_can_read(const buffer_t *buffer, uint16_t n) {
  * @return true if success, false otherwise.
  *
  */
-static inline bool buffer_can_write(const buffer_t *buffer, uint16_t n) {
-    return (buffer->size - buffer->write_offset) >= n;
-}
-
-/**
- * Tell whether buffer can write bytes or not.
- *
- * @param[in] buffer
- *   Pointer to input buffer struct.
- *
- * @return length of the empty space in buffer.
- *
- */
-static inline uint16_t buffer_empty_space_len(const buffer_t *buffer) {
-    return buffer->size - buffer->write_offset;
-}
-
-/**
- * Tell whether buffer has bytes to read or not.
- *
- * @param[in] buffer
- *   Pointer to input buffer struct.
- *
- * @return length of the data in buffer.
- *
- */
-static inline uint16_t buffer_data_len(const buffer_t *buffer) {
-    return buffer->write_offset - buffer->read_offset;
+static inline bool rw_buffer_can_write(const rw_buffer_t *buffer, size_t n) {
+    return rw_buffer_empty_space_len(buffer) >= n;
 }
 
 /**
@@ -165,8 +152,8 @@ static inline uint16_t buffer_data_len(const buffer_t *buffer) {
  * @return current read position in the buffer.
  *
  */
-static inline uint16_t buffer_read_position(const buffer_t *buffer) {
-    return buffer->read_offset;
+static inline size_t rw_buffer_read_position(const rw_buffer_t *buffer) {
+    return buffer->read.offset;
 }
 
 /**
@@ -178,8 +165,8 @@ static inline uint16_t buffer_read_position(const buffer_t *buffer) {
  * @return current write position in the buffer.
  *
  */
-static inline uint16_t buffer_write_position(const buffer_t *buffer) {
-    return buffer->write_offset;
+static inline size_t rw_buffer_write_position(const rw_buffer_t *buffer) {
+    return buffer->read.size;
 }
 
 /**
@@ -193,7 +180,9 @@ static inline uint16_t buffer_write_position(const buffer_t *buffer) {
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_read_set(buffer_t *buffer, uint16_t offset);
+static inline bool rw_buffer_seek_read_set(rw_buffer_t *buffer, size_t offset) {
+    return buffer_seek_set(&buffer->read, offset);
+}
 
 /**
  * Seek the buffer read position relatively to current offset.
@@ -201,12 +190,14 @@ bool buffer_seek_read_set(buffer_t *buffer, uint16_t offset);
  * @param[in,out] buffer
  *   Pointer to input buffer struct.
  * @param[in]     offset
- *   Offset to seek relatively to `buffer->read_offset`.
+ *   Offset to seek relatively to `buffer->read.offset`.
  *
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_read_cur(buffer_t *buffer, uint16_t offset);
+static inline bool rw_buffer_seek_read_cur(rw_buffer_t *buffer, size_t offset) {
+    return buffer_seek_cur(&buffer->read, offset);
+}
 
 /**
  * Seek the buffer read position relatively to the end of the data.
@@ -214,12 +205,14 @@ bool buffer_seek_read_cur(buffer_t *buffer, uint16_t offset);
  * @param[in,out] buffer
  *   Pointer to input buffer struct.
  * @param[in]     offset
- *   Offset to seek relatively to `buffer->write_offset`.
+ *   Offset to seek relatively to `buffer->read.size`.
  *
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_read_end(buffer_t *buffer, uint16_t offset);
+static inline bool rw_buffer_seek_read_end(rw_buffer_t *buffer, size_t offset) {
+    return buffer_seek_end(&buffer->read, offset);
+}
 
 /**
  * Seek the buffer write position to specific offset.
@@ -232,7 +225,7 @@ bool buffer_seek_read_end(buffer_t *buffer, uint16_t offset);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_write_set(buffer_t *buffer, uint16_t offset);
+bool rw_buffer_seek_write_set(rw_buffer_t *buffer, size_t offset);
 
 /**
  * Seek the buffer write position relatively to current offset.
@@ -245,7 +238,7 @@ bool buffer_seek_write_set(buffer_t *buffer, uint16_t offset);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_write_cur(buffer_t *buffer, uint16_t offset);
+bool rw_buffer_seek_write_cur(rw_buffer_t *buffer, size_t offset);
 
 /**
  * Seek the buffer write position relatively to the buffer end.
@@ -258,7 +251,7 @@ bool buffer_seek_write_cur(buffer_t *buffer, uint16_t offset);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_seek_write_end(buffer_t *buffer, uint16_t offset);
+bool rw_buffer_seek_write_end(rw_buffer_t *buffer, size_t offset);
 
 /**
  * Read 1 byte from buffer into uint8_t.
@@ -271,7 +264,9 @@ bool buffer_seek_write_end(buffer_t *buffer, uint16_t offset);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_read_u8(buffer_t *buffer, uint8_t *value);
+static inline bool rw_buffer_read_u8(rw_buffer_t *buffer, uint8_t *value) {
+    return buffer_read_u8(&buffer->read, value);
+}
 
 /**
  * Read 2 bytes from buffer into uint16_t.
@@ -286,7 +281,9 @@ bool buffer_read_u8(buffer_t *buffer, uint8_t *value);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_read_u16(buffer_t *buffer, uint16_t *value, endianness_t endianness);
+static inline bool rw_buffer_read_u16(rw_buffer_t *buffer, uint16_t *value, endianness_t endianness) {
+    return buffer_read_u16(&buffer->read, value, endianness);
+}
 
 /**
  * Read 4 bytes from buffer into uint32_t.
@@ -301,7 +298,9 @@ bool buffer_read_u16(buffer_t *buffer, uint16_t *value, endianness_t endianness)
  * @return true if success, false otherwise.
  *
  */
-bool buffer_read_u32(buffer_t *buffer, uint32_t *value, endianness_t endianness);
+static inline bool rw_buffer_read_u32(rw_buffer_t *buffer, uint32_t *value, endianness_t endianness) {
+    return buffer_read_u32(&buffer->read, value, endianness);
+}
 
 /**
  * Read 8 bytes from buffer into uint64_t.
@@ -316,7 +315,9 @@ bool buffer_read_u32(buffer_t *buffer, uint32_t *value, endianness_t endianness)
  * @return true if success, false otherwise.
  *
  */
-bool buffer_read_u64(buffer_t *buffer, uint64_t *value, endianness_t endianness);
+static inline bool rw_buffer_read_u64(rw_buffer_t *buffer, uint64_t *value, endianness_t endianness) {
+    return buffer_read_u64(&buffer->read, value, endianness);
+}
 
 /**
  * Read BIP32 path from buffer.
@@ -331,7 +332,9 @@ bool buffer_read_u64(buffer_t *buffer, uint64_t *value, endianness_t endianness)
  * @return true if success, false otherwise.
  *
  */
-bool buffer_read_bip32_path(buffer_t *buffer, uint32_t *out, uint8_t out_len);
+static inline bool rw_buffer_read_bip32_path(rw_buffer_t *buffer, uint32_t *out, size_t out_len) {
+    return buffer_read_bip32_path(&buffer->read, out, out_len);
+}
 
 /**
  * Move bytes from buffer.
@@ -346,7 +349,9 @@ bool buffer_read_bip32_path(buffer_t *buffer, uint32_t *out, uint8_t out_len);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, uint16_t out_len);
+static inline bool rw_buffer_read_bytes(rw_buffer_t *buffer, uint8_t *out, size_t out_len) {
+    return buffer_move(&buffer->read, out, out_len);
+}
 
 /**
  * Copy bytes from buffer without its modification.
@@ -361,7 +366,9 @@ bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, uint16_t out_len);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, uint16_t out_len);
+static inline bool rw_buffer_copy_bytes(const rw_buffer_t *buffer, uint8_t *out, size_t out_len) {
+    return buffer_copy(&buffer->read, out, out_len);
+}
 
 /**
  * Write 1 byte to buffer from uint8_t.
@@ -374,7 +381,7 @@ bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, uint16_t out_len);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_write_u8(buffer_t *buffer, uint8_t value);
+bool rw_buffer_write_u8(rw_buffer_t *buffer, uint8_t value);
 
 /**
  * Write 2 bytes to buffer from uint16_t.
@@ -389,7 +396,7 @@ bool buffer_write_u8(buffer_t *buffer, uint8_t value);
  * @return true if success, false otherwise.
  *
  */
-bool buffer_write_u16(buffer_t *buffer, uint16_t value, endianness_t endianness);
+bool rw_buffer_write_u16(rw_buffer_t *buffer, uint16_t value, endianness_t endianness);
 
 /**
  * Write 4 bytes to buffer from uint32_t.
@@ -404,7 +411,7 @@ bool buffer_write_u16(buffer_t *buffer, uint16_t value, endianness_t endianness)
  * @return true if success, false otherwise.
  *
  */
-bool buffer_write_u32(buffer_t *buffer, uint32_t value, endianness_t endianness);
+bool rw_buffer_write_u32(rw_buffer_t *buffer, uint32_t value, endianness_t endianness);
 
 /**
  * Write 8 bytes to buffer from uint64_t.
@@ -419,7 +426,7 @@ bool buffer_write_u32(buffer_t *buffer, uint32_t value, endianness_t endianness)
  * @return true if success, false otherwise.
  *
  */
-bool buffer_write_u64(buffer_t *buffer, uint64_t value, endianness_t endianness);
+bool rw_buffer_write_u64(rw_buffer_t *buffer, uint64_t value, endianness_t endianness);
 
 /**
  * Write bytes to buffer.
@@ -434,7 +441,7 @@ bool buffer_write_u64(buffer_t *buffer, uint64_t value, endianness_t endianness)
  * @return true if success, false otherwise.
  *
  */
-bool buffer_write_bytes(buffer_t *buffer, const uint8_t *from, uint16_t from_len);
+bool rw_buffer_write_bytes(rw_buffer_t *buffer, const uint8_t *from, size_t from_len);
 
 /**
  * Move all data to the start of the buffer.
@@ -443,4 +450,4 @@ bool buffer_write_bytes(buffer_t *buffer, const uint8_t *from, uint16_t from_len
  *   Pointer to input buffer struct.
  *
  */
-void buffer_shift_data(buffer_t *buffer);
+void rw_buffer_shift_data(rw_buffer_t *buffer);

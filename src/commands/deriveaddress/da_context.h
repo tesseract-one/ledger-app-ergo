@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include "../../constants.h"
-#include "../../common/bip32.h"
 #include "../../ui/ui_application_id.h"
 #include "../../ergo/address.h"
 

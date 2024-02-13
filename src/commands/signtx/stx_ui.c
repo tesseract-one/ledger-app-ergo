@@ -1,21 +1,22 @@
 #include <os.h>
 #include <ux.h>
 #include <glyphs.h>
+#include <format.h>
+#include <base58.h>
 
 #include "stx_ui.h"
 #include "stx_response.h"
 
-#include "../../globals.h"
-#include "../../common/macros.h"
+#include "../../context.h"
+#include "../../common/macros_ext.h"
 #include "../../helpers/response.h"
-#include "../../common/int_ops.h"
-#include "../../common/base58.h"
-#include "../../common/format.h"
+#include "../../common/safeint.h"
 #include "../../ergo/address.h"
 #include "../../ui/ui_application_id.h"
 #include "../../ui/ui_approve_reject.h"
 #include "../../ui/ui_dynamic_flow.h"
 #include "../../ui/ui_menu.h"
+#include "../../ui/ui_main.h"
 
 #ifdef TARGET_NANOS
 #define ERGO_ID_UI_CHARACTERS_HALF 7
@@ -66,13 +67,14 @@ static NOINLINE void ui_stx_operation_approve_action(bool approved, void* contex
     sign_transaction_ui_aprove_ctx_t* ctx = (sign_transaction_ui_aprove_ctx_t*) context;
     sign_transaction_ctx_t* sign_tx = (sign_transaction_ctx_t*) ctx->sign_tx_context;
 
-    G_context.is_ui_busy = false;
+    app_set_ui_busy(false);
 
     if (approved) {
-        G_context.app_session_id = ctx->app_token_value;
+        app_set_connected_app_id(ctx->app_token_value);
         sign_tx->state = SIGN_TRANSACTION_STATE_APPROVED;
         send_response_sign_transaction_session_id(sign_tx->session);
     } else {
+        app_set_current_command(CMD_NONE);
         res_deny();
     }
 
@@ -87,15 +89,15 @@ bool ui_stx_add_operation_approve_screens(sign_transaction_ui_aprove_ctx_t* ctx,
     if (MAX_NUMBER_OF_SCREENS - *screen < 3) return false;
 
     if (!is_known_application) {
-        G_ux_flow[(*screen)++] = ui_application_id_screen(app_access_token, ctx->app_token);
+        ui_add_screen(ui_application_id_screen(app_access_token, ctx->app_token), screen);
     }
     ctx->app_token_value = app_access_token;
     ctx->sign_tx_context = sign_tx;
     ctx->is_known_application = is_known_application;
 
-    const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
-    const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
-    ui_approve_reject_screens(ui_stx_operation_approve_action, ctx, approve, reject);
+    ui_approve_reject_screens(ui_stx_operation_approve_action, ctx,
+                              ui_next_sreen_ptr(screen),
+                              ui_next_sreen_ptr(screen));
 
     return true;
 }
@@ -209,12 +211,15 @@ static NOINLINE uint16_t ui_stx_display_output_state(uint8_t screen,
 
 static NOINLINE void ui_stx_operation_output_confirm_action(bool approved, void* context) {
     UNUSED(context);
-    G_context.is_ui_busy = false;
+    app_set_ui_busy(false);
+
     if (approved) {
         res_ok();
     } else {
+        app_set_current_command(CMD_NONE);
         res_deny();
     }
+
     ui_menu_main();
 }
 
@@ -226,7 +231,7 @@ bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
 
     memset(ctx, 0, sizeof(sign_transaction_ui_output_confirm_ctx_t));
 
-    G_ux_flow[(*screen)++] = &ux_stx_display_output_confirm_step;
+    ui_add_screen(&ux_stx_display_output_confirm_step, screen);
 
     uint8_t info_screen_count = 1;  // Address screen
     if (stx_output_info_type(output) != SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32) {
@@ -244,9 +249,8 @@ bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
 
     if (MAX_NUMBER_OF_SCREENS - *screen < 2) return false;
 
-    const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
-    const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
-    ui_approve_reject_screens(ui_stx_operation_output_confirm_action, NULL, approve, reject);
+    ui_approve_reject_screens(ui_stx_operation_output_confirm_action,
+                              NULL, ui_next_sreen_ptr(screen), ui_next_sreen_ptr(screen));
 
     ctx->network_id = network_id;
     ctx->output = output;
@@ -322,14 +326,16 @@ static NOINLINE uint16_t ui_stx_display_tx_state(uint8_t screen,
 
 // TX approve/reject callback
 static NOINLINE void ui_stx_operation_execute_action(bool approved, void* context) {
-    G_context.is_ui_busy = false;
+    app_set_ui_busy(false);
+
     sign_transaction_ui_sign_confirm_ctx_t* ctx = (sign_transaction_ui_sign_confirm_ctx_t*) context;
     if (approved) {
         ctx->op_response_cb(ctx->op_cb_context);
     } else {
         res_deny();
     }
-    clear_context(&G_context, CMD_NONE);
+
+    app_set_current_command(CMD_NONE);
     ui_menu_main();
 }
 
@@ -346,7 +352,7 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_sign_confirm_ctx_t* ctx,
 
     uint8_t tokens_count = stx_amounts_non_zero_tokens_count(amounts);
 
-    G_ux_flow[(*screen)++] = &ux_stx_display_sign_confirm_step;
+    ui_add_screen(&ux_stx_display_sign_confirm_step, screen);
 
     if (!ui_add_dynamic_flow_screens(screen,
                                      op_screen_count + 2 + (2 * tokens_count),
@@ -358,9 +364,8 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_sign_confirm_ctx_t* ctx,
 
     if (MAX_NUMBER_OF_SCREENS - *screen < 2) return false;
 
-    const ux_flow_step_t** approve = &G_ux_flow[(*screen)++];
-    const ux_flow_step_t** reject = &G_ux_flow[(*screen)++];
-    ui_approve_reject_screens(ui_stx_operation_execute_action, ctx, approve, reject);
+    ui_approve_reject_screens(ui_stx_operation_execute_action, ctx, 
+                              ui_next_sreen_ptr(screen), ui_next_sreen_ptr(screen));
 
     ctx->op_screen_count = op_screen_count;
     ctx->op_screen_cb = screen_cb;
@@ -372,14 +377,5 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_sign_confirm_ctx_t* ctx,
 }
 
 bool ui_stx_display_screens(uint8_t screen_count) {
-    if (MAX_NUMBER_OF_SCREENS - screen_count < 2) return false;
-
-    G_ux_flow[screen_count++] = FLOW_LOOP;
-    G_ux_flow[screen_count++] = FLOW_END_STEP;
-
-    ux_flow_init(0, G_ux_flow, NULL);
-
-    G_context.is_ui_busy = true;
-
-    return true;
+    return ui_display_screens(&screen_count);
 }

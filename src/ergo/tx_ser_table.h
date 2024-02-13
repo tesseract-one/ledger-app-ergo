@@ -2,8 +2,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+#include <buffer.h>
+
 #include "../constants.h"
-#include "../common/buffer.h"
 #include "../helpers/blake2b.h"
 
 typedef struct {

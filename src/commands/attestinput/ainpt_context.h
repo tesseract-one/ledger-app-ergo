@@ -5,7 +5,6 @@
 #include <cx.h>
 #include "../../constants.h"
 #include "../../ergo/tx_ser_box.h"
-#include "../../common/buffer.h"
 #include "../../helpers/input_frame.h"
 #include "../../ui/ui_application_id.h"
 

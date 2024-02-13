@@ -1,6 +1,6 @@
 #include "tx_ser_full.h"
-#include "../common/varint.h"
-#include "../common/macros.h"
+#include "../common/gve.h"
+#include "../common/macros_ext.h"
 #include <string.h>
 
 #define CHECK_PROPER_STATE(_ctx, _state) \
@@ -113,9 +113,9 @@ static inline ergo_tx_serializer_full_result_e map_box_result(ergo_tx_serializer
 }
 
 static inline bool hash_u16(cx_blake2b_t* hash, uint16_t u16) {
-    BUFFER_NEW_LOCAL_EMPTY(buffer, 4);
+    RW_BUFFER_NEW_LOCAL_EMPTY(buffer, 4);
     if (gve_put_u16(&buffer, u16) != GVE_OK) return false;
-    return blake2b_update(hash, buffer_read_ptr(&buffer), buffer_data_len(&buffer));
+    return blake2b_update(hash, rw_buffer_read_ptr(&buffer), rw_buffer_data_len(&buffer));
 }
 
 static NOINLINE ergo_tx_serializer_full_result_e
@@ -276,7 +276,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_data_inputs(
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_DATA_INPUTS);
         }
         uint8_t box_id[ERGO_ID_LEN];
-        if (!buffer_read_bytes(inputs, box_id, ERGO_ID_LEN)) {
+        if (!buffer_move(inputs, box_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_DATA_INPUT);
         }
         if (!blake2b_update(context->hash, box_id, ERGO_ID_LEN)) {

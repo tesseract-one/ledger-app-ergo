@@ -1,22 +1,9 @@
 {
     "files.associations": {
         "*.h": "c",
-        "cstdio": "c",
-        "optional": "c",
-        "istream": "c",
-        "ostream": "c",
-        "ratio": "c",
-        "system_error": "c",
-        "array": "c",
-        "functional": "c",
-        "tuple": "c",
-        "type_traits": "c",
-        "utility": "c",
-        "limits": "c",
-        "numeric": "c",
-        "stop_token": "c"
+        "format": "c"
     },
-    "C_Cpp.clang_format_path": "/usr/bin/clang-format",
-    "editor.formatOnSave": true,
-    "cmake.configureOnOpen": false
+    "editor.formatOnSave": false,
+    "python.terminal.activateEnvironment": false,
+    "git.ignoreLimitWarning": true,
 }

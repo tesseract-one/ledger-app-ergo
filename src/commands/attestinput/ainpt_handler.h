@@ -4,8 +4,9 @@
 #include <stdbool.h>  // bool
 #include <stdint.h>   // uint*_t
 
+#include <buffer.h>
+
 #include "ainpt_context.h"
-#include "../../common/buffer.h"
 
 typedef enum {
     ATTEST_INPUT_SUBCOMMAND_INIT = 0x01,
@@ -23,6 +24,8 @@ typedef enum {
  * @param[in]     subcommand
  *   Subcommand identifier.
  * @param[in]     session_or_token
+ *   Whether data has access token or not, or session id (depends on subcommand)
+ * @param[in]     app_context
  *   Whether data has access token or not, or session id (depends on subcommand)
  *
  * @return zero or positive integer if success, negative integer otherwise.

@@ -1,7 +1,6 @@
 #include "stx_output.h"
 #include "../../sw.h"
-#include "../../common/macros.h"
-#include "../../common/base58.h"
+#include "../../common/macros_ext.h"
 #include "../../ergo/ergo_tree.h"
 #include "../../ergo/address.h"
 #include "../../helpers/sw_result.h"

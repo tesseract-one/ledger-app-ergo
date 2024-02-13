@@ -1,21 +1,21 @@
 #include <os.h>
 #include <ux.h>
 #include <glyphs.h>
+#include <base58.h>
 
 #include "da_ui.h"
 #include "da_response.h"
 #include "da_context.h"
 #include "../../sw.h"
-#include "../../globals.h"
 #include "../../context.h"
-#include "../../common/base58.h"
-#include "../../common/macros.h"
+#include "../../common/macros_ext.h"
 #include "../../ergo/address.h"
 #include "../../helpers/response.h"
 #include "../../ui/ui_bip32_path.h"
 #include "../../ui/ui_application_id.h"
 #include "../../ui/ui_approve_reject.h"
 #include "../../ui/ui_menu.h"
+#include "../../ui/ui_main.h"
 
 // Step with icon and text
 UX_STEP_NOCB(ux_da_display_confirm_addr_step, pn, {&C_icon_eye, "Confirm Address"});
@@ -25,27 +25,33 @@ UX_STEP_NOCB(ux_da_display_address_step,
              bnnn_paging,
              {
                  .title = "Address",
-                 .text = G_context.ctx.derive_address.address,
+                 .text = G_app_context.commands_ctx.derive_address.address,
              });
 
 // Action
 static NOINLINE void ui_action_derive_address(bool approved, void* context) {
     derive_address_ctx_t* ctx = (derive_address_ctx_t*) context;
-    G_context.is_ui_busy = true;
+    app_set_ui_busy(false);
 
     if (approved) {
-        G_context.app_session_id = ctx->app_token_value;
+        app_set_connected_app_id(ctx->app_token_value);
         if (ctx->send) {
             send_response_address(ctx->raw_address);
         } else {
-            clear_context(&G_context, CMD_NONE);
+            app_set_current_command(CMD_NONE);
             res_ok();
         }
     } else {
+        app_set_current_command(CMD_NONE);
         res_deny();
     }
 
     ui_menu_main();
+}
+
+static inline int send_error(uint16_t err) {
+    app_set_current_command(CMD_NONE);
+    return res_error(err);
 }
 
 // Display
@@ -60,15 +66,14 @@ int ui_display_address(derive_address_ctx_t* ctx,
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ADDRESS_GE5)) {
-        return res_error(SW_BIP32_BAD_PATH);
+        return send_error(SW_BIP32_BAD_PATH);
     }
 
     ctx->app_token_value = app_access_token;
     ctx->send = send;
 
     uint8_t screen = 0;
-    G_ux_flow[screen++] =
-        send ? &ux_da_display_confirm_send_step : &ux_da_display_confirm_addr_step;
+    ui_add_screen(send ? &ux_da_display_confirm_send_step : &ux_da_display_confirm_addr_step, &screen);
 
     const ux_flow_step_t* b32_screen =
         ui_bip32_path_screen(bip32_path,
@@ -77,10 +82,9 @@ int ui_display_address(derive_address_ctx_t* ctx,
                              ctx->bip32_path,
                              MEMBER_SIZE(derive_address_ctx_t, bip32_path));
     if (b32_screen == NULL) {
-        return res_error(SW_BIP32_FORMATTING_FAILED);
+        return send_error(SW_BIP32_FORMATTING_FAILED);
     }
-
-    G_ux_flow[screen++] = b32_screen;
+    ui_add_screen(b32_screen, &screen);
 
     memset(ctx->address, 0, MEMBER_SIZE(derive_address_ctx_t, address));
     if (!send) {
@@ -90,27 +94,21 @@ int ui_display_address(derive_address_ctx_t* ctx,
                                    MEMBER_SIZE(derive_address_ctx_t, address));
 
         if (result == -1 || result >= P2PK_ADDRESS_STRING_MAX_LEN) {
-            return res_error(SW_ADDRESS_FORMATTING_FAILED);
+            return send_error(SW_ADDRESS_FORMATTING_FAILED);
         }
-        G_ux_flow[screen++] = &ux_da_display_address_step;
+        ui_add_screen(&ux_da_display_address_step, &screen);
     }
 
     if (app_access_token != 0) {
-        G_ux_flow[screen++] = ui_application_id_screen(app_access_token, ctx->app_id);
+        ui_add_screen(ui_application_id_screen(app_access_token, ctx->app_id), &screen);
     }
 
-    const ux_flow_step_t** approve = &G_ux_flow[screen++];
-    const ux_flow_step_t** reject = &G_ux_flow[screen++];
-    ui_approve_reject_screens(ui_action_derive_address, ctx, approve, reject);
-
-    G_ux_flow[screen++] = FLOW_LOOP;
-    G_ux_flow[screen++] = FLOW_END_STEP;
+    ui_approve_reject_screens(ui_action_derive_address, ctx, 
+                              ui_next_sreen_ptr(&screen), ui_next_sreen_ptr(&screen));
 
     memmove(ctx->raw_address, raw_address, P2PK_ADDRESS_LEN);
 
-    ux_flow_init(0, G_ux_flow, NULL);
-
-    G_context.is_ui_busy = true;
+    ui_display_screens(&screen);
 
     return 0;
 }

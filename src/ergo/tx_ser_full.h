@@ -2,11 +2,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+#include <buffer.h>
+
 #include "../constants.h"
 #include "tx_ser_table.h"
 #include "tx_ser_box.h"
 #include "tx_ser_input.h"
-#include "../common/buffer.h"
 #include "../helpers/blake2b.h"
 
 typedef enum {

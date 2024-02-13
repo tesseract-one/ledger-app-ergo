@@ -20,74 +20,7 @@
 #include <stdint.h>   // uint*_t
 #include <stdbool.h>  // bool
 
-#include "bip32.h"
-#include "read.h"
-
-bool bip32_path_read(const uint8_t *in, size_t in_len, uint32_t *out, uint8_t out_len) {
-    if (out_len == 0 || out_len > MAX_BIP32_PATH) {
-        return false;
-    }
-
-    uint8_t offset = 0;
-
-    for (uint8_t i = 0; i < out_len; i++) {
-        if (offset + 4 > in_len) {
-            return false;
-        }
-        out[i] = read_u32_be(in, offset);
-        offset += 4;
-    }
-
-    return true;
-}
-
-bool bip32_path_format(const uint32_t *bip32_path,
-                       size_t bip32_path_len,
-                       char *out,
-                       size_t out_len) {
-    if (bip32_path_len == 0 || bip32_path_len > MAX_BIP32_PATH) {
-        return false;
-    }
-
-    size_t offset = 0;
-
-    for (uint16_t i = 0; i < bip32_path_len; i++) {
-        size_t written;
-
-        snprintf(out + offset,
-                 out_len - offset,
-                 "%d",
-                 bip32_path[i] & (BIP32_HARDENED_CONSTANT - 1));
-        written = strlen(out + offset);
-        if (written == 0 || written >= out_len - offset) {
-            memset(out, 0, out_len);
-            return false;
-        }
-        offset += written;
-
-        if ((bip32_path[i] & BIP32_HARDENED_CONSTANT) != 0) {
-            snprintf(out + offset, out_len - offset, "'");
-            written = strlen(out + offset);
-            if (written == 0 || written >= out_len - offset) {
-                memset(out, 0, out_len);
-                return false;
-            }
-            offset += written;
-        }
-
-        if (i != bip32_path_len - 1) {
-            snprintf(out + offset, out_len - offset, "/");
-            written = strlen(out + offset);
-            if (written == 0 || written >= out_len - offset) {
-                memset(out, 0, out_len);
-                return false;
-            }
-            offset += written;
-        }
-    }
-
-    return true;
-}
+#include "bip32_ext.h"
 
 bool bip32_path_validate(const uint32_t *bip32_path,
                          uint8_t bip32_path_len,

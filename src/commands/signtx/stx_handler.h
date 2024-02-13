@@ -4,8 +4,9 @@
 #include <stdbool.h>  // bool
 #include <stdint.h>   // uint*_t
 
+#include <buffer.h>
+
 #include "stx_context.h"
-#include "../../common/buffer.h"
 
 typedef enum {
     SIGN_TRANSACTION_SUBCOMMAND_SIGN_PK = 0x01,

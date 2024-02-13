@@ -2,9 +2,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
 #include <cx.h>
+
 #include "../constants.h"
-#include "../common/buffer.h"
+#include "../common/buffer_ext.h"
 #include "../ergo/tx_ser_table.h"
 
 #define FRAME_MAX_TOKENS_COUNT      4
@@ -15,4 +17,4 @@
 #define FRAME_MAX_SIZE              (FRAME_MIN_SIZE + FRAME_MAX_TOKENS_COUNT * FRAME_TOKEN_VALUE_PAIR_SIZE)
 
 uint8_t input_frame_data_length(const buffer_t* input);
-uint8_t* input_frame_signature_ptr(const buffer_t* input);
+const uint8_t* input_frame_signature_ptr(const buffer_t* input);

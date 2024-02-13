@@ -5,7 +5,7 @@
 #include <string.h>
 #include "../../constants.h"
 #include "../../ergo/tx_ser_full.h"
-#include "../../common/int_ops.h"
+#include "../../common/safeint.h"
 #include "../../sw.h"
 
 typedef struct {

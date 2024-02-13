@@ -1,5 +1,5 @@
 #include "stx_amounts.h"
-#include "../../common/macros.h"
+#include "../../common/macros_ext.h"
 
 static inline uint8_t find_token_index(const token_table_t *table,
                                        const uint8_t id[static ERGO_ID_LEN]) {

@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "../globals.h"
 
 typedef uint16_t (*ui_dynamic_flow_show_screen_cb)(uint8_t, char *, char *, void *);
 

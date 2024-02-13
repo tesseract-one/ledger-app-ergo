@@ -3,7 +3,7 @@
 #include "../stx_types.h"
 #include "../stx_amounts.h"
 #include "../stx_output.h"
-#include "../../../common/bip32.h"
+#include "../../../common/bip32_ext.h"
 #include "../../../ui/ui_application_id.h"
 #include "../../../ui/ui_bip32_path.h"
 

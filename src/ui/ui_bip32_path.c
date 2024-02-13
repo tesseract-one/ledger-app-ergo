@@ -1,5 +1,5 @@
 #include "ui_bip32_path.h"
-#include "../common/bip32.h"
+#include "../common/bip32_ext.h"
 
 static ux_layout_bnnn_paging_params_t G_ui_path_params[1];
 

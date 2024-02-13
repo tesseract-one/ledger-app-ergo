@@ -1,4 +1,5 @@
 #include "input_frame.h"
+#include "../common/buffer_ext.h"
 
 uint8_t input_frame_data_length(const buffer_t* input) {
     if (!buffer_can_read(input, FRAME_MIN_SIZE)) {
@@ -12,7 +13,7 @@ uint8_t input_frame_data_length(const buffer_t* input) {
     return data_len;
 }
 
-uint8_t* input_frame_signature_ptr(const buffer_t* input) {
+const uint8_t* input_frame_signature_ptr(const buffer_t* input) {
     uint8_t data_len = input_frame_data_length(input);
     if (data_len == 0) return NULL;
     return buffer_read_ptr(input) + data_len;
