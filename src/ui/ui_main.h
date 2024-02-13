@@ -21,11 +21,11 @@ static inline bool ui_add_screen(const ux_flow_step_t* screen, uint8_t* position
     return true;
 }
 
-static inline bool ui_display_screens(uint8_t* postition) {
-    if (MAX_NUMBER_OF_SCREENS - *postition < 2) return false;
+static inline bool ui_display_screens(uint8_t* position) {
+    if (MAX_NUMBER_OF_SCREENS - *position < 2) return false;
 
-    G_ux_flow_steps[(*postition)++] = FLOW_LOOP;
-    G_ux_flow_steps[(*postition)++] = FLOW_END_STEP;
+    G_ux_flow_steps[(*position)++] = FLOW_LOOP;
+    G_ux_flow_steps[(*position)++] = FLOW_END_STEP;
 
     ux_flow_init(0, G_ux_flow_steps, NULL);
 
