@@ -22,7 +22,7 @@
  * @returns 0 if ok, error_code on error
  *
  */
-uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
+uint16_t crypto_derive_private_key(cx_ecfp_256_private_key_t *private_key,
                                    uint8_t chain_code[static CHAIN_CODE_LEN],
                                    const uint32_t *bip32_path,
                                    uint8_t bip32_path_len);
@@ -40,8 +40,8 @@ uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
  * @returns 0 if ok, error_code on error.
  *
  */
-uint16_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
-                                cx_ecfp_public_key_t *public_key,
+uint16_t crypto_init_public_key(const cx_ecfp_256_private_key_t *private_key,
+                                cx_ecfp_256_public_key_t *public_key,
                                 uint8_t raw_public_key[static PUBLIC_KEY_LEN]);
 
 uint16_t crypto_generate_private_key(const uint32_t *bip32_path,

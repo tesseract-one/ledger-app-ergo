@@ -21,9 +21,7 @@
 
 #include "crypto.h"
 
-#define PRIVATE_KEY_SIZE 32
-
-uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
+uint16_t crypto_derive_private_key(cx_ecfp_256_private_key_t *private_key,
                                    uint8_t chain_code[static CHAIN_CODE_LEN],
                                    const uint32_t *bip32_path,
                                    uint8_t bip32_path_len) {
@@ -42,7 +40,7 @@ uint16_t crypto_derive_private_key(cx_ecfp_private_key_t *private_key,
     // new private_key from raw
     result = cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1,
                                                raw_private_key,
-                                               PRIVATE_KEY_SIZE,
+                                               PRIVATE_KEY_LEN,
                                                private_key);
     explicit_bzero(raw_private_key, sizeof(raw_private_key));
     return (uint16_t) result;
@@ -52,7 +50,7 @@ uint16_t crypto_generate_private_key(const uint32_t *bip32_path,
                                      uint8_t bip32_path_len,
                                      uint8_t private_key[static PRIVATE_KEY_LEN]) {
     uint8_t chain_code[CHAIN_CODE_LEN];
-    cx_ecfp_private_key_t ecfp_private_key = {0};
+    cx_ecfp_256_private_key_t ecfp_private_key = {0};
 
     // derive private key according to BIP32 path
     uint16_t result =
@@ -66,12 +64,15 @@ uint16_t crypto_generate_private_key(const uint32_t *bip32_path,
     return result;
 }
 
-uint16_t crypto_init_public_key(cx_ecfp_private_key_t *private_key,
-                                cx_ecfp_public_key_t *public_key,
+uint16_t crypto_init_public_key(const cx_ecfp_256_private_key_t *private_key,
+                                cx_ecfp_256_public_key_t *public_key,
                                 uint8_t raw_public_key[static PUBLIC_KEY_LEN]) {
     // generate corresponding public key
-    cx_err_t result = cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1, public_key, private_key, 1);
-    if (result == 0) {
+    cx_err_t result = cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1,
+                                                     public_key,
+                                                     (cx_ecfp_256_private_key_t *)private_key,
+                                                     true);
+    if (result == CX_OK) {
         memmove(raw_public_key, public_key->W, PUBLIC_KEY_LEN);
     }
     return (uint16_t) result;
@@ -86,8 +87,8 @@ uint16_t crypto_generate_public_key(const uint32_t *bip32_path,
     if (!has_chain_code) {
         chain_code = temp_chain_code;
     }
-    cx_ecfp_private_key_t private_key = {0};
-    cx_ecfp_public_key_t public_key = {0};
+    cx_ecfp_256_private_key_t private_key = {0};
+    cx_ecfp_256_public_key_t public_key = {0};
 
     // derive private key according to BIP32 path
     uint16_t result =
