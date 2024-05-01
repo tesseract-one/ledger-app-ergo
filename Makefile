@@ -70,6 +70,9 @@ VARIANT_VALUES = ERGO
 # Enabling DEBUG flag will enable PRINTF and disable optimizations
 #DEBUG = 1
 
+# Enabling stack canary
+HAVE_BOLOS_APP_STACK_CANARY = 1
+
 ########################################
 #     Application custom permissions   #
 ########################################

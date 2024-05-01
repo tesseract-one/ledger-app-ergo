@@ -1,6 +1,6 @@
 {
     "env": {
-        "BOLOS_SDK": "~/.ledger/sdk",
+        "BOLOS_SDK": "~/.ledger/nanos-sdk",
         "ARM_GCC": "~/.ledger/gcc-arm-none-eabi-13.2-2023.10"
     },
     "configurations": [
