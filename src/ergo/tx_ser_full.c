@@ -276,7 +276,7 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_add_data_inputs(
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_TOO_MANY_DATA_INPUTS);
         }
         uint8_t box_id[ERGO_ID_LEN];
-        if (!buffer_move(inputs, box_id, ERGO_ID_LEN)) {
+        if (!buffer_read_bytes(inputs, box_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_DATA_INPUT);
         }
         if (!blake2b_update(context->hash, box_id, ERGO_ID_LEN)) {

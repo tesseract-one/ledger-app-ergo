@@ -144,7 +144,7 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
     buffer_t tokens;
     uint8_t frames_count, frame_index, tokens_count;
 
-    CHECK_READ_PARAM(ctx, buffer_move(cdata, id_buffer, ERGO_ID_LEN));
+    CHECK_READ_PARAM(ctx, buffer_read_bytes(cdata, id_buffer, ERGO_ID_LEN));
     CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &frames_count));
     CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &frame_index));
     CHECK_READ_PARAM(ctx, buffer_read_u64(cdata, &value, BE));

@@ -76,7 +76,7 @@ static inline int handle_init(attest_input_ctx_t *ctx,
     uint32_t ergo_tree_size, creation_height, registers_size, app_session_id_in = 0;
     uint8_t tokens_count;
 
-    CHECK_READ_PARAM(ctx, buffer_move(cdata, ctx->box_id, ERGO_ID_LEN));
+    CHECK_READ_PARAM(ctx, buffer_read_bytes(cdata, ctx->box_id, ERGO_ID_LEN));
     CHECK_READ_PARAM(ctx, buffer_read_u16(cdata, &ctx->box_index, BE));
     CHECK_READ_PARAM(ctx, buffer_read_u64(cdata, &value, BE));
     CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &ergo_tree_size, BE));

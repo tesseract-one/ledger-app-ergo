@@ -348,14 +348,14 @@ static inline bool rw_buffer_read_bip32_path(rw_buffer_t *buffer, uint32_t *out,
  *   Pointer to input buffer struct.
  * @param[out]     out
  *   Pointer to output byte buffer.
- * @param[in]      out_len
- *   Length of output byte buffer.
+ * @param[in]      count
+ *   Amount bytes to read.
  *
  * @return true if success, false otherwise.
  *
  */
-static inline bool rw_buffer_read_bytes(rw_buffer_t *buffer, uint8_t *out, size_t out_len) {
-    return buffer_move(&buffer->read, out, out_len);
+static inline bool rw_buffer_read_bytes(rw_buffer_t *buffer, uint8_t *out, size_t count) {
+    return buffer_read_bytes(&buffer->read, out, count);
 }
 
 /**
@@ -365,14 +365,14 @@ static inline bool rw_buffer_read_bytes(rw_buffer_t *buffer, uint8_t *out, size_
  *   Pointer to input buffer struct.
  * @param[out]     out
  *   Pointer to output byte buffer.
- * @param[in]      out_len
+ * @param[in]      count
  *   Length of output byte buffer.
  *
  * @return true if success, false otherwise.
  *
  */
-static inline bool rw_buffer_copy_bytes(const rw_buffer_t *buffer, uint8_t *out, size_t out_len) {
-    return buffer_copy(&buffer->read, out, out_len);
+static inline bool rw_buffer_copy_bytes(const rw_buffer_t *buffer, uint8_t *out, size_t count) {
+    return buffer_copy_bytes(&buffer->read, out, count);
 }
 
 /**

@@ -42,3 +42,33 @@ static inline const uint8_t *buffer_read_ptr(const buffer_t *buffer) {
 static inline size_t buffer_data_len(const buffer_t *buffer) {
     return buffer->size - buffer->offset;
 }
+
+/**
+ * Copy bytes from buffer without its modification.
+ *
+ * @param[in,out]  buffer
+ *   Pointer to input buffer struct.
+ * @param[out]     out
+ *   Pointer to output byte buffer.
+ * @param[in]      count
+ *   Amount of bytes to copy.
+ *
+ * @return true if success, false otherwise.
+ *
+ */
+bool buffer_copy_bytes(const buffer_t *buffer, uint8_t *out, size_t count);
+
+/**
+ * Read bytes from buffer.
+ *
+ * @param[in,out]  buffer
+ *   Pointer to input buffer struct.
+ * @param[out]     out
+ *   Pointer to output byte buffer.
+ * @param[in]      count
+ *   Amount of bytes to copy.
+ *
+ * @return true if success, false otherwise.
+ *
+ */
+bool buffer_read_bytes(buffer_t *buffer, uint8_t *out, size_t count);

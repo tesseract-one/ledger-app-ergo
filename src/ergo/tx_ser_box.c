@@ -197,7 +197,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
         }
 
         if (table == NULL) {  // no token table. working with full ids.
-            if (!buffer_move(input, token_id.id, ERGO_ID_LEN)) {
+            if (!buffer_read_bytes(input, token_id.id, ERGO_ID_LEN)) {
                 return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_ID);
             }
             // hashing input id

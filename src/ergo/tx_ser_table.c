@@ -7,7 +7,7 @@ static inline ergo_tx_serializer_table_result_e parse_token(buffer_t* tokens,
     if (table->count >= tokens_max) {
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_TOO_MANY_TOKENS;
     }
-    if (!buffer_move(tokens, table->tokens[table->count++], ERGO_ID_LEN)) {
+    if (!buffer_read_bytes(tokens, table->tokens[table->count++], ERGO_ID_LEN)) {
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_BAD_TOKEN_ID;
     }
     return ERGO_TX_SERIALIZER_TABLE_RES_OK;

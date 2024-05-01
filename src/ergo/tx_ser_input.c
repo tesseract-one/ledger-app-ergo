@@ -55,7 +55,7 @@ ergo_tx_serializer_input_result_e ergo_tx_serializer_input_add_tokens(
     while (buffer_data_len(tokens) > 0) {
         uint8_t token_id[ERGO_ID_LEN];
         uint64_t token_value;
-        if (!buffer_move(tokens, token_id, ERGO_ID_LEN)) {
+        if (!buffer_read_bytes(tokens, token_id, ERGO_ID_LEN)) {
             return res_error(context, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID);
         }
         if (!buffer_read_u64(tokens, &token_value, BE)) {

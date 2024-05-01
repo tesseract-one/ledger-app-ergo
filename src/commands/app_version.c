@@ -15,8 +15,8 @@ int handler_get_version() {
     _Static_assert(PATCH_VERSION >= 0 && PATCH_VERSION <= UINT8_MAX,
                    "PATCH version must be between 0 and 255!");
     uint8_t version[APPVERSION_LEN] = {MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, 0};
-#ifdef DEBUG
-    version[3] = 1;
+#ifdef HAVE_PRINTF
+    version[APPVERSION_LEN - 1] = 1;
 #endif
 
     RW_BUFFER_FROM_ARRAY_FULL(buf, version, APPVERSION_LEN);
