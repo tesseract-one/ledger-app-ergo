@@ -41,7 +41,7 @@ static inline bool _ergo_address_from_pubkey(uint8_t network,
         }
     }
 
-    uint8_t hash[BLAKE2B_256_DIGEST_LEN] = {0};
+    uint8_t hash[CX_BLAKE2B_256_SIZE] = {0};
 
     if (!blake2b_256(rw_buffer_read_ptr(&buffer), rw_buffer_data_len(&buffer), hash)) {
         return false;
@@ -80,7 +80,7 @@ bool ergo_address_from_script_hash(uint8_t network,
     if (!rw_buffer_write_bytes(&buffer, hash, P2SH_HASH_LEN)) {
         return false;
     }
-    uint8_t checksum[BLAKE2B_256_DIGEST_LEN] = {0};
+    uint8_t checksum[CX_BLAKE2B_256_SIZE] = {0};
     if (!blake2b_256(rw_buffer_read_ptr(&buffer), rw_buffer_data_len(&buffer), checksum)) {
         return false;
     }

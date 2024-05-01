@@ -31,7 +31,7 @@ typedef struct {
     union {
         cx_blake2b_t tree_hash_ctx;
         uint8_t public_key[COMPRESSED_PUBLIC_KEY_LEN];
-        uint8_t tree_hash[BLAKE2B_256_DIGEST_LEN];
+        uint8_t tree_hash[CX_BLAKE2B_256_SIZE];
         sign_transaction_bip32_path_t bip32_path;
     };
     const token_table_t* tokens_table;

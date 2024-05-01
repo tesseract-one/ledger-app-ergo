@@ -23,11 +23,11 @@ static inline ergo_tx_serializer_box_result_e maybe_finished(
     sign_transaction_output_info_ctx_t* ctx) {
     if (stx_output_info_is_finished(ctx)) {
         if (STX_OUTPUT_INFO_TYPE(ctx) == SIGN_TRANSACTION_OUTPUT_INFO_TYPE_SCRIPT) {
-            uint8_t hash[BLAKE2B_256_DIGEST_LEN];
+            uint8_t hash[CX_BLAKE2B_256_SIZE];
             if (!blake2b_256_finalize(&ctx->tree_hash_ctx, hash)) {
                 return ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER;
             }
-            memmove(ctx->tree_hash, hash, BLAKE2B_256_DIGEST_LEN);
+            memmove(ctx->tree_hash, hash, CX_BLAKE2B_256_SIZE);
         }
     }
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
