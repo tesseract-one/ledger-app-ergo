@@ -70,7 +70,7 @@ uint16_t crypto_init_public_key(const cx_ecfp_256_private_key_t *private_key,
     // generate corresponding public key
     cx_err_t result = cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1,
                                                      public_key,
-                                                     (cx_ecfp_256_private_key_t *)private_key,
+                                                     (cx_ecfp_256_private_key_t *) private_key,
                                                      true);
     if (result == CX_OK) {
         memmove(raw_public_key, public_key->W, PUBLIC_KEY_LEN);
