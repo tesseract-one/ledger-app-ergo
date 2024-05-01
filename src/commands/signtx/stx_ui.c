@@ -56,8 +56,8 @@ static inline bool format_erg_amount(uint64_t amount, char* out, size_t out_len)
     if (!format_fpu64(out, out_len, amount, ERGO_ERG_FRACTION_DIGIT_COUNT)) {
         return false;
     }
-    int out_bytes = strlen(out);
-    if (out_len < 5 || (size_t) out_bytes > out_len - 5) return false;
+    size_t out_bytes = strlen(out);
+    if (out_len < 5 || out_bytes > out_len - 5) return false;
     out_len -= out_bytes;
     out += out_bytes;
     STRING_ADD_STATIC_TEXT(out, out_len, " ERG");
