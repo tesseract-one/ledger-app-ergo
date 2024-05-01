@@ -15,7 +15,7 @@ int handler_get_version() {
     _Static_assert(PATCH_VERSION >= 0 && PATCH_VERSION <= UINT8_MAX,
                    "PATCH version must be between 0 and 255!");
     uint8_t version[APPVERSION_LEN] = {MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, 0};
-#ifdef HAVE_PRINTF
+#ifdef DEBUG_BUILD
     version[APPVERSION_LEN - 1] = 1;
 #endif
 

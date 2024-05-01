@@ -47,6 +47,7 @@
                 "IO_SEPROXYHAL_BUFFER_SIZE_B=128",
                 "HAVE_UX_FLOW",
                 "DEBUG=1",
+                "DEBUG_BUILD=1",
                 "HAVE_PRINTF",
                 "PRINTF=screen_printf",
                 "_DEFAULT_SOURCE"
