@@ -297,20 +297,22 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
         return stx_output_info_used_tokens_count(&ctx->transaction.ui.output) > 0;
     }
     // Change address
-    if (stx_output_info_type(&ctx->transaction.ui.output) == 
+    if (stx_output_info_type(&ctx->transaction.ui.output) ==
         SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32) {
         // if path length is not 5 or wrong type then we should ask to confirm
         if (!bip32_path_validate(ctx->transaction.ui.output.bip32_path.path,
                                  ctx->transaction.ui.output.bip32_path.len,
                                  BIP32_HARDENED(44),
                                  BIP32_HARDENED(BIP32_ERGO_COIN),
-                                 BIP32_PATH_VALIDATE_ADDRESS_E5)) return true;
+                                 BIP32_PATH_VALIDATE_ADDRESS_E5))
+            return true;
         // if change index is < 20 then we approve it automatically
         if (ctx->transaction.ui.output.bip32_path.path[4] < 20) return false;
         // Check was it already approved then approve automatically
         if (memcmp(&ctx->transaction.ui.output.bip32_path,
                    &ctx->transaction.last_approved_change,
-                   sizeof(sign_transaction_bip32_path_t)) == 0) return false;
+                   sizeof(sign_transaction_bip32_path_t)) == 0)
+            return false;
     }
     return true;
 }
@@ -319,7 +321,7 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
 // UI
 
 static NOINLINE void ui_stx_operation_p2pk_approve_action(void* context) {
-    sign_transaction_ui_aprove_ctx_t* ctx = (sign_transaction_ui_aprove_ctx_t*) context;
+    sign_transaction_ui_aprove_ctx_t *ctx = (sign_transaction_ui_aprove_ctx_t*) context;
     ui_stx_operation_approve_reject(true, ctx);
 }
 

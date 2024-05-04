@@ -55,7 +55,7 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_sign_confirm_ctx_t* ctx,
 bool ui_stx_display_screens(uint8_t screen_count);
 
 /**
- * Approve or reject operation programatically.
+ * Approve or reject operation programmatically.
  *
  */
 void ui_stx_operation_approve_reject(bool approved, sign_transaction_ui_aprove_ctx_t* ctx);

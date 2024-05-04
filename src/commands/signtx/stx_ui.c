@@ -218,7 +218,7 @@ static NOINLINE uint16_t ui_stx_display_output_state(uint8_t screen,
 }
 
 static NOINLINE void ui_stx_operation_output_confirm_action(bool approved, void* context) {
-    sign_transaction_ui_output_confirm_ctx_t* ctx = 
+    sign_transaction_ui_output_confirm_ctx_t* ctx =
         (sign_transaction_ui_output_confirm_ctx_t*) context;
     app_set_ui_busy(false);
 

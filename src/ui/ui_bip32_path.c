@@ -14,13 +14,10 @@ void ux_bip32_path_validate_init(unsigned int stack_slot) {
     }
 }
 
-const ux_flow_step_t ux_bip32_path_validate_step = {
-    ux_bip32_path_validate_init, NULL, NULL, NULL
-};
+const ux_flow_step_t ux_bip32_path_validate_step = {ux_bip32_path_validate_init, NULL, NULL, NULL};
 
-const ux_flow_step_t *const ux_bip32_path_validate[] = {
-    &ux_bip32_path_validate_step, FLOW_END_STEP
-};
+const ux_flow_step_t* const ux_bip32_path_validate[] = {&ux_bip32_path_validate_step,
+                                                        FLOW_END_STEP};
 
 const ux_flow_step_t ux_bip32_path_step = {
     ux_layout_bnnn_paging_init,
