@@ -81,7 +81,9 @@ int ui_display_address(derive_address_ctx_t* ctx,
                              bip32_path_len,
                              "Path",
                              ctx->bip32_path,
-                             MEMBER_SIZE(derive_address_ctx_t, bip32_path));
+                             MEMBER_SIZE(derive_address_ctx_t, bip32_path),
+                             NULL,
+                             NULL);
     if (b32_screen == NULL) {
         return send_error(SW_BIP32_FORMATTING_FAILED);
     }

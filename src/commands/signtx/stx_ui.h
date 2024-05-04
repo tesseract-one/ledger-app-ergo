@@ -29,6 +29,7 @@ bool ui_stx_add_operation_approve_screens(sign_transaction_ui_aprove_ctx_t* ctx,
 bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
                                uint8_t* screen,
                                const sign_transaction_output_info_ctx_t* output,
+                               sign_transaction_bip32_path_t* last_approved_change,
                                uint8_t network_id);
 
 /**
@@ -52,3 +53,9 @@ bool ui_stx_add_transaction_screens(sign_transaction_ui_sign_confirm_ctx_t* ctx,
  *
  */
 bool ui_stx_display_screens(uint8_t screen_count);
+
+/**
+ * Approve or reject operation programatically.
+ *
+ */
+void ui_stx_operation_approve_reject(bool approved, sign_transaction_ui_aprove_ctx_t* ctx);

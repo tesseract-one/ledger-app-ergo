@@ -66,8 +66,7 @@ static inline bool format_erg_amount(uint64_t amount, char* out, size_t out_len)
 
 // ----- OPERATION APPROVE / REJECT FLOW
 
-static NOINLINE void ui_stx_operation_approve_action(bool approved, void* context) {
-    sign_transaction_ui_aprove_ctx_t* ctx = (sign_transaction_ui_aprove_ctx_t*) context;
+void ui_stx_operation_approve_reject(bool approved, sign_transaction_ui_aprove_ctx_t* ctx) {
     sign_transaction_ctx_t* sign_tx = (sign_transaction_ctx_t*) ctx->sign_tx_context;
 
     app_set_ui_busy(false);
@@ -82,6 +81,11 @@ static NOINLINE void ui_stx_operation_approve_action(bool approved, void* contex
     }
 
     ui_menu_main();
+}
+
+static NOINLINE void ui_stx_operation_approve_action(bool approved, void* context) {
+    sign_transaction_ui_aprove_ctx_t* ctx = (sign_transaction_ui_aprove_ctx_t*) context;
+    ui_stx_operation_approve_reject(approved, ctx);
 }
 
 bool ui_stx_add_operation_approve_screens(sign_transaction_ui_aprove_ctx_t* ctx,
@@ -214,10 +218,19 @@ static NOINLINE uint16_t ui_stx_display_output_state(uint8_t screen,
 }
 
 static NOINLINE void ui_stx_operation_output_confirm_action(bool approved, void* context) {
-    UNUSED(context);
+    sign_transaction_ui_output_confirm_ctx_t* ctx = 
+        (sign_transaction_ui_output_confirm_ctx_t*) context;
     app_set_ui_busy(false);
 
+    explicit_bzero(ctx->last_approved_change, sizeof(sign_transaction_bip32_path_t));
+
     if (approved) {
+        // store last approved change address
+        if (stx_output_info_type(ctx->output) == SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32) {
+            memmove(ctx->last_approved_change,
+                    &ctx->output->bip32_path,
+                    sizeof(sign_transaction_bip32_path_t));
+        }
         res_ok();
     } else {
         app_set_current_command(CMD_NONE);
@@ -230,10 +243,12 @@ static NOINLINE void ui_stx_operation_output_confirm_action(bool approved, void*
 bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
                                uint8_t* screen,
                                const sign_transaction_output_info_ctx_t* output,
+                               sign_transaction_bip32_path_t* last_approved_change,
                                uint8_t network_id) {
     if (MAX_NUMBER_OF_SCREENS - *screen < 6) return false;
 
     memset(ctx, 0, sizeof(sign_transaction_ui_output_confirm_ctx_t));
+    memset(last_approved_change, 0, sizeof(sign_transaction_bip32_path_t));
 
     ui_add_screen(&ux_stx_display_output_confirm_step, screen);
 
@@ -254,12 +269,13 @@ bool ui_stx_add_output_screens(sign_transaction_ui_output_confirm_ctx_t* ctx,
     if (MAX_NUMBER_OF_SCREENS - *screen < 2) return false;
 
     ui_approve_reject_screens(ui_stx_operation_output_confirm_action,
-                              NULL,
+                              (void*) ctx,
                               ui_next_sreen_ptr(screen),
                               ui_next_sreen_ptr(screen));
 
     ctx->network_id = network_id;
     ctx->output = output;
+    ctx->last_approved_change = last_approved_change;
 
     return true;
 }

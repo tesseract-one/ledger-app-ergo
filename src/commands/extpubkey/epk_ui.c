@@ -60,7 +60,9 @@ int ui_display_account(extended_public_key_ctx_t* ctx,
                              bip32_path_len,
                              "Path",
                              ctx->bip32_path,
-                             MEMBER_SIZE(extended_public_key_ctx_t, bip32_path));
+                             MEMBER_SIZE(extended_public_key_ctx_t, bip32_path),
+                             NULL,
+                             NULL);
     if (b32_step == NULL) {
         app_set_current_command(CMD_NONE);
         return res_error(SW_BIP32_FORMATTING_FAILED);

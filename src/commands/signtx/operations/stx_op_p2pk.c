@@ -296,11 +296,33 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
         SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE) {
         return stx_output_info_used_tokens_count(&ctx->transaction.ui.output) > 0;
     }
+    // Change address
+    if (stx_output_info_type(&ctx->transaction.ui.output) == 
+        SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32) {
+        // if path length is not 5 or wrong type then we should ask to confirm
+        if (!bip32_path_validate(ctx->transaction.ui.output.bip32_path.path,
+                                 ctx->transaction.ui.output.bip32_path.len,
+                                 BIP32_HARDENED(44),
+                                 BIP32_HARDENED(BIP32_ERGO_COIN),
+                                 BIP32_PATH_VALIDATE_ADDRESS_E5)) return true;
+        // if change index is < 20 then we approve it automatically
+        if (ctx->transaction.ui.output.bip32_path.path[4] < 20) return false;
+        // Check was it already approved then approve automatically
+        if (memcmp(&ctx->transaction.ui.output.bip32_path,
+                   &ctx->transaction.last_approved_change,
+                   sizeof(sign_transaction_bip32_path_t)) == 0) return false;
+    }
     return true;
 }
 
 // ===========================
 // UI
+
+static NOINLINE void ui_stx_operation_p2pk_approve_action(void* context) {
+    sign_transaction_ui_aprove_ctx_t* ctx = (sign_transaction_ui_aprove_ctx_t*) context;
+    ui_stx_operation_approve_reject(true, ctx);
+}
+
 uint16_t ui_stx_operation_p2pk_show_token_and_path(sign_transaction_operation_p2pk_ctx_t *ctx,
                                                    uint32_t app_access_token,
                                                    bool is_known_application,
@@ -311,7 +333,9 @@ uint16_t ui_stx_operation_p2pk_show_token_and_path(sign_transaction_operation_p2
         ctx->bip32.len,
         "P2PK Signing",
         ctx->ui_approve.bip32_path,
-        MEMBER_SIZE(sign_transaction_operation_p2pk_ui_approve_data_ctx_t, bip32_path));
+        MEMBER_SIZE(sign_transaction_operation_p2pk_ui_approve_data_ctx_t, bip32_path),
+        ui_stx_operation_p2pk_approve_action,
+        &ctx->ui_approve.ui_approve);
     if (b32_step == NULL) {
         return SW_BIP32_FORMATTING_FAILED;
     }
@@ -339,6 +363,7 @@ uint16_t ui_stx_operation_p2pk_show_output_confirm_screen(
     if (!ui_stx_add_output_screens(&ctx->transaction.ui.ui,
                                    &screen,
                                    &ctx->transaction.ui.output,
+                                   &ctx->transaction.last_approved_change,
                                    ctx->network_id)) {
         return SW_SCREENS_BUFFER_OVERFLOW;
     }
