@@ -320,7 +320,7 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
 // ===========================
 // UI
 
-static NOINLINE void ui_stx_operation_p2pk_approve_action(void* context) {
+static NOINLINE void ui_stx_operation_p2pk_approve_action(void *context) {
     sign_transaction_ui_aprove_ctx_t *ctx = (sign_transaction_ui_aprove_ctx_t *) context;
     ui_stx_operation_approve_reject(true, ctx);
 }
