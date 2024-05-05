@@ -83,3 +83,8 @@ static inline sign_transaction_output_info_type_e stx_output_info_type(
 static inline bool stx_output_info_is_finished(const sign_transaction_output_info_ctx_t* ctx) {
     return STX_OUTPUT_INFO_IS_TREE_SET(ctx) && STX_OUTPUT_INFO_IS_BOX_FINISHED(ctx);
 }
+
+static inline bool stx_bip32_path_is_equal(const sign_transaction_bip32_path_t* p1,
+                                           const sign_transaction_bip32_path_t* p2) {
+    return bip32_path_is_equal(p1->path, p1->len, p2->path, p2->len);
+}

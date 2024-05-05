@@ -20,3 +20,11 @@ bool bip32_path_validate(const uint32_t *bip32_path,
                          uint32_t type,
                          uint32_t coin,
                          bip32_path_validation_type_e vtype);
+
+static inline bool bip32_path_is_equal(const uint32_t *bip32_path_1,
+                                       uint8_t bip32_path_1_len,
+                                       const uint32_t *bip32_path_2,
+                                       uint8_t bip32_path_2_len) {
+    return bip32_path_1_len == bip32_path_2_len &&
+        memcmp(bip32_path_1, bip32_path_2, bip32_path_1_len) == 0;
+}

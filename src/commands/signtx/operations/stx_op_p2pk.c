@@ -309,9 +309,8 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
         // if change index is < 20 then we approve it automatically
         if (ctx->transaction.ui.output.bip32_path.path[4] < 20) return false;
         // Check was it already approved then approve automatically
-        if (memcmp(&ctx->transaction.ui.output.bip32_path,
-                   &ctx->transaction.last_approved_change,
-                   sizeof(sign_transaction_bip32_path_t)) == 0)
+        if (stx_bip32_path_is_equal(&ctx->transaction.ui.output.bip32_path,
+                                    &ctx->transaction.last_approved_change))
             return false;
     }
     return true;
