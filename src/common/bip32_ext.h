@@ -26,5 +26,5 @@ static inline bool bip32_path_is_equal(const uint32_t *bip32_path_1,
                                        const uint32_t *bip32_path_2,
                                        uint8_t bip32_path_2_len) {
     return bip32_path_1_len == bip32_path_2_len &&
-        memcmp(bip32_path_1, bip32_path_2, bip32_path_1_len) == 0;
+           memcmp(bip32_path_1, bip32_path_2, bip32_path_1_len) == 0;
 }
