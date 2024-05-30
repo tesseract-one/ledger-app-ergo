@@ -7,6 +7,8 @@
 #include <cmocka.h>
 
 #include "ergo/tx_ser_full.h"
+#include "common/rwbuffer.h"
+#include "macro_helpers.h"
 
 #include <stdio.h>
 
@@ -48,7 +50,7 @@ static void test_simple_send_tx(void** state) {
         ERGO_TX_SERIALIZER_FULL_RES_OK);
 
     // Adding address tree.
-    BUFFER_FROM_ARRAY_FULL(OUT_ERGO_TREE_BUF, OUT_ERGO_TREE, sizeof(OUT_ERGO_TREE));
+    BUFFER_FROM_ARRAY(OUT_ERGO_TREE_BUF, OUT_ERGO_TREE, sizeof(OUT_ERGO_TREE));
     assert_int_equal(ergo_tx_serializer_full_add_box_ergo_tree(&ctx, &OUT_ERGO_TREE_BUF),
                      ERGO_TX_SERIALIZER_FULL_RES_OK);
 
@@ -74,7 +76,7 @@ static void test_simple_send_tx(void** state) {
                      ERGO_TX_SERIALIZER_FULL_RES_OK);
 
     // Adding tree.
-    BUFFER_FROM_ARRAY_FULL(CHANGE_ERGO_TREE_BUF, CHANGE_ERGO_TREE, sizeof(CHANGE_ERGO_TREE));
+    BUFFER_FROM_ARRAY(CHANGE_ERGO_TREE_BUF, CHANGE_ERGO_TREE, sizeof(CHANGE_ERGO_TREE));
     assert_int_equal(ergo_tx_serializer_full_add_box_ergo_tree(&ctx, &CHANGE_ERGO_TREE_BUF),
                      ERGO_TX_SERIALIZER_FULL_RES_OK);
 
@@ -243,7 +245,7 @@ static void test_ergo_tx_serializer_full_add_tokens(void** state) {
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     assert_int_equal(
         ergo_tx_serializer_full_add_tokens(&context, &tokens),
         ERGO_TX_SERIALIZER_FULL_RES_OK
@@ -288,7 +290,7 @@ static void test_ergo_tx_serializer_full_add_input(void** state) {
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     ergo_tx_serializer_full_add_tokens(&context, &tokens);
     uint8_t box_id[32] = {
         0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
@@ -345,7 +347,7 @@ static void test_ergo_tx_serializer_full_add_input_tokens(void** state) {
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     ergo_tx_serializer_full_add_tokens(&context, &tokens);
     uint8_t box_id[32] = {
         0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
@@ -369,7 +371,7 @@ static void test_ergo_tx_serializer_full_add_input_tokens(void** state) {
         0x04, 0x04,
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
     };
-    BUFFER_FROM_ARRAY_FULL(input_tokens, input_tokens_array, sizeof(input_tokens_array));
+    BUFFER_FROM_ARRAY(input_tokens, input_tokens_array, sizeof(input_tokens_array));
     assert_int_equal(
         ergo_tx_serializer_full_add_input_tokens(&context, box_id, token_frame_index, &input_tokens),
         ERGO_TX_SERIALIZER_FULL_RES_OK
@@ -412,7 +414,7 @@ static void test_ergo_tx_serializer_full_add_input_context_extension(void** stat
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     ergo_tx_serializer_full_add_tokens(&context, &tokens);
     uint8_t box_id[32] = {
         0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
@@ -436,12 +438,12 @@ static void test_ergo_tx_serializer_full_add_input_context_extension(void** stat
         0x04, 0x04,
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
     };
-    BUFFER_FROM_ARRAY_FULL(input_tokens, input_tokens_array, sizeof(input_tokens_array));
+    BUFFER_FROM_ARRAY(input_tokens, input_tokens_array, sizeof(input_tokens_array));
     ergo_tx_serializer_full_add_input_tokens(&context, box_id, token_frame_index, &input_tokens);
     uint8_t extension_chunk_array[2] = {
         0x01, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(extension_chunk, extension_chunk_array, sizeof(extension_chunk_array));
+    BUFFER_FROM_ARRAY(extension_chunk, extension_chunk_array, sizeof(extension_chunk_array));
     assert_int_equal(
         ergo_tx_serializer_full_add_input_context_extension(&context, &extension_chunk),
         ERGO_TX_SERIALIZER_FULL_RES_OK
@@ -484,7 +486,7 @@ static void test_ergo_tx_serializer_full_add_data_inputs(void** state) {
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     ergo_tx_serializer_full_add_tokens(&context, &tokens);
     uint8_t box_id[32] = {
         0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
@@ -508,12 +510,12 @@ static void test_ergo_tx_serializer_full_add_data_inputs(void** state) {
         0x04, 0x04,
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
     };
-    BUFFER_FROM_ARRAY_FULL(input_tokens, input_tokens_array, sizeof(input_tokens_array));
+    BUFFER_FROM_ARRAY(input_tokens, input_tokens_array, sizeof(input_tokens_array));
     ergo_tx_serializer_full_add_input_tokens(&context, box_id, token_frame_index, &input_tokens);
     uint8_t extension_chunk_array[2] = {
         0x01, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(extension_chunk, extension_chunk_array, sizeof(extension_chunk_array));
+    BUFFER_FROM_ARRAY(extension_chunk, extension_chunk_array, sizeof(extension_chunk_array));
     ergo_tx_serializer_full_add_input_context_extension(&context, &extension_chunk);
     uint8_t inputs_array[32] = {
         0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
@@ -521,7 +523,7 @@ static void test_ergo_tx_serializer_full_add_data_inputs(void** state) {
         0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
         0x05, 0x05
     };
-    BUFFER_FROM_ARRAY_FULL(inputs, inputs_array, sizeof(inputs_array));
+    BUFFER_FROM_ARRAY(inputs, inputs_array, sizeof(inputs_array));
     assert_int_equal(
         ergo_tx_serializer_full_add_data_inputs(&context, &inputs),
         ERGO_TX_SERIALIZER_FULL_RES_OK
@@ -562,7 +564,7 @@ static void test_ergo_tx_serializer_full_add_data_inputs(void** state) {
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, \
         0x02, 0x02 \
     }; \
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array)); \
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array)); \
     ergo_tx_serializer_full_add_tokens(&context, &tokens); \
     uint8_t box_id[32] = { \
         0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, \
@@ -586,12 +588,12 @@ static void test_ergo_tx_serializer_full_add_data_inputs(void** state) {
         0x04, 0x04, \
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 \
     }; \
-    BUFFER_FROM_ARRAY_FULL(input_tokens, input_tokens_array, sizeof(input_tokens_array)); \
+    BUFFER_FROM_ARRAY(input_tokens, input_tokens_array, sizeof(input_tokens_array)); \
     ergo_tx_serializer_full_add_input_tokens(&context, box_id, token_frame_index, &input_tokens); \
     uint8_t extension_chunk_array[2] = { \
         0x01, 0x02 \
     }; \
-    BUFFER_FROM_ARRAY_FULL(extension_chunk, extension_chunk_array, sizeof(extension_chunk_array)); \
+    BUFFER_FROM_ARRAY(extension_chunk, extension_chunk_array, sizeof(extension_chunk_array)); \
     ergo_tx_serializer_full_add_input_context_extension(&context, &extension_chunk); \
     uint8_t inputs_array[32] = { \
         0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, \
@@ -599,7 +601,7 @@ static void test_ergo_tx_serializer_full_add_data_inputs(void** state) {
         0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, \
         0x05, 0x05 \
     }; \
-    BUFFER_FROM_ARRAY_FULL(inputs, inputs_array, sizeof(inputs_array)); \
+    BUFFER_FROM_ARRAY(inputs, inputs_array, sizeof(inputs_array)); \
     ergo_tx_serializer_full_add_data_inputs(&context, &inputs); \
     uint64_t value = 12345; \
     uint32_t ergo_tree_size = 1; \
@@ -630,7 +632,7 @@ static void test_ergo_tx_serializer_full_add_box_ergo_tree(void** state) {
     uint8_t tree_chunk_array[1] = {
         0x01
     };
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     assert_int_equal(
         ergo_tx_serializer_full_add_box_ergo_tree(&context, &tree_chunk),
         ERGO_TX_SERIALIZER_FULL_RES_OK
@@ -674,13 +676,13 @@ static void test_ergo_tx_serializer_full_add_box_tokens(void** state) {
     uint8_t tree_chunk_array[1] = {
         0x01
     };
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     ergo_tx_serializer_full_add_box_ergo_tree(&context, &tree_chunk);
     uint8_t box_tokens_array[12] = {
         0x00, 0x00, 0x00, 0x00,
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01
     };
-    BUFFER_FROM_ARRAY_FULL(box_tokens, box_tokens_array, sizeof(box_tokens_array));
+    BUFFER_FROM_ARRAY(box_tokens, box_tokens_array, sizeof(box_tokens_array));
     assert_int_equal(
         ergo_tx_serializer_full_add_box_tokens(&context, &box_tokens),
         ERGO_TX_SERIALIZER_FULL_RES_OK
@@ -694,18 +696,18 @@ static void test_ergo_tx_serializer_full_add_box_registers(void** state) {
     uint8_t tree_chunk_array[1] = {
         0x01
     };
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     ergo_tx_serializer_full_add_box_ergo_tree(&context, &tree_chunk);
     uint8_t box_tokens_array[12] = {
         0x00, 0x00, 0x00, 0x00,
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01
     };
-    BUFFER_FROM_ARRAY_FULL(box_tokens, box_tokens_array, sizeof(box_tokens_array));
+    BUFFER_FROM_ARRAY(box_tokens, box_tokens_array, sizeof(box_tokens_array));
     ergo_tx_serializer_full_add_box_tokens(&context, &box_tokens);
     uint8_t registers_chunk_array[1] = {
         0x01
     };
-    BUFFER_FROM_ARRAY_FULL(registers_chunk, registers_chunk_array, sizeof(registers_chunk_array));
+    BUFFER_FROM_ARRAY(registers_chunk, registers_chunk_array, sizeof(registers_chunk_array));
     assert_int_equal(
         ergo_tx_serializer_full_add_box_registers(&context, &registers_chunk),
         ERGO_TX_SERIALIZER_FULL_RES_OK

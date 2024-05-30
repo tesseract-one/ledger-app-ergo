@@ -6,7 +6,7 @@
 
 #include <cmocka.h>
 
-#include "common/int_ops.h"
+#include "common/safeint.h"
 
 static void test_checked_add_u64_min(void **state) {
     (void) state;

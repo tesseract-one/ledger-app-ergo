@@ -3,6 +3,7 @@
         {
             "name": "Linux-Clang",
             "includePath": [
+                "/usr/include",
                 "${workspaceFolder}/utils",
                 "${workspaceFolder}/../src"
             ],

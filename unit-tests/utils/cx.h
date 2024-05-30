@@ -23,6 +23,10 @@ struct cx_blake2b_s {
 /** Convenience type. See #cx_blake2b_s. */
 typedef struct cx_blake2b_s cx_blake2b_t;
 
+#define CX_OK 0
+
+#define CX_BLAKE2B_256_SIZE 32
+
 #define CX_FLAG
 /*
  * Bit 0
@@ -40,6 +44,10 @@ cx_err_t cx_hash_no_throw(cx_hash_t *hash,
                           size_t len,
                           uint8_t *out,
                           size_t out_len);
+
+cx_err_t cx_blake2b_256_hash(const uint8_t* data,
+                             size_t len,
+                             uint8_t out[static CX_BLAKE2B_256_SIZE]);
 
 void _cx_blake2b_get_data(cx_blake2b_t *ctx, uint8_t **data, size_t *len);
 void _cx_blake2b_free_data(cx_blake2b_t *ctx);

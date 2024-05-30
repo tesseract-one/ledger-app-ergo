@@ -8,6 +8,8 @@
 #include <cmocka.h>
 
 #include "ergo/tx_ser_box.h"
+#include "common/rwbuffer.h"
+#include "macro_helpers.h"
 
 #define ERGO_TX_SERIALIZER_BOX_INIT(name) \
     ergo_tx_serializer_box_context_t name; \
@@ -164,7 +166,7 @@ static void test_ergo_tx_serializer_box_add_tree(void **state) {
 
     ERGO_TX_SERIALIZER_BOX_INIT(context);
     uint8_t tree_chunk_array[2] = {0x01, 0x02};
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     assert_int_equal(
         ergo_tx_serializer_box_add_tree(&context, &tree_chunk),
         ERGO_TX_SERIALIZER_BOX_RES_OK
@@ -184,7 +186,7 @@ static void test_ergo_tx_serializer_box_add_tree_bad_state(void **state) {
     memset(&context, 0, sizeof(ergo_tx_serializer_box_context_t));
     context.state = ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED;
     uint8_t tree_chunk_array[2] = {0x01, 0x02};
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     assert_int_equal(
         ergo_tx_serializer_box_add_tree(&context, &tree_chunk),
         ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE
@@ -196,7 +198,7 @@ static void test_ergo_tx_serializer_box_add_tree_too_much_data(void **state) {
     (void) state;
 
     uint8_t tree_chunk_array[2] = {0x01, 0x02};
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     ergo_tx_serializer_box_context_t context;
     uint64_t value = 12345;
     uint32_t ergo_tree_size = sizeof(tree_chunk_array) - 1;
@@ -225,7 +227,7 @@ static void test_ergo_tx_serializer_box_add_tree_bad_hash(void **state) {
     (void) state;
 
     uint8_t tree_chunk_array[2] = {0x01, 0x02};
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     ergo_tx_serializer_box_context_t context;
     uint64_t value = 12345;
     uint32_t ergo_tree_size = 2;
@@ -255,7 +257,7 @@ static void test_ergo_tx_serializer_box_add_tree_more_data(void **state) {
     (void) state;
 
     uint8_t tree_chunk_array[MAX_DATA_CHUNK_LEN] = {0};
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     ergo_tx_serializer_box_context_t context;
     uint64_t value = 12345;
     uint32_t ergo_tree_size = MAX_DATA_CHUNK_LEN + 1;
@@ -420,7 +422,7 @@ static void test_ergo_tx_serializer_box_add_tokens(void **state) {
 
     ERGO_TX_SERIALIZER_BOX_INIT(context);
     uint8_t tree_chunk_array[2] = {0x01, 0x02};
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     ergo_tx_serializer_box_add_tree(&context, &tree_chunk);
     uint8_t tokens_array[24] = {
         0x00, 0x00, 0x00, 0x00,
@@ -428,7 +430,7 @@ static void test_ergo_tx_serializer_box_add_tokens(void **state) {
         0x00, 0x00, 0x00, 0x01,
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     token_table_t table = {
         2,
         {
@@ -464,7 +466,7 @@ static void test_ergo_tx_serializer_box_add_registers(void **state) {
 
     ERGO_TX_SERIALIZER_BOX_INIT(context);
     uint8_t tree_chunk_array[2] = {0x01, 0x02};
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     ergo_tx_serializer_box_add_tree(&context, &tree_chunk);
     uint8_t tokens_array[24] = {
         0x00, 0x00, 0x00, 0x00,
@@ -472,7 +474,7 @@ static void test_ergo_tx_serializer_box_add_registers(void **state) {
         0x00, 0x00, 0x00, 0x01,
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     token_table_t table = {
         2,
         {
@@ -492,7 +494,7 @@ static void test_ergo_tx_serializer_box_add_registers(void **state) {
     };
     ergo_tx_serializer_box_add_tokens(&context, &tokens, &table);
     uint8_t rc_array[2] = {0x01, 0x02};
-    BUFFER_FROM_ARRAY_FULL(registers_chunk, rc_array, sizeof(rc_array));
+    BUFFER_FROM_ARRAY(registers_chunk, rc_array, sizeof(rc_array));
     assert_int_equal(
         ergo_tx_serializer_box_add_registers(&context, &registers_chunk),
         ERGO_TX_SERIALIZER_BOX_RES_OK
@@ -511,7 +513,7 @@ static void test_ergo_tx_serializer_box_id_hash(void **state) {
 
     ERGO_TX_SERIALIZER_BOX_INIT(context);
     uint8_t tree_chunk_array[2] = {0x01, 0x02};
-    BUFFER_FROM_ARRAY_FULL(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
+    BUFFER_FROM_ARRAY(tree_chunk, tree_chunk_array, sizeof(tree_chunk_array));
     ergo_tx_serializer_box_add_tree(&context, &tree_chunk);
     uint8_t tokens_array[24] = {
         0x00, 0x00, 0x00, 0x00,
@@ -519,7 +521,7 @@ static void test_ergo_tx_serializer_box_id_hash(void **state) {
         0x00, 0x00, 0x00, 0x01,
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     token_table_t table = {
         2,
         {
@@ -539,7 +541,7 @@ static void test_ergo_tx_serializer_box_id_hash(void **state) {
     };
     ergo_tx_serializer_box_add_tokens(&context, &tokens, &table);
     uint8_t rc_array[2] = {0x01, 0x02};
-    BUFFER_FROM_ARRAY_FULL(registers_chunk, rc_array, sizeof(rc_array));
+    BUFFER_FROM_ARRAY(registers_chunk, rc_array, sizeof(rc_array));
     ergo_tx_serializer_box_add_registers(&context, &registers_chunk);
     const uint8_t tx_id[ERGO_ID_LEN] = {
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,

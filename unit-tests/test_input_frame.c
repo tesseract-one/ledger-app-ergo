@@ -8,6 +8,8 @@
 #include <cmocka.h>
 
 #include "helpers/input_frame.h"
+#include "common/rwbuffer.h"
+#include "macro_helpers.h"
 
 static void test_input_frame_data_length(void **state) {
     (void) state;
@@ -27,7 +29,7 @@ static void test_input_frame_data_length(void **state) {
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01
     };
-    BUFFER_FROM_ARRAY_FULL(input, input_array, sizeof(input_array));
+    BUFFER_FROM_ARRAY(input, input_array, sizeof(input_array));
     uint8_t data_len = input_frame_data_length(&input);
     assert_int_equal(data_len, 83);
 }
@@ -43,7 +45,7 @@ static void test_input_frame_data_length_bad_size(void **state) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
-    BUFFER_FROM_ARRAY_FULL(input, input_array, sizeof(input_array));
+    BUFFER_FROM_ARRAY(input, input_array, sizeof(input_array));
     uint8_t data_len = input_frame_data_length(&input);
     assert_int_equal(data_len, 0);
 }
@@ -66,7 +68,7 @@ static void test_input_frame_data_length_bad_size_2(void **state) {
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
         0x01, 0x01, 0x01, 0x01, 0x01
     };
-    BUFFER_FROM_ARRAY_FULL(input, input_array, sizeof(input_array));
+    BUFFER_FROM_ARRAY(input, input_array, sizeof(input_array));
     uint8_t data_len = input_frame_data_length(&input);
     assert_int_equal(data_len, 0);
 }
@@ -89,7 +91,7 @@ static void test_input_frame_signature_ptr(void **state) {
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01
     };
-    BUFFER_FROM_ARRAY_FULL(input, input_array, sizeof(input_array));
+    BUFFER_FROM_ARRAY(input, input_array, sizeof(input_array));
     assert_ptr_equal(input_frame_signature_ptr(&input), buffer_read_ptr(&input) + 83);
 }
 
@@ -111,7 +113,7 @@ static void test_input_frame_signature_ptr_null(void **state) {
         0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
         0x01, 0x01, 0x01, 0x01, 0x01
     };
-    BUFFER_FROM_ARRAY_FULL(input, input_array, sizeof(input_array));
+    BUFFER_FROM_ARRAY(input, input_array, sizeof(input_array));
     assert_ptr_equal(input_frame_signature_ptr(&input), NULL);
 }
 

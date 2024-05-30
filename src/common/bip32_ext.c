@@ -20,6 +20,8 @@
 #include <stdint.h>   // uint*_t
 #include <stdbool.h>  // bool
 
+#include <ledger_assert.h>
+
 #include "bip32_ext.h"
 
 bool bip32_path_validate(const uint32_t *bip32_path,
@@ -73,4 +75,5 @@ bool bip32_path_validate(const uint32_t *bip32_path,
             }
             return true;
     }
+    LEDGER_ASSERT(false, "Bip32 validation type isn't handled properly");
 }

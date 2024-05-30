@@ -8,6 +8,8 @@
 #include <cmocka.h>
 
 #include "ergo/tx_ser_table.h"
+#include "common/rwbuffer.h"
+#include "macro_helpers.h"
 
 static void test_ergo_tx_serializer_table_init(void **state) {
     (void) state;
@@ -76,7 +78,7 @@ static void test_ergo_tx_serializer_table_add(void **state) {
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     assert_int_equal(
         ergo_tx_serializer_table_add(&context, &tokens),
         ERGO_TX_SERIALIZER_TABLE_RES_OK
@@ -124,7 +126,7 @@ static void test_ergo_tx_serializer_table_add_too_many_tokens(void **state) {
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     assert_int_equal(
         ergo_tx_serializer_table_add(&context, &tokens),
         ERGO_TX_SERIALIZER_TABLE_RES_ERR_TOO_MANY_TOKENS
@@ -154,7 +156,7 @@ static void test_ergo_tx_serializer_table_add_bad_token_id(void **state) {
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     assert_int_equal(
         ergo_tx_serializer_table_add(&context, &tokens),
         ERGO_TX_SERIALIZER_TABLE_RES_ERR_BAD_TOKEN_ID
@@ -184,7 +186,7 @@ static void test_ergo_tx_serializer_table_add_more_data(void **state) {
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02
     };
-    BUFFER_FROM_ARRAY_FULL(tokens, tokens_array, sizeof(tokens_array));
+    BUFFER_FROM_ARRAY(tokens, tokens_array, sizeof(tokens_array));
     assert_int_equal(
         ergo_tx_serializer_table_add(&context, &tokens),
         ERGO_TX_SERIALIZER_TABLE_RES_MORE_DATA
@@ -246,7 +248,7 @@ static void test_ergo_tx_serializer_table_hash_bad_hash(void **state) {
         }
     };
     ergo_tx_serializer_table_init(&context, tokens_count, &tokens_table);
-    cx_blake2b_t hash;
+    cx_blake2b_t hash = {0};
     assert_int_equal(
         ergo_tx_serializer_table_hash(&context, &hash),
         ERGO_TX_SERIALIZER_TABLE_RES_ERR_HASHER
