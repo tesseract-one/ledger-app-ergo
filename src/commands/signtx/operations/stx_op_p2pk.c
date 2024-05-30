@@ -311,11 +311,9 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
                                     &ctx->transaction.last_approved_change))
             return false;
         // if account is the same and change index is < 20 then we approve it automatically
-        if (stx_bip32_path_same_account(&ctx->transaction.ui.output.bip32_path,
-                                        &ctx->bip32) && 
-                                        ctx->transaction.ui.output.bip32_path.path[4] < 20)
+        if (stx_bip32_path_same_account(&ctx->transaction.ui.output.bip32_path, &ctx->bip32) && 
+            ctx->transaction.ui.output.bip32_path.path[4] < 20)
             return false;
-        
     }
     return true;
 }
