@@ -50,7 +50,7 @@ static inline ergo_tx_serializer_full_result_e map_table_result(
         case ERGO_TX_SERIALIZER_TABLE_RES_ERR_BUFFER:
             return ERGO_TX_SERIALIZER_FULL_RES_ERR_BUFFER;
     }
-    LEDGER_ASSERT(false, "Unknown table response: %d", (int)res);
+    LEDGER_ASSERT(false, "Unknown table response: %d", (int) res);
 }
 
 static inline ergo_tx_serializer_full_result_e map_input_result(
@@ -83,7 +83,7 @@ static inline ergo_tx_serializer_full_result_e map_input_result(
         case ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_STATE:
             return ERGO_TX_SERIALIZER_FULL_RES_ERR_BAD_STATE;
     }
-    LEDGER_ASSERT(false, "Unknown input response: %d", (int)res);
+    LEDGER_ASSERT(false, "Unknown input response: %d", (int) res);
 }
 
 static inline ergo_tx_serializer_full_result_e map_box_result(ergo_tx_serializer_box_result_e res) {
@@ -113,7 +113,7 @@ static inline ergo_tx_serializer_full_result_e map_box_result(ergo_tx_serializer
         case ERGO_TX_SERIALIZER_BOX_RES_ERR_SMALL_CHUNK:
             return ERGO_TX_SERIALIZER_FULL_RES_ERR_SMALL_CHUNK;
     }
-    LEDGER_ASSERT(false, "Unknown box response: %d", (int)res);
+    LEDGER_ASSERT(false, "Unknown box response: %d", (int) res);
 }
 
 static inline bool hash_u16(cx_blake2b_t* hash, uint16_t u16) {
