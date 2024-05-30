@@ -28,3 +28,11 @@ static inline bool bip32_path_is_equal(const uint32_t *bip32_path_1,
     return bip32_path_1_len == bip32_path_2_len &&
            memcmp(bip32_path_1, bip32_path_2, bip32_path_1_len) == 0;
 }
+
+static inline bool bip32_path_same_account(const uint32_t *bip32_path_1,
+                                           uint8_t bip32_path_1_len,
+                                           const uint32_t *bip32_path_2,
+                                           uint8_t bip32_path_2_len) {
+    return bip32_path_1_len >= 3 && bip32_path_2_len >= 3 &&
+           memcmp(bip32_path_1, bip32_path_2, 3) == 0;
+}

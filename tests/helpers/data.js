@@ -13,6 +13,7 @@ class ExtendedAddress {
         this.network = network;
         this.address = address;
         this.path = DerivationPath.new(path[0], [path[1]]);
+        this.index = path[1];
     }
 
     toBase58() {
@@ -46,6 +47,11 @@ class TestData {
             network,
             Address.from_base58("9eo8hALVQTaAuu8m95JhR8rhXuAMsLacaxM8X4omp724Smt8ior"),
             [0, 2]
+        );
+        this.changeAddress22 = new ExtendedAddress(
+            network,
+            Address.from_base58("9fRejXDJxxdJ1KVRH6HdxDj1S1duKmUNGG7CjztN2YjHnooxYAX"),
+            [0, 22]
         );
     }
 }

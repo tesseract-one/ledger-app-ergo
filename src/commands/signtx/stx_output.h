@@ -88,3 +88,8 @@ static inline bool stx_bip32_path_is_equal(const sign_transaction_bip32_path_t* 
                                            const sign_transaction_bip32_path_t* p2) {
     return bip32_path_is_equal(p1->path, p1->len, p2->path, p2->len);
 }
+
+static inline bool stx_bip32_path_same_account(const sign_transaction_bip32_path_t* p1,
+                                               const sign_transaction_bip32_path_t* p2) {
+    return bip32_path_same_account(p1->path, p1->len, p2->path, p2->len);
+}
