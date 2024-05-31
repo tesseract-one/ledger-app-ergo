@@ -226,7 +226,7 @@ class TxBuilder extends ErgoTxBuilder {
             outputs.push(toBoxCandidate(feeBuilder.build()));
         }
 
-        // Calculate chage
+        // add change output
         if (this.changeAddress) {
             const sum = array => array
                 .map(e => ergo.I64.from_str(e.value))
