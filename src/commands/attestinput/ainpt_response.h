@@ -13,7 +13,7 @@
  *
  */
 int send_response_attested_input_frame(attest_input_ctx_t *ctx,
-                                       uint8_t session_key[static SESSION_KEY_LEN],
+                                       const uint8_t session_key[static SESSION_KEY_LEN],
                                        uint8_t index);
 
 /**

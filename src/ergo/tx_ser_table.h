@@ -2,9 +2,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
+
+#include <buffer.h>
+
 #include "../constants.h"
-#include "../common/buffer.h"
 #include "../helpers/blake2b.h"
+#include "../common/macros_ext.h"
 
 typedef struct {
     uint8_t count;
@@ -22,8 +26,24 @@ typedef enum {
 
 typedef struct {
     token_table_t* tokens_table;
-    uint8_t tokens_count;
+    uint8_t distinct_tokens_count;
 } ergo_tx_serializer_table_context_t;
+
+static inline uint8_t token_table_find_token_index(const token_table_t* table,
+                                                   const uint8_t id[static ERGO_ID_LEN]) {
+    for (uint8_t i = 0; i < table->count; i++) {
+        if (memcmp(table->tokens[i], id, ERGO_ID_LEN) == 0) return i;
+    }
+    return INDEX_NOT_EXIST;
+}
+
+static inline uint8_t token_table_add_token(token_table_t* table,
+                                            const uint8_t id[static ERGO_ID_LEN]) {
+    if (table->count >= TOKEN_MAX_COUNT) return INDEX_NOT_EXIST;
+    uint8_t index = table->count++;
+    memmove(table->tokens[index], id, ERGO_ID_LEN);
+    return index;
+}
 
 ergo_tx_serializer_table_result_e ergo_tx_serializer_table_init(
     ergo_tx_serializer_table_context_t* context,
@@ -40,5 +60,5 @@ ergo_tx_serializer_table_result_e ergo_tx_serializer_table_hash(
 
 static inline bool ergo_tx_serializer_table_is_finished(
     const ergo_tx_serializer_table_context_t* context) {
-    return context->tokens_table->count >= context->tokens_count;
+    return context->tokens_table->count >= context->distinct_tokens_count;
 }

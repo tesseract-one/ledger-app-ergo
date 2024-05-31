@@ -1,24 +1,18 @@
 #include "stx_amounts.h"
-#include "../../common/macros.h"
-
-static inline uint8_t find_token_index(const token_table_t *table,
-                                       const uint8_t id[static ERGO_ID_LEN]) {
-    for (uint8_t i = 0; i < table->count; i++) {
-        if (memcmp(table->tokens[i], id, ERGO_ID_LEN) == 0) return i;
-    }
-    return INDEX_NOT_EXIST;
-}
+#include "../../common/macros_ext.h"
 
 ergo_tx_serializer_input_result_e stx_amounts_add_input_token(
     sign_transaction_amounts_ctx_t *ctx,
     const uint8_t box_id[static ERGO_ID_LEN],
     const uint8_t tn_id[static ERGO_ID_LEN],
     uint64_t value) {
-    (void) (box_id);
+    UNUSED(box_id);
     // searching for token in table
-    uint8_t index = 0;
-    if (!IS_ELEMENT_FOUND(index = find_token_index(&ctx->tokens_table, tn_id))) {
-        return ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_TOKEN_ID;
+    uint8_t index = token_table_find_token_index(&ctx->tokens_table, tn_id);
+    if (!IS_ELEMENT_FOUND(index)) {
+        index = token_table_add_token(&ctx->tokens_table, tn_id);
+        if (!IS_ELEMENT_FOUND(index)) return ERGO_TX_SERIALIZER_INPUT_RES_ERR_TOO_MANY_TOKENS;
+        ctx->tokens[index] = 0;
     }
     // calculating proper token sum
     if (!checked_add_i64(ctx->tokens[index], value, &ctx->tokens[index])) {
@@ -57,8 +51,8 @@ ergo_tx_serializer_box_result_e stx_amounts_add_output_token(sign_transaction_am
                                                              const uint8_t id[static ERGO_ID_LEN],
                                                              uint64_t value) {
     UNUSED(type);
-    uint8_t index = 0;
-    if (!IS_ELEMENT_FOUND(index = find_token_index(&ctx->tokens_table, id))) {
+    uint8_t index = token_table_find_token_index(&ctx->tokens_table, id);
+    if (!IS_ELEMENT_FOUND(index)) {
         return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_ID;
     }
     if (!checked_sub_i64(ctx->tokens[index],

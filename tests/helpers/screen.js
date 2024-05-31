@@ -7,7 +7,7 @@ const MAIN_FLOW = [
 ];
 
 const ABOUT_FLOW = [
-    { header: makefile.appName + " App", body: "(c) 2023 Ergo" },
+    { header: makefile.appName + " App", body: "(c) 2024 Ergo" },
     { header: "Version", body: makefile.version },
     { header: null, body: "Back" }
 ];

@@ -1,8 +1,8 @@
 #include "tx_ser_box.h"
 #include <string.h>
 #include "ergo_tree.h"
-#include "../common/varint.h"
-#include "../common/macros.h"
+#include "../common/gve.h"
+#include "../common/macros_ext.h"
 
 #define CHECK_PROPER_STATE(_ctx, _state) \
     if (_ctx->state != _state) return res_error(_ctx, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_STATE)
@@ -22,19 +22,19 @@ static inline ergo_tx_serializer_box_result_e res_error(ergo_tx_serializer_box_c
 
 static inline ergo_tx_serializer_box_result_e add_height_and_token_count(
     ergo_tx_serializer_box_context_t* context) {
-    BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
+    RW_BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
     if (gve_put_u32(&buffer, context->creation_height) != GVE_OK) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
     }
-    if (!blake2b_update(context->hash, buffer_read_ptr(&buffer), buffer_data_len(&buffer))) {
+    if (!blake2b_update(context->hash, rw_buffer_read_ptr(&buffer), rw_buffer_data_len(&buffer))) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
 
-    buffer_empty(&buffer);
+    rw_buffer_empty(&buffer);
     if (gve_put_u8(&buffer, context->tokens_count) != GVE_OK) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
     }
-    if (!blake2b_update(context->hash, buffer_read_ptr(&buffer), buffer_data_len(&buffer))) {
+    if (!blake2b_update(context->hash, rw_buffer_read_ptr(&buffer), rw_buffer_data_len(&buffer))) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
@@ -42,11 +42,11 @@ static inline ergo_tx_serializer_box_result_e add_height_and_token_count(
 
 static NOINLINE ergo_tx_serializer_box_result_e
 add_empty_registers_count(ergo_tx_serializer_box_context_t* context) {
-    BUFFER_NEW_LOCAL_EMPTY(buffer, 1);
+    RW_BUFFER_NEW_LOCAL_EMPTY(buffer, 1);
     if (gve_put_u8(&buffer, 0) != GVE_OK) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
     }
-    if (!blake2b_update(context->hash, buffer_read_ptr(&buffer), buffer_data_len(&buffer))) {
+    if (!blake2b_update(context->hash, rw_buffer_read_ptr(&buffer), rw_buffer_data_len(&buffer))) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
     return ERGO_TX_SERIALIZER_BOX_RES_OK;
@@ -105,11 +105,11 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_init(
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_TOO_MUCH_DATA);
     }
 
-    BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
+    RW_BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
     if (gve_put_u64(&buffer, value) != GVE_OK) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
     }
-    if (!blake2b_update(hash, buffer_read_ptr(&buffer), buffer_data_len(&buffer))) {
+    if (!blake2b_update(hash, rw_buffer_read_ptr(&buffer), rw_buffer_data_len(&buffer))) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
 
@@ -139,7 +139,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tree(
     if (!blake2b_update(context->hash, buffer_read_ptr(tree_chunk), len)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
-    if (!buffer_seek_read_cur(tree_chunk, len)) {
+    if (!buffer_seek_cur(tree_chunk, len)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
     }
     context->ergo_tree_size -= len;
@@ -181,9 +181,9 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_change_tree(
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
     ergo_tx_serializer_box_context_t* context,
     buffer_t* input,
-    const token_table_t* table) {
+    const ergo_tx_serializer_table_context_t* table) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED);
-    BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
+    RW_BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
 
     while (buffer_data_len(input) > 0) {
         union {
@@ -209,17 +209,17 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
                 return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX;
             }
             // index should be inside table
-            if (token_id.index >= table->count) {
+            if (token_id.index >= table->distinct_tokens_count) {
                 return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX);
             }
             // hashing index
-            buffer_empty(&buffer);
+            rw_buffer_empty(&buffer);
             if (gve_put_u32(&buffer, token_id.index) != GVE_OK) {
                 return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
             }
             if (!blake2b_update(context->hash,
-                                buffer_read_ptr(&buffer),
-                                buffer_data_len(&buffer))) {
+                                rw_buffer_read_ptr(&buffer),
+                                rw_buffer_data_len(&buffer))) {
                 return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
             }
         }
@@ -228,16 +228,19 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
         if (!buffer_read_u64(input, &value, BE)) {
             return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_VALUE);
         }
-        buffer_empty(&buffer);
+        rw_buffer_empty(&buffer);
         if (gve_put_u64(&buffer, value) != GVE_OK) {
             return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
         }
-        if (!blake2b_update(context->hash, buffer_read_ptr(&buffer), buffer_data_len(&buffer))) {
+        if (!blake2b_update(context->hash,
+                            rw_buffer_read_ptr(&buffer),
+                            rw_buffer_data_len(&buffer))) {
             return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
         }
 
         if (context->callbacks.on_token != NULL) {
-            const uint8_t* tid = table == NULL ? token_id.id : table->tokens[token_id.index];
+            const uint8_t* tid =
+                table == NULL ? token_id.id : table->tokens_table->tokens[token_id.index];
             CHECK_CALL_RESULT_OK(
                 context,
                 context->callbacks.on_token(context->type, tid, value, context->callbacks.context));
@@ -267,7 +270,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_registers(
     if (!blake2b_update(context->hash, buffer_read_ptr(registers_chunk), len)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
-    if (!buffer_seek_read_cur(registers_chunk, len)) {
+    if (!buffer_seek_cur(registers_chunk, len)) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
     }
     context->registers_size -= len;
@@ -292,11 +295,11 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_id_hash(
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
 
-    BUFFER_NEW_LOCAL_EMPTY(buffer, 4);
+    RW_BUFFER_NEW_LOCAL_EMPTY(buffer, 4);
     if (gve_put_u16(&buffer, box_index) != GVE_OK) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BUFFER);
     }
-    if (!blake2b_update(context->hash, buffer_read_ptr(&buffer), buffer_data_len(&buffer))) {
+    if (!blake2b_update(context->hash, rw_buffer_read_ptr(&buffer), rw_buffer_data_len(&buffer))) {
         return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_HASHER);
     }
 

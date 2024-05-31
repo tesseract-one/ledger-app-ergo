@@ -2,8 +2,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+#include <buffer.h>
+
 #include "../constants.h"
-#include "../common/buffer.h"
 #include "../helpers/blake2b.h"
 #include "tx_ser_table.h"
 
@@ -20,7 +22,8 @@ typedef enum {
     ERGO_TX_SERIALIZER_INPUT_RES_ERR_HASHER = 0x08,
     ERGO_TX_SERIALIZER_INPUT_RES_ERR_BUFFER = 0x09,
     ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_STATE = 0x0A,
-    ERGO_TX_SERIALIZER_INPUT_RES_ERR_U64_OVERFLOW = 0x0B
+    ERGO_TX_SERIALIZER_INPUT_RES_ERR_U64_OVERFLOW = 0x0B,
+    ERGO_TX_SERIALIZER_INPUT_RES_ERR_TOO_MANY_TOKENS = 0x0C
 } ergo_tx_serializer_input_result_e;
 
 typedef enum {

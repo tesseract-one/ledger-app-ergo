@@ -2,11 +2,9 @@
 #include <limits.h>  // UINT8_MAX
 #include <assert.h>  // _Static_assert
 #include "app_version.h"
-#include "../globals.h"
 #include "../constants.h"
-#include "../types.h"
-#include "helpers/response.h"
-#include "common/buffer.h"
+#include "../helpers/response.h"
+#include "../common/rwbuffer.h"
 
 int handler_get_version() {
     _Static_assert(APPVERSION_LEN == 4, "Length of (MAJOR || MINOR || PATCH || DEBUG) must be 4!");
@@ -18,9 +16,9 @@ int handler_get_version() {
                    "PATCH version must be between 0 and 255!");
     uint8_t version[APPVERSION_LEN] = {MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, 0};
 #ifdef DEBUG_BUILD
-    version[3] = 1;
+    version[APPVERSION_LEN - 1] = 1;
 #endif
 
-    BUFFER_FROM_ARRAY_FULL(buf, version, APPVERSION_LEN);
+    RW_BUFFER_FROM_ARRAY_FULL(buf, version, APPVERSION_LEN);
     return res_ok_data(&buf);
 }

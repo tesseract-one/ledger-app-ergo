@@ -3,7 +3,7 @@
 #include "../stx_types.h"
 #include "../stx_amounts.h"
 #include "../stx_output.h"
-#include "../../../common/bip32.h"
+#include "../../../common/bip32_ext.h"
 #include "../../../ui/ui_application_id.h"
 #include "../../../ui/ui_bip32_path.h"
 
@@ -30,6 +30,7 @@ typedef enum {
 typedef struct {
     ergo_tx_serializer_full_context_t tx;
     sign_transaction_operation_p2pk_ui_output_info_ctx_t ui;
+    sign_transaction_bip32_path_t last_approved_change;
 } sign_transaction_operation_p2pk_transaction_ctx_t;
 
 typedef struct {

@@ -19,8 +19,8 @@
 #include <ux.h>
 #include <glyphs.h>
 
-#include "../globals.h"
 #include "ui_menu.h"
+#include "ui_main.h"
 
 UX_STEP_NOCB(ux_menu_ready_step, pnn, {&C_app_logo, APPNAME, "is ready"});
 UX_STEP_CB(ux_menu_about_step, pb, ui_menu_about(), {&C_icon_certificate, "About"});
@@ -31,25 +31,25 @@ void ui_menu_main() {
         ux_stack_push();
     }
 
-    G_ux_flow[0] = &ux_menu_ready_step;
-    G_ux_flow[1] = &ux_menu_about_step;
-    G_ux_flow[2] = &ux_menu_exit_step;
-    G_ux_flow[3] = FLOW_LOOP;
-    G_ux_flow[4] = FLOW_END_STEP;
+    uint8_t screen = 0;
+    ui_add_screen(&ux_menu_ready_step, &screen);
+    ui_add_screen(&ux_menu_about_step, &screen);
+    ui_add_screen(&ux_menu_exit_step, &screen);
+    ui_display_screens(&screen);
 
-    ux_flow_init(0, G_ux_flow, NULL);
+    app_set_ui_busy(false);
 }
 
-UX_STEP_NOCB(ux_menu_info_step, bn, {APPNAME " App", "(c) 2023 Ergo"});
+UX_STEP_NOCB(ux_menu_info_step, bn, {APPNAME " App", "(c) 2024 Ergo"});
 UX_STEP_NOCB(ux_menu_version_step, bn, {"Version", APPVERSION});
 UX_STEP_CB(ux_menu_back_step, pb, ui_menu_main(), {&C_icon_back, "Back"});
 
 void ui_menu_about() {
-    G_ux_flow[0] = &ux_menu_info_step;
-    G_ux_flow[1] = &ux_menu_version_step;
-    G_ux_flow[2] = &ux_menu_back_step;
-    G_ux_flow[3] = FLOW_LOOP;
-    G_ux_flow[4] = FLOW_END_STEP;
+    uint8_t screen = 0;
+    ui_add_screen(&ux_menu_info_step, &screen);
+    ui_add_screen(&ux_menu_version_step, &screen);
+    ui_add_screen(&ux_menu_back_step, &screen);
+    ui_display_screens(&screen);
 
-    ux_flow_init(0, G_ux_flow, NULL);
+    app_set_ui_busy(false);
 }

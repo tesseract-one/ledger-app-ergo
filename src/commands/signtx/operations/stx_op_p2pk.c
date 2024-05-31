@@ -1,28 +1,21 @@
+#include <string.h>
+
 #include "stx_op_p2pk.h"
-#include "../../../common/macros.h"
+#include "../../../context.h"
+#include "../../../common/macros_ext.h"
 #include "../../../helpers/crypto.h"
 #include "../../../helpers/response.h"
 #include "../../../helpers/sw_result.h"
 #include "../../../ergo/schnorr.h"
 #include "../../../ergo/network_id.h"
 #include "../stx_ui.h"
+#include "../../../ui/ui_main.h"
 
-#include <string.h>
-
-#define CHECK_PROPER_STATE(_ctx, _state) \
-    if (_ctx->state != _state) return handler_err(_ctx, SW_BAD_STATE)
-
-#define CHECK_PROPER_STATES(_ctx, _state1, _state2) \
-    if (_ctx->state != _state1 && _ctx->state != _state2) return handler_err(_ctx, SW_BAD_STATE)
-
-#define CHECK_SW_CALL_RESULT_OK(_ctx, _call)             \
-    do {                                                 \
-        uint16_t res = _call;                            \
-        if (res != SW_OK) return handler_err(_ctx, res); \
-    } while (0)
+#define COMMAND_ERROR_HANDLER handler_err
+#include "../../../helpers/cmd_macros.h"
 
 #define CHECK_TX_CALL_RESULT_OK(_tctx, _tcall) \
-    CHECK_SW_CALL_RESULT_OK(_tctx, sw_from_tx_full_result(_tcall))
+    CHECK_CALL_RESULT_SW_OK(_tctx, sw_from_tx_full_result(_tcall))
 
 #define CHECK_TX_FINISHED(ctx)                                          \
     if (ergo_tx_serializer_full_is_finished(&ctx->transaction.tx)) {    \
@@ -31,6 +24,7 @@
 
 static inline uint16_t handler_err(sign_transaction_operation_p2pk_ctx_t *ctx, uint16_t err) {
     ctx->state = SIGN_TRANSACTION_OPERATION_P2PK_STATE_ERROR;
+    app_set_current_command(CMD_NONE);
     return err;
 }
 
@@ -150,7 +144,7 @@ uint16_t stx_operation_p2pk_add_input(sign_transaction_operation_p2pk_ctx_t *ctx
                                                                        &p2pk_input_token_cb,
                                                                        (void *) ctx));
     // Add input value to the amounts
-    CHECK_SW_CALL_RESULT_OK(ctx, stx_amounts_add_input(&ctx->amounts, erg_amount));
+    CHECK_CALL_RESULT_SW_OK(ctx, stx_amounts_add_input(&ctx->amounts, erg_amount));
     // Switch state
     ctx->state = SIGN_TRANSACTION_OPERATION_P2PK_STATE_INPUTS_STARTED;
     return SW_OK;
@@ -242,7 +236,7 @@ uint16_t stx_operation_p2pk_add_output_tree_chunk(sign_transaction_operation_p2p
             return handler_err(ctx, sw_from_tx_full_result(res));
     }
     // Add chunk to the output info. Uses copied pointers.
-    CHECK_SW_CALL_RESULT_OK(
+    CHECK_CALL_RESULT_SW_OK(
         ctx,
         stx_output_info_add_tree_chunk(&ctx->transaction.ui.output, chunk, chunk_len, is_finished));
     CHECK_TX_FINISHED(ctx);
@@ -255,7 +249,7 @@ uint16_t stx_operation_p2pk_add_output_tree_fee(sign_transaction_operation_p2pk_
         ctx,
         ergo_tx_serializer_full_add_box_miners_fee_tree(&ctx->transaction.tx,
                                                         network_id_is_mainnet(ctx->network_id)));
-    CHECK_SW_CALL_RESULT_OK(ctx, stx_output_info_set_fee(&ctx->transaction.ui.output));
+    CHECK_CALL_RESULT_SW_OK(ctx, stx_output_info_set_fee(&ctx->transaction.ui.output));
     CHECK_TX_FINISHED(ctx);
     return SW_OK;
 }
@@ -268,7 +262,7 @@ uint16_t stx_operation_p2pk_add_output_tree_change(sign_transaction_operation_p2
     CHECK_TX_CALL_RESULT_OK(
         ctx,
         ergo_tx_serializer_full_add_box_change_tree(&ctx->transaction.tx, pub_key));
-    CHECK_SW_CALL_RESULT_OK(ctx,
+    CHECK_CALL_RESULT_SW_OK(ctx,
                             stx_output_info_set_bip32(&ctx->transaction.ui.output, path, path_len));
     CHECK_TX_FINISHED(ctx);
     return SW_OK;
@@ -302,11 +296,38 @@ bool stx_operation_p2pk_should_show_output_confirm_screen(
         SIGN_TRANSACTION_OUTPUT_INFO_TYPE_MINERS_FEE) {
         return stx_output_info_used_tokens_count(&ctx->transaction.ui.output) > 0;
     }
+    // Change address
+    if (stx_output_info_type(&ctx->transaction.ui.output) ==
+        SIGN_TRANSACTION_OUTPUT_INFO_TYPE_BIP32) {
+        // if path length is not 5 or wrong type then we should ask to confirm
+        if (!bip32_path_validate(ctx->transaction.ui.output.bip32_path.path,
+                                 ctx->transaction.ui.output.bip32_path.len,
+                                 BIP32_HARDENED(44),
+                                 BIP32_HARDENED(BIP32_ERGO_COIN),
+                                 BIP32_PATH_VALIDATE_ADDRESS_E5))
+            return true;
+        // Check was it already approved then approve automatically
+        if (stx_bip32_path_is_equal(&ctx->transaction.ui.output.bip32_path,
+                                    &ctx->transaction.last_approved_change))
+            return false;
+        // if account is the same and change index is < current + 20 then we approve it
+        // automatically
+        if (stx_bip32_path_same_account(&ctx->transaction.ui.output.bip32_path, &ctx->bip32) &&
+            ctx->transaction.ui.output.bip32_path.path[3] == ctx->bip32.path[3] &&
+            ctx->transaction.ui.output.bip32_path.path[4] < ctx->bip32.path[4] + 20)
+            return false;
+    }
     return true;
 }
 
 // ===========================
 // UI
+
+static NOINLINE void ui_stx_operation_p2pk_approve_action(void *context) {
+    sign_transaction_ui_aprove_ctx_t *ctx = (sign_transaction_ui_aprove_ctx_t *) context;
+    ui_stx_operation_approve_reject(true, ctx);
+}
+
 uint16_t ui_stx_operation_p2pk_show_token_and_path(sign_transaction_operation_p2pk_ctx_t *ctx,
                                                    uint32_t app_access_token,
                                                    bool is_known_application,
@@ -317,11 +338,13 @@ uint16_t ui_stx_operation_p2pk_show_token_and_path(sign_transaction_operation_p2
         ctx->bip32.len,
         "P2PK Signing",
         ctx->ui_approve.bip32_path,
-        MEMBER_SIZE(sign_transaction_operation_p2pk_ui_approve_data_ctx_t, bip32_path));
+        MEMBER_SIZE(sign_transaction_operation_p2pk_ui_approve_data_ctx_t, bip32_path),
+        ui_stx_operation_p2pk_approve_action,
+        &ctx->ui_approve.ui_approve);
     if (b32_step == NULL) {
         return SW_BIP32_FORMATTING_FAILED;
     }
-    G_ux_flow[screen++] = b32_step;
+    ui_add_screen(b32_step, &screen);
 
     if (!ui_stx_add_operation_approve_screens(&ctx->ui_approve.ui_approve,
                                               &screen,
@@ -345,6 +368,7 @@ uint16_t ui_stx_operation_p2pk_show_output_confirm_screen(
     if (!ui_stx_add_output_screens(&ctx->transaction.ui.ui,
                                    &screen,
                                    &ctx->transaction.ui.output,
+                                   &ctx->transaction.last_approved_change,
                                    ctx->network_id)) {
         return SW_SCREENS_BUFFER_OVERFLOW;
     }
@@ -360,15 +384,17 @@ static NOINLINE void ui_stx_operation_p2pk_send_response(void *cb_context) {
 
     uint8_t secret[PRIVATE_KEY_LEN];
     uint8_t signature[ERGO_SIGNATURE_LEN];
-    BUFFER_FROM_ARRAY_FULL(res_sig, signature, ERGO_SIGNATURE_LEN);
+    RW_BUFFER_FROM_ARRAY_FULL(res_sig, signature, ERGO_SIGNATURE_LEN);
 
     if (ctx->state != SIGN_TRANSACTION_OPERATION_P2PK_STATE_FINALIZED) {
+        app_set_current_command(CMD_NONE);
         res_error(SW_BAD_STATE);
         return;
     }
 
     if (crypto_generate_private_key(ctx->bip32.path, ctx->bip32.len, secret) != 0) {
         explicit_bzero(ctx->schnorr_key, PRIVATE_KEY_LEN);
+        app_set_current_command(CMD_NONE);
         res_error(SW_INTERNAL_CRYPTO_ERROR);
         return;
     }
@@ -381,6 +407,7 @@ static NOINLINE void ui_stx_operation_p2pk_send_response(void *cb_context) {
     if (finished) {
         res_ok_data(&res_sig);
     } else {
+        app_set_current_command(CMD_NONE);
         res_error(SW_SCHNORR_SIGNING_FAILED);
     }
 }

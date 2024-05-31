@@ -1,19 +1,22 @@
 {
     "env": {
-        "BOLOS_SDK": "~/.ledger/sdk/nanos-secure-sdk",
-        "BOLOS_ENV": "~/.ledger/env",
-        "GCC_COMPILER_NAME": "gcc-arm-none-eabi-10.3-2021.10"
+        "BOLOS_SDK": "~/.ledger/nanos-sdk",
+        "ARM_GCC": "~/.ledger/gcc-arm-none-eabi-13.2-2023.10"
     },
     "configurations": [
         {
             "name": "Nano S",
             "includePath": [
                 "${workspaceFolder}/src",
-                "${workspaceFolder}/build/**",
-                "${env:BOLOS_ENV}/${env:GCC_COMPILER_NAME}/arm-none-eabi/include",
+                "${workspaceFolder}/build/nanos/gen_src",
+                "${env:ARM_GCC}/arm-none-eabi/include/*",
+                "${env:ARM_GCC}/lib/gcc/arm-none-eabi/13.2.1/include/*",
                 "${env:BOLOS_SDK}/include/*",
+                "${env:BOLOS_SDK}/target/nanos/include/*",
+                "${env:BOLOS_SDK}/lib_bagl/include/*",
                 "${env:BOLOS_SDK}/lib_ux/include/*",
-                "${env:BOLOS_SDK}/lib_cxng/include/*"
+                "${env:BOLOS_SDK}/lib_cxng/include/*",
+                "${env:BOLOS_SDK}/lib_standard_app/*"
             ],
             "defines": [
                 "TARGET_NANOS",
@@ -43,12 +46,14 @@
                 "PATCH_VERSION=0",
                 "IO_SEPROXYHAL_BUFFER_SIZE_B=128",
                 "HAVE_UX_FLOW",
+                "DEBUG=1",
                 "DEBUG_BUILD=1",
                 "HAVE_PRINTF",
-                "PRINTF=screen_printf"
+                "PRINTF=screen_printf",
+                "_DEFAULT_SOURCE"
             ],
-            "compilerPath": "${env:BOLOS_ENV}/${env:GCC_COMPILER_NAME}/bin/arm-none-eabi-gcc",
-            "cStandard": "c99",
+            "compilerPath": "${env:ARM_GCC}/bin/arm-none-eabi-gcc",
+            "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-arm",
             "browse": {

@@ -6,32 +6,34 @@
 #include "epk_ui.h"
 #include "epk_response.h"
 
-#include "../../globals.h"
 #include "../../context.h"
 #include "../../sw.h"
-#include "../../common/bip32.h"
-#include "../../common/macros.h"
+#include "../../common/bip32_ext.h"
+#include "../../common/macros_ext.h"
 #include "../../helpers/response.h"
 #include "../../ui/ui_bip32_path.h"
 #include "../../ui/ui_application_id.h"
 #include "../../ui/ui_approve_reject.h"
 #include "../../ui/ui_menu.h"
+#include "../../ui/ui_main.h"
 
 // Step with icon and text
 UX_STEP_NOCB(ux_epk_display_confirm_ext_pubkey_step, pn, {&C_icon_warning, "Ext PubKey Export"});
 
 static NOINLINE void ui_action_get_extended_pubkey(bool approved, void* context) {
     extended_public_key_ctx_t* ctx = (extended_public_key_ctx_t*) context;
-    G_context.is_ui_busy = false;
+    app_set_ui_busy(false);
 
     if (approved) {
-        G_context.app_session_id = ctx->app_token_value;
+        app_set_connected_app_id(ctx->app_token_value);
         send_response_extended_pubkey(ctx->raw_public_key, ctx->chain_code);
         explicit_bzero(ctx, sizeof(extended_public_key_ctx_t));
     } else {
         explicit_bzero(ctx, sizeof(extended_public_key_ctx_t));
         res_deny();
     }
+
+    app_set_current_command(CMD_NONE);
 
     ui_menu_main();
 }
@@ -51,37 +53,36 @@ int ui_display_account(extended_public_key_ctx_t* ctx,
     }
 
     uint8_t screen = 0;
-    G_ux_flow[screen++] = &ux_epk_display_confirm_ext_pubkey_step;
+    ui_add_screen(&ux_epk_display_confirm_ext_pubkey_step, &screen);
 
     const ux_flow_step_t* b32_step =
         ui_bip32_path_screen(bip32_path,
                              bip32_path_len,
                              "Path",
                              ctx->bip32_path,
-                             MEMBER_SIZE(extended_public_key_ctx_t, bip32_path));
+                             MEMBER_SIZE(extended_public_key_ctx_t, bip32_path),
+                             NULL,
+                             NULL);
     if (b32_step == NULL) {
+        app_set_current_command(CMD_NONE);
         return res_error(SW_BIP32_FORMATTING_FAILED);
     }
-    G_ux_flow[screen++] = b32_step;
+    ui_add_screen(b32_step, &screen);
 
     if (app_access_token != 0) {
-        G_ux_flow[screen++] = ui_application_id_screen(app_access_token, ctx->app_token);
+        ui_add_screen(ui_application_id_screen(app_access_token, ctx->app_token), &screen);
     }
 
-    const ux_flow_step_t** approve = &G_ux_flow[screen++];
-    const ux_flow_step_t** reject = &G_ux_flow[screen++];
-    ui_approve_reject_screens(ui_action_get_extended_pubkey, ctx, approve, reject);
-
-    G_ux_flow[screen++] = FLOW_LOOP;
-    G_ux_flow[screen++] = FLOW_END_STEP;
+    ui_approve_reject_screens(ui_action_get_extended_pubkey,
+                              ctx,
+                              ui_next_sreen_ptr(&screen),
+                              ui_next_sreen_ptr(&screen));
 
     ctx->app_token_value = app_access_token;
     memmove(ctx->raw_public_key, raw_pub_key, PUBLIC_KEY_LEN);
     memmove(ctx->chain_code, chain_code, CHAIN_CODE_LEN);
 
-    ux_flow_init(0, G_ux_flow, NULL);
-
-    G_context.is_ui_busy = true;
+    ui_display_screens(&screen);
 
     return 0;
 }

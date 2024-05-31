@@ -3,49 +3,45 @@ const { expect } = require('chai')
 const { toHex, getApplication, removeMasterNode } = require('./helpers/common');
 const { TEST_DATA } = require('./helpers/data');
 const { mergePagedScreens } = require("./helpers/screen");
-const { AuthTokenFlows } = require('./helpers/flow');
+const { authTokenFlows } = require('./helpers/flow');
 
 describe("Address Tests", function () {
     context("Address Commands", function () {
-        new AuthTokenFlows("can derive address", () => { return { address: TEST_DATA.address0 }; }).do(
-            function () {
-                return this.test.device.deriveAddress(this.address.path.toString());
-            },
-            function (derivedAddress) {
-                const deriveAddressFlow = [
-                    { header: null, body: 'Confirm Send Address' },
-                    { header: 'Path', body: removeMasterNode(this.address.path.toString()) },
-                    { header: null, body: 'Approve' },
-                    { header: null, body: 'Reject' }
-                ];
-                if (this.auth) {
-                    deriveAddressFlow.splice(2, 0, { header: 'Application', body: getApplication(this.test.device) });
+        authTokenFlows("can derive address")
+            .init(async ({test, auth}) => {
+                const address = TEST_DATA.address0;
+                const flow = [{ header: null, body: 'Confirm Send Address' },
+                               { header: 'Path', body: removeMasterNode(address.path.toString()) }];
+                if (auth) {
+                    flow.push({ header: 'Application', body: getApplication(test.device) })
                 }
-                expect(this.flows[0]).to.be.deep.equal(deriveAddressFlow);
-                expect(derivedAddress).to.be.deep.equal({
-                    addressHex: toHex(this.address.toBytes())
+                flow.push({ header: null, body: 'Approve' }, { header: null, body: 'Reject' });
+                return { address, flow, flowsCount: 1 };
+            })
+            .shouldSucceed(({flow, flows, address}, derived) => {
+                expect(flows[0]).to.be.deep.equal(flow);
+                expect(derived).to.be.deep.equal({
+                    addressHex: toHex(address.toBytes())
                 });
-            }
-        );
+            })
+            .run(({test, address}) => test.device.deriveAddress(address.path.toString()));
 
-        new AuthTokenFlows("can show address", () => { return { address: TEST_DATA.address0 }; }).do(
-            function () {
-                return this.test.device.showAddress(this.address.path.toString());
-            },
-            function (show) {
-                const addressFlow = [
-                    { header: null, body: 'Confirm Address' },
-                    { header: 'Path', body: removeMasterNode(this.address.path.toString()) },
-                    { header: 'Address', body: this.address.toBase58() },
-                    { header: null, body: 'Approve' },
-                    { header: null, body: 'Reject' }
-                ];
-                if (this.auth) {
-                    addressFlow.splice(3, 0, { header: 'Application', body: getApplication(this.test.device) });
+        authTokenFlows("can show address")
+            .init(async ({test, auth}) => {
+                const address = TEST_DATA.address0;
+                const flow = [{ header: null, body: 'Confirm Address' },
+                               { header: 'Path', body: removeMasterNode(address.path.toString()) },
+                               { header: 'Address', body: address.toBase58() }];
+                if (auth) {
+                    flow.push({ header: 'Application', body: getApplication(test.device) })
                 }
-                expect(mergePagedScreens(this.flows[0])).to.be.deep.equal(addressFlow);
+                flow.push({ header: null, body: 'Approve' }, { header: null, body: 'Reject' });
+                return { address, flow, flowsCount: 1 };
+            })
+            .shouldSucceed(({flow, flows}, show) => {
+                expect(mergePagedScreens(flows[0])).to.be.deep.equal(flow);
                 expect(show).to.be.true;
-            }
-        );
+            })
+            .run(({test, address}) => test.device.showAddress(address.path.toString()));
     });
 });

@@ -5,7 +5,7 @@
 #include <stdint.h>   // uint*_t
 #include <string.h>   // memset
 
-#include "../../common/bip32.h"
+#include "../../common/bip32_ext.h"
 #include "../../constants.h"
 #include "../../helpers/blake2b.h"
 #include "../../ergo/tx_ser_full.h"
@@ -31,7 +31,7 @@ typedef struct {
     union {
         cx_blake2b_t tree_hash_ctx;
         uint8_t public_key[COMPRESSED_PUBLIC_KEY_LEN];
-        uint8_t tree_hash[BLAKE2B_256_DIGEST_LEN];
+        uint8_t tree_hash[CX_BLAKE2B_256_SIZE];
         sign_transaction_bip32_path_t bip32_path;
     };
     const token_table_t* tokens_table;
@@ -82,4 +82,14 @@ static inline sign_transaction_output_info_type_e stx_output_info_type(
 
 static inline bool stx_output_info_is_finished(const sign_transaction_output_info_ctx_t* ctx) {
     return STX_OUTPUT_INFO_IS_TREE_SET(ctx) && STX_OUTPUT_INFO_IS_BOX_FINISHED(ctx);
+}
+
+static inline bool stx_bip32_path_is_equal(const sign_transaction_bip32_path_t* p1,
+                                           const sign_transaction_bip32_path_t* p2) {
+    return bip32_path_is_equal(p1->path, p1->len, p2->path, p2->len);
+}
+
+static inline bool stx_bip32_path_same_account(const sign_transaction_bip32_path_t* p1,
+                                               const sign_transaction_bip32_path_t* p2) {
+    return bip32_path_same_account(p1->path, p1->len, p2->path, p2->len);
 }

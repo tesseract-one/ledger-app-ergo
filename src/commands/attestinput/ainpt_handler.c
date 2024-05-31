@@ -1,32 +1,16 @@
+#include <string.h>
+
 #include "ainpt_handler.h"
 #include "ainpt_response.h"
 #include "ainpt_ui.h"
-#include "../../globals.h"
 #include "../../helpers/session_id.h"
 #include "../../helpers/response.h"
 #include "../../helpers/sw_result.h"
-#include "../../common/int_ops.h"
-#include "../../common/macros.h"
+#include "../../common/safeint.h"
+#include "../../common/macros_ext.h"
 
-#include <string.h>
-
-#define CONTEXT(gctx) gctx.ctx.attest_input
-
-#define CHECK_COMMAND(_cmd) \
-    if (_cmd != G_context.current_command) return handler_err(&CONTEXT(G_context), SW_BAD_STATE)
-
-#define CHECK_SESSION(session_id)                 \
-    if (session_id != CONTEXT(G_context).session) \
-    return handler_err(&CONTEXT(G_context), SW_BAD_SESSION_ID)
-
-#define CHECK_PROPER_STATE(_ctx, _state) \
-    if (_ctx->state != _state) return handler_err(_ctx, SW_BAD_STATE)
-
-#define CHECK_READ_PARAM(_ctx, _call) \
-    if (!_call) return handler_err(_ctx, SW_NOT_ENOUGH_DATA)
-
-#define CHECK_PARAMS_FINISHED(_ctx, _buffer) \
-    if (buffer_can_read(_buffer, 1)) return handler_err(_ctx, SW_TOO_MUCH_DATA)
+#define COMMAND_ERROR_HANDLER handler_err
+#include "../../helpers/cmd_macros.h"
 
 #define CHECK_CALL_RESULT_OK(_ctx, _call)                                                        \
     do {                                                                                         \
@@ -50,6 +34,7 @@
 
 static inline int handler_err(attest_input_ctx_t *ctx, uint16_t err) {
     ctx->state = ATTEST_INPUT_STATE_ERROR;
+    app_set_current_command(CMD_NONE);
     return res_error(err);
 }
 
@@ -150,7 +135,7 @@ static inline int handle_registers_chunk(attest_input_ctx_t *ctx, buffer_t *cdat
 }
 
 static inline int handle_get_frame(attest_input_ctx_t *ctx,
-                                   uint8_t session_key[static SESSION_KEY_LEN],
+                                   const uint8_t session_key[static SESSION_KEY_LEN],
                                    buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, ATTEST_INPUT_STATE_FINISHED);
     uint8_t index;
@@ -162,36 +147,35 @@ static inline int handle_get_frame(attest_input_ctx_t *ctx,
 int handler_attest_input(buffer_t *cdata,
                          attest_input_subcommand_e subcommand,
                          uint8_t session_or_token) {
-    if (G_context.is_ui_busy) {
+    if (app_is_ui_busy()) {
         return res_ui_busy();
     }
+
+    attest_input_ctx_t *ctx = app_attest_input_context();
     switch (subcommand) {
         case ATTEST_INPUT_SUBCOMMAND_INIT:
             if (session_or_token != 0x01 && session_or_token != 0x02) {
-                return res_error(SW_WRONG_P1P2);
+                return handler_err(ctx, SW_WRONG_P1P2);
             }
-            clear_context(&G_context, CMD_ATTEST_INPUT_BOX);
-            return handle_init(&CONTEXT(G_context),
-                               cdata,
-                               session_or_token == 0x02,
-                               G_context.app_session_id);
+            app_set_current_command(CMD_ATTEST_INPUT_BOX);
+            return handle_init(ctx, cdata, session_or_token == 0x02, app_connected_app_id());
         case ATTEST_INPUT_SUBCOMMAND_TREE_CHUNK:
-            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
-            CHECK_SESSION(session_or_token);
-            return handle_tree_chunk(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_ATTEST_INPUT_BOX);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_tree_chunk(ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_TOKENS:
-            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
-            CHECK_SESSION(session_or_token);
-            return handle_tokens(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_ATTEST_INPUT_BOX);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_tokens(ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_REGISTERS:
-            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
-            CHECK_SESSION(session_or_token);
-            return handle_registers_chunk(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_ATTEST_INPUT_BOX);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_registers_chunk(ctx, cdata);
         case ATTEST_INPUT_SUBCOMMAND_GET_RESPONSE_FRAME:
-            CHECK_COMMAND(CMD_ATTEST_INPUT_BOX);
-            CHECK_SESSION(session_or_token);
-            return handle_get_frame(&CONTEXT(G_context), G_context.session_key, cdata);
+            CHECK_COMMAND(ctx, CMD_ATTEST_INPUT_BOX);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_get_frame(ctx, app_session_key(), cdata);
         default:
-            return res_error(SW_WRONG_SUBCOMMAND);
+            return handler_err(ctx, SW_WRONG_SUBCOMMAND);
     }
 }

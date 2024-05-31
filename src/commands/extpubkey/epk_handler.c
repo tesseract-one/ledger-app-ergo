@@ -5,71 +5,69 @@
 
 #include <os.h>
 #include <cx.h>
+#include <buffer.h>
 
 #include "epk_handler.h"
 #include "epk_ui.h"
 #include "epk_response.h"
 #include "../../sw.h"
-#include "../../globals.h"
 #include "../../context.h"
-#include "../../types.h"
 #include "../../helpers/crypto.h"
 #include "../../helpers/response.h"
-#include "../../common/buffer.h"
-#include "../../common/bip32.h"
-#include "../../common/macros.h"
+#include "../../common/macros_ext.h"
 #include "../../helpers/session_id.h"
 
-#define CONTEXT(gctx) gctx.ctx.ext_pub_key
+#define COMMAND_ERROR_HANDLER handler_err
+#include "../../helpers/cmd_macros.h"
+
+static inline int handler_err(extended_public_key_ctx_t *_ctx, uint16_t err) {
+    UNUSED(_ctx);
+    app_set_current_command(CMD_NONE);
+    return res_error(err);
+}
 
 int handler_get_extended_public_key(buffer_t *cdata, bool has_access_token) {
-    if (G_context.is_ui_busy) {
+    if (app_is_ui_busy()) {
         return res_ui_busy();
     }
+    app_set_current_command(CMD_GET_EXTENDED_PUBLIC_KEY);
 
-    clear_context(&G_context, CMD_GET_EXTENDED_PUBLIC_KEY);
+    extended_public_key_ctx_t *ctx = app_extended_public_key_context();
 
     uint8_t bip32_path_len;
     uint32_t bip32_path[MAX_BIP32_PATH];
     uint32_t access_token = 0;
 
-    if (!buffer_read_u8(cdata, &bip32_path_len) ||
-        !buffer_read_bip32_path(cdata, bip32_path, (size_t) bip32_path_len)) {
-        return res_error(SW_NOT_ENOUGH_DATA);
+    CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &bip32_path_len));
+    CHECK_READ_PARAM(ctx, buffer_read_bip32_path(cdata, bip32_path, (size_t) bip32_path_len));
+    if (has_access_token) {
+        CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &access_token, BE));
     }
-
-    if (has_access_token && !buffer_read_u32(cdata, &access_token, BE)) {
-        return res_error(SW_NOT_ENOUGH_DATA);
-    }
-
-    if (buffer_can_read(cdata, 1)) {
-        return res_error(SW_TOO_MUCH_DATA);
-    }
+    CHECK_PARAMS_FINISHED(ctx, cdata);
 
     if (!bip32_path_validate(bip32_path,
                              bip32_path_len,
                              BIP32_HARDENED(44),
                              BIP32_HARDENED(BIP32_ERGO_COIN),
                              BIP32_PATH_VALIDATE_ACCOUNT_GE3)) {
-        return res_error(SW_BIP32_BAD_PATH);
+        return handler_err(ctx, SW_BIP32_BAD_PATH);
     }
 
     if (crypto_generate_public_key(bip32_path,
                                    bip32_path_len,
-                                   CONTEXT(G_context).raw_public_key,
-                                   CONTEXT(G_context).chain_code) != 0) {
-        return res_error(SW_INTERNAL_CRYPTO_ERROR);
+                                   ctx->raw_public_key,
+                                   ctx->chain_code) != 0) {
+        return handler_err(ctx, SW_INTERNAL_CRYPTO_ERROR);
     }
 
-    if (is_known_application(access_token, G_context.app_session_id)) {
-        return send_response_extended_pubkey(CONTEXT(G_context).raw_public_key,
-                                             CONTEXT(G_context).chain_code);
+    if (is_known_application(access_token, app_connected_app_id())) {
+        return send_response_extended_pubkey(ctx->raw_public_key, ctx->chain_code);
     }
 
-    return ui_display_account(&CONTEXT(G_context),
+    return ui_display_account(ctx,
                               access_token,
                               bip32_path,
                               bip32_path_len,
-                              CONTEXT(G_context).raw_public_key,
-                              CONTEXT(G_context).chain_code);
+                              ctx->raw_public_key,
+                              ctx->chain_code);
 }

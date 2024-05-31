@@ -2,11 +2,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+#include <buffer.h>
+
 #include "../constants.h"
 #include "tx_ser_table.h"
 #include "tx_ser_box.h"
 #include "tx_ser_input.h"
-#include "../common/buffer.h"
 #include "../helpers/blake2b.h"
 
 typedef enum {
@@ -49,9 +51,8 @@ typedef struct {
     uint16_t data_inputs_count;
     uint16_t outputs_count;
     cx_blake2b_t* hash;
-    token_table_t* tokens_table;
+    ergo_tx_serializer_table_context_t table_ctx;
     union {
-        ergo_tx_serializer_table_context_t table_ctx;
         ergo_tx_serializer_box_context_t box_ctx;
         ergo_tx_serializer_input_context_t input_ctx;
     };

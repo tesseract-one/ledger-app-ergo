@@ -15,11 +15,12 @@
             "valuesFormatting": "parseText",
             "gdbpath": "gdb-multiarch",
             "autorun": [
+                "set substitute-path /project ${workspaceFolder}",
                 "set architecture arm",
+                "set backtrace limit 15",
                 "handle SIGILL nostop pass noprint",
                 "add-symbol-file ${workspaceFolder}/bin/app.elf 0x40000000",
-                "b *0x40000000",
-                "c"
+                "b *0x40000000"
             ]
         }
     ]

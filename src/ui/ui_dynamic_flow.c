@@ -1,10 +1,11 @@
 #include "ui_dynamic_flow.h"
 
-#include "../globals.h"
 #include "../constants.h"
+#include "../context.h"
 #include "../helpers/response.h"
-#include "../common/macros.h"
+#include "../common/macros_ext.h"
 #include "ui_menu.h"
+#include "ui_main.h"
 
 #include <ux.h>
 
@@ -37,8 +38,8 @@ void bnnn_paging_edgecase() {
         if (res == SW_OK) {                                                                       \
             switch_method();                                                                      \
         } else {                                                                                  \
+            app_set_current_command(CMD_NONE);                                                    \
             res_error(res);                                                                       \
-            clear_context(&G_context, CMD_NONE);                                                  \
             ui_menu_main();                                                                       \
         }                                                                                         \
     } while (0)
@@ -100,9 +101,9 @@ bool ui_add_dynamic_flow_screens(uint8_t *screen,
     G_dynamic_flow_context.current_screen = INDEX_NOT_EXIST;
     G_dynamic_flow_context.show_cb = show_cb;
 
-    G_ux_flow[(*screen)++] = &ux_dynamic_upper_delimiter_step;
-    G_ux_flow[(*screen)++] = &ux_dynamic_step;
-    G_ux_flow[(*screen)++] = &ux_dynamic_lower_delimiter_step;
+    ui_add_screen(&ux_dynamic_upper_delimiter_step, screen);
+    ui_add_screen(&ux_dynamic_step, screen);
+    ui_add_screen(&ux_dynamic_lower_delimiter_step, screen);
 
     return true;
 }

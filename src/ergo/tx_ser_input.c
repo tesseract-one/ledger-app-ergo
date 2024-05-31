@@ -1,5 +1,6 @@
 #include "tx_ser_input.h"
 #include <string.h>
+#include "../common/buffer_ext.h"
 
 #define CHECK_PROPER_STATE(_ctx, _state) \
     if (_ctx->state != _state) return res_error(_ctx, ERGO_TX_SERIALIZER_INPUT_RES_ERR_BAD_STATE)

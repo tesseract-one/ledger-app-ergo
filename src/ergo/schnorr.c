@@ -97,10 +97,10 @@ bool ergo_secp256k1_schnorr_p2pk_sign_finish(uint8_t signature[static ERGO_SIGNA
 
     // build c
     // important: we only use the first 24 bytes of the hash output!
-    memset(buf, 0, BLAKE2B_256_DIGEST_LEN - ERGO_SOUNDNESS_BYTES);
-    memcpy(buf + BLAKE2B_256_DIGEST_LEN - ERGO_SOUNDNESS_BYTES, signature, ERGO_SOUNDNESS_BYTES);
+    memset(buf, 0, CX_BLAKE2B_256_SIZE - ERGO_SOUNDNESS_BYTES);
+    memcpy(buf + CX_BLAKE2B_256_SIZE - ERGO_SOUNDNESS_BYTES, signature, ERGO_SOUNDNESS_BYTES);
 
-    if (cx_math_is_zero(buf, BLAKE2B_256_DIGEST_LEN)) return false;
+    if (cx_math_is_zero(buf, CX_BLAKE2B_256_SIZE)) return false;
 
     // z = c * secret + key
     if (cx_math_multm_no_throw(buf, buf, secret, PIC(SECP256K1_N), PRIVATE_KEY_LEN) != 0)

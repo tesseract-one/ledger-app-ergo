@@ -1,48 +1,24 @@
+#include <string.h>
+
 #include "stx_handler.h"
 #include "stx_response.h"
 #include "stx_ui.h"
-#include "../../globals.h"
 #include "../../helpers/session_id.h"
 #include "../../helpers/response.h"
-#include "../../common/int_ops.h"
-#include "../../common/macros.h"
+#include "../../common/safeint.h"
+#include "../../common/macros_ext.h"
 #include "../../helpers/crypto.h"
 #include "../../helpers/input_frame.h"
 #include "../../ergo/schnorr.h"
 
 #include "./operations/stx_op_p2pk.h"
 
-#include <string.h>
-
-#define CONTEXT(gctx) gctx.ctx.sign_tx
-
-#define CHECK_COMMAND(_cmd) \
-    if (_cmd != G_context.current_command) return handler_err(&CONTEXT(G_context), SW_BAD_STATE)
-
-#define CHECK_SESSION(_session)                 \
-    if (_session != CONTEXT(G_context).session) \
-    return handler_err(&CONTEXT(G_context), SW_BAD_SESSION_ID)
-
-#define CHECK_PROPER_STATE(_ctx, _state) \
-    if (_ctx->state != _state) return handler_err(_ctx, SW_BAD_STATE)
-
-#define CHECK_PROPER_STATES(_ctx, _state1, _state2) \
-    if (_ctx->state != _state1 && _ctx->state != _state2) return handler_err(_ctx, SW_BAD_STATE)
-
-#define CHECK_READ_PARAM(_ctx, _call) \
-    if (!_call) return handler_err(_ctx, SW_NOT_ENOUGH_DATA)
-
-#define CHECK_PARAMS_FINISHED(_ctx, _buffer) \
-    if (buffer_can_read(_buffer, 1)) return handler_err(_ctx, SW_TOO_MUCH_DATA)
-
-#define CHECK_CALL_RESULT_OK(_ctx, _call)                \
-    do {                                                 \
-        uint16_t res = _call;                            \
-        if (res != SW_OK) return handler_err(_ctx, res); \
-    } while (0)
+#define COMMAND_ERROR_HANDLER handler_err
+#include "../../helpers/cmd_macros.h"
 
 static inline int handler_err(sign_transaction_ctx_t *ctx, uint16_t err) {
     ctx->state = SIGN_TRANSACTION_STATE_ERROR;
+    app_set_current_command(CMD_NONE);
     return res_error(err);
 }
 
@@ -75,7 +51,7 @@ static inline int show_output_screen_if_needed(sign_transaction_ctx_t *ctx) {
     // Check if we have to show screen
     if (stx_operation_p2pk_should_show_output_confirm_screen(&ctx->p2pk)) {
         // Show it
-        CHECK_CALL_RESULT_OK(ctx, ui_stx_operation_p2pk_show_output_confirm_screen(&ctx->p2pk));
+        CHECK_CALL_RESULT_SW_OK(ctx, ui_stx_operation_p2pk_show_output_confirm_screen(&ctx->p2pk));
         return 0;
     }
     // We don't need to show confirm screen
@@ -89,11 +65,12 @@ static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
     uint32_t app_session_id_in = 0;
     uint8_t network_id = 0;
     CHECK_READ_PARAM(ctx, buffer_read_u8(cdata, &network_id));
-    CHECK_CALL_RESULT_OK(ctx, read_bip32_path(cdata, ctx->p2pk.bip32.path, &ctx->p2pk.bip32.len));
+    CHECK_CALL_RESULT_SW_OK(ctx,
+                            read_bip32_path(cdata, ctx->p2pk.bip32.path, &ctx->p2pk.bip32.len));
     CHECK_READ_PARAM(ctx, !(has_token && !buffer_read_u32(cdata, &app_session_id_in, BE)));
     CHECK_PARAMS_FINISHED(ctx, cdata);
 
-    CHECK_CALL_RESULT_OK(
+    CHECK_CALL_RESULT_SW_OK(
         ctx,
         stx_operation_p2pk_init(&ctx->p2pk, ctx->p2pk.bip32.path, ctx->p2pk.bip32.len, network_id));
 
@@ -102,12 +79,12 @@ static inline int handle_init_p2pk(sign_transaction_ctx_t *ctx,
     ctx->session = session_id_new_random(ctx->session);
 
     // switch between operations if more will be added
-    CHECK_CALL_RESULT_OK(ctx,
-                         ui_stx_operation_p2pk_show_token_and_path(
-                             &ctx->p2pk,
-                             app_session_id_in,
-                             is_known_application(app_session_id, app_session_id_in),
-                             ctx));
+    CHECK_CALL_RESULT_SW_OK(ctx,
+                            ui_stx_operation_p2pk_show_token_and_path(
+                                &ctx->p2pk,
+                                app_session_id_in,
+                                is_known_application(app_session_id, app_session_id_in),
+                                ctx));
     return 0;
 }
 
@@ -123,24 +100,24 @@ static inline int handle_tx_start(sign_transaction_ctx_t *ctx, buffer_t *cdata) 
     CHECK_PARAMS_FINISHED(ctx, cdata);
 
     // switch between operations if more will be added
-    CHECK_CALL_RESULT_OK(ctx,
-                         stx_operation_p2pk_start_tx(&ctx->p2pk,
-                                                     inputs_count,
-                                                     data_inputs_count,
-                                                     outputs_count,
-                                                     tokens_count));
+    CHECK_CALL_RESULT_SW_OK(ctx,
+                            stx_operation_p2pk_start_tx(&ctx->p2pk,
+                                                        inputs_count,
+                                                        data_inputs_count,
+                                                        outputs_count,
+                                                        tokens_count));
     return res_ok();
 }
 
 static inline int handle_tokens(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // switch between operations if more will be added
-    CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_tokens(&ctx->p2pk, cdata));
+    CHECK_CALL_RESULT_SW_OK(ctx, stx_operation_p2pk_add_tokens(&ctx->p2pk, cdata));
     return res_ok();
 }
 
 static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
-                                     uint8_t session_key[static SESSION_KEY_LEN],
+                                     const uint8_t session_key[static SESSION_KEY_LEN],
                                      buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     uint8_t id_buffer[ERGO_ID_LEN];
@@ -175,9 +152,9 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
 
     // Tokens sub buffer
     uint8_t tokens_len = tokens_count * FRAME_TOKEN_VALUE_PAIR_SIZE;
-    buffer_init(&tokens, buffer_read_ptr(cdata), tokens_len, tokens_len);
+    buffer_init(&tokens, buffer_read_ptr(cdata), tokens_len);
     // Seek to the frame end
-    if (!buffer_seek_read_cur(cdata, tokens_len + INPUT_FRAME_SIGNATURE_LEN)) {
+    if (!buffer_seek_cur(cdata, tokens_len + INPUT_FRAME_SIGNATURE_LEN)) {
         return handler_err(ctx, SW_NOT_ENOUGH_DATA);
     }
     // New input
@@ -187,15 +164,15 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
         CHECK_READ_PARAM(ctx, buffer_read_u32(cdata, &extension_len, BE));
 
         // Add new input. Should be switch if more ops added
-        CHECK_CALL_RESULT_OK(ctx,
-                             stx_operation_p2pk_add_input(&ctx->p2pk,
-                                                          id_buffer,
-                                                          value,
-                                                          frames_count,
-                                                          extension_len));
+        CHECK_CALL_RESULT_SW_OK(ctx,
+                                stx_operation_p2pk_add_input(&ctx->p2pk,
+                                                             id_buffer,
+                                                             value,
+                                                             frames_count,
+                                                             extension_len));
     }
     // Add tokens to the input. Swould be switch if more ops added
-    CHECK_CALL_RESULT_OK(
+    CHECK_CALL_RESULT_SW_OK(
         ctx,
         stx_operation_p2pk_add_input_tokens(&ctx->p2pk, id_buffer, frame_index, &tokens));
 
@@ -205,14 +182,14 @@ static inline int handle_input_frame(sign_transaction_ctx_t *ctx,
 static inline int handle_input_context_extension(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_input_context_extension(&ctx->p2pk, cdata));
+    CHECK_CALL_RESULT_SW_OK(ctx, stx_operation_p2pk_add_input_context_extension(&ctx->p2pk, cdata));
     return res_ok();
 }
 
 static inline int handle_data_inputs(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_data_inputs(&ctx->p2pk, cdata));
+    CHECK_CALL_RESULT_SW_OK(ctx, stx_operation_p2pk_add_data_inputs(&ctx->p2pk, cdata));
     return res_ok();
 }
 
@@ -230,20 +207,20 @@ static inline int handle_output_init(sign_transaction_ctx_t *ctx, buffer_t *cdat
     CHECK_PARAMS_FINISHED(ctx, cdata);
 
     // Add box. Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx,
-                         stx_operation_p2pk_add_output(&ctx->p2pk,
-                                                       value,
-                                                       ergo_tree_size,
-                                                       creation_height,
-                                                       tokens_count,
-                                                       registers_size));
+    CHECK_CALL_RESULT_SW_OK(ctx,
+                            stx_operation_p2pk_add_output(&ctx->p2pk,
+                                                          value,
+                                                          ergo_tree_size,
+                                                          creation_height,
+                                                          tokens_count,
+                                                          registers_size));
     return res_ok();
 }
 
 static inline int handle_output_tree_chunk(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_output_tree_chunk(&ctx->p2pk, cdata));
+    CHECK_CALL_RESULT_SW_OK(ctx, stx_operation_p2pk_add_output_tree_chunk(&ctx->p2pk, cdata));
     return show_output_screen_if_needed(ctx);
 }
 
@@ -251,7 +228,7 @@ static inline int handle_output_tree_fee(sign_transaction_ctx_t *ctx, buffer_t *
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     CHECK_PARAMS_FINISHED(ctx, cdata);
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_output_tree_fee(&ctx->p2pk));
+    CHECK_CALL_RESULT_SW_OK(ctx, stx_operation_p2pk_add_output_tree_fee(&ctx->p2pk));
     return show_output_screen_if_needed(ctx);
 }
 
@@ -259,15 +236,15 @@ static inline int handle_output_tree_change(sign_transaction_ctx_t *ctx, buffer_
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     uint8_t public_key[PUBLIC_KEY_LEN];
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx,
-                         read_bip32_path(cdata,
-                                         ctx->p2pk.transaction.ui.output.bip32_path.path,
-                                         &ctx->p2pk.transaction.ui.output.bip32_path.len));
-    CHECK_CALL_RESULT_OK(ctx,
-                         bip32_public_key(ctx->p2pk.transaction.ui.output.bip32_path.path,
-                                          ctx->p2pk.transaction.ui.output.bip32_path.len,
-                                          public_key));
-    CHECK_CALL_RESULT_OK(
+    CHECK_CALL_RESULT_SW_OK(ctx,
+                            read_bip32_path(cdata,
+                                            ctx->p2pk.transaction.ui.output.bip32_path.path,
+                                            &ctx->p2pk.transaction.ui.output.bip32_path.len));
+    CHECK_CALL_RESULT_SW_OK(ctx,
+                            bip32_public_key(ctx->p2pk.transaction.ui.output.bip32_path.path,
+                                             ctx->p2pk.transaction.ui.output.bip32_path.len,
+                                             public_key));
+    CHECK_CALL_RESULT_SW_OK(
         ctx,
         stx_operation_p2pk_add_output_tree_change(&ctx->p2pk,
                                                   ctx->p2pk.transaction.ui.output.bip32_path.path,
@@ -279,89 +256,88 @@ static inline int handle_output_tree_change(sign_transaction_ctx_t *ctx, buffer_
 static inline int handle_output_tokens(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_output_tokens(&ctx->p2pk, cdata));
+    CHECK_CALL_RESULT_SW_OK(ctx, stx_operation_p2pk_add_output_tokens(&ctx->p2pk, cdata));
     return show_output_screen_if_needed(ctx);
 }
 
 static inline int handle_output_registers(sign_transaction_ctx_t *ctx, buffer_t *cdata) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx, stx_operation_p2pk_add_output_registers(&ctx->p2pk, cdata));
+    CHECK_CALL_RESULT_SW_OK(ctx, stx_operation_p2pk_add_output_registers(&ctx->p2pk, cdata));
     return show_output_screen_if_needed(ctx);
 }
 
 static inline int handle_sign_confirm(sign_transaction_ctx_t *ctx) {
     CHECK_PROPER_STATE(ctx, SIGN_TRANSACTION_STATE_APPROVED);
     // Should be switch if more ops added
-    CHECK_CALL_RESULT_OK(ctx, ui_stx_operation_p2pk_show_confirm_screen(&ctx->p2pk));
+    CHECK_CALL_RESULT_SW_OK(ctx, ui_stx_operation_p2pk_show_confirm_screen(&ctx->p2pk));
     return 0;
 }
 
 int handler_sign_transaction(buffer_t *cdata,
                              sign_transaction_subcommand_e subcommand,
                              uint8_t session_or_token) {
-    if (G_context.is_ui_busy) {
+    if (app_is_ui_busy()) {
         return res_ui_busy();
     }
+    sign_transaction_ctx_t *ctx = app_sign_transaction_context();
     switch (subcommand) {
         case SIGN_TRANSACTION_SUBCOMMAND_SIGN_PK:
             if (session_or_token != 0x01 && session_or_token != 0x02) {
                 return res_error(SW_WRONG_P1P2);
             }
-            clear_context(&G_context, CMD_SIGN_TRANSACTION);
-            return handle_init_p2pk(&CONTEXT(G_context),
-                                    cdata,
-                                    session_or_token == 0x02,
-                                    G_context.app_session_id);
+            app_set_current_command(CMD_SIGN_TRANSACTION);
+
+            return handle_init_p2pk(ctx, cdata, session_or_token == 0x02, app_connected_app_id());
         case SIGN_TRANSACTION_SUBCOMMAND_START_TX:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_tx_start(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_tx_start(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_TOKEN_IDS:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_tokens(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_tokens(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_INPUT_FRAME:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_input_frame(&CONTEXT(G_context), G_context.session_key, cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_input_frame(ctx, app_session_key(), cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_INPUT_CONTEXT_EXTENSION:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_input_context_extension(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_input_context_extension(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_DATA_INPUT:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_data_inputs(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_data_inputs(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_output_init(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_output_init(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_TREE_CHUNK:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_output_tree_chunk(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_output_tree_chunk(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_MINERS_FEE_TREE:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_output_tree_fee(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_output_tree_fee(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_CHANGE_TREE:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_output_tree_change(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_output_tree_change(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_TOKENS:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_output_tokens(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_output_tokens(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_OUTPUT_REGISTERS:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_output_registers(&CONTEXT(G_context), cdata);
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_output_registers(ctx, cdata);
         case SIGN_TRANSACTION_SUBCOMMAND_CONFIRM:
-            CHECK_COMMAND(CMD_SIGN_TRANSACTION);
-            CHECK_SESSION(session_or_token);
-            return handle_sign_confirm(&CONTEXT(G_context));
+            CHECK_COMMAND(ctx, CMD_SIGN_TRANSACTION);
+            CHECK_SESSION(ctx, session_or_token);
+            return handle_sign_confirm(ctx);
         default:
-            return res_error(SW_WRONG_SUBCOMMAND);
+            return handler_err(ctx, SW_WRONG_SUBCOMMAND);
     }
 }

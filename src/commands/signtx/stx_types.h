@@ -45,6 +45,7 @@ typedef struct {
     char text[70];   // dynamic screen text
     uint8_t network_id;
     const sign_transaction_output_info_ctx_t *output;
+    sign_transaction_bip32_path_t *last_approved_change;
 } sign_transaction_ui_output_confirm_ctx_t;
 
 // Show screen callback: (index, title, title_len, text, text_len, cb_context)
