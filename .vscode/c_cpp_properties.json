@@ -12,8 +12,6 @@
                 "${env:ARM_GCC}/arm-none-eabi/include/*",
                 "${env:ARM_GCC}/lib/gcc/arm-none-eabi/13.2.1/include/*",
                 "${env:BOLOS_SDK}/include/*",
-                "${env:BOLOS_SDK}/target/nanos/include/*",
-                "${env:BOLOS_SDK}/lib_bagl/include/*",
                 "${env:BOLOS_SDK}/lib_ux/include/*",
                 "${env:BOLOS_SDK}/lib_cxng/include/*",
                 "${env:BOLOS_SDK}/lib_standard_app/*"
