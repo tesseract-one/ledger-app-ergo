@@ -65,7 +65,7 @@ PATH_APP_LOAD_PARAMS = "44'/429'"   # purpose=coin(44) / coin_type=Ergo(429)
 #   * It must at least contains one value.
 #   * Values can be the app ticker or anything else but should be unique.
 VARIANT_PARAM = COIN
-VARIANT_VALUES = ERGO
+VARIANT_VALUES = Ergo
 
 # Enabling DEBUG flag will enable PRINTF and disable optimizations
 #DEBUG = 1
