@@ -12,20 +12,12 @@
 
 #define ARRAYLEN(array) (sizeof(array) / sizeof(array[0]))
 
-#define BIP32_VALIDATE_OK(tvar, type) \
-    b = bip32_path_validate(tvar, \
-                            ARRAYLEN(tvar), \
-                            BIP32_HARDENED(44), \
-                            BIP32_HARDENED(429), \
-                            type); \
+#define BIP32_VALIDATE_OK(tvar, type)                                                             \
+    b = bip32_path_validate(tvar, ARRAYLEN(tvar), BIP32_HARDENED(44), BIP32_HARDENED(429), type); \
     assert_true(b);
 
-#define BIP32_VALIDATE_ERR(tvar, type) \
-    b = bip32_path_validate(tvar, \
-                            ARRAYLEN(tvar), \
-                            BIP32_HARDENED(44), \
-                            BIP32_HARDENED(429), \
-                            type); \
+#define BIP32_VALIDATE_ERR(tvar, type)                                                            \
+    b = bip32_path_validate(tvar, ARRAYLEN(tvar), BIP32_HARDENED(44), BIP32_HARDENED(429), type); \
     assert_false(b);
 
 static void test_bip32_validate_account(void **state) {
