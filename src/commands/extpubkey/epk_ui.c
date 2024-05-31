@@ -5,7 +5,6 @@
 
 #include "epk_ui.h"
 #include "epk_response.h"
-
 #include "../../context.h"
 #include "../../sw.h"
 #include "../../common/bip32_ext.h"
