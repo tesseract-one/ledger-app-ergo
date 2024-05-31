@@ -15,7 +15,7 @@
     "dependencies": {
         "@ledgerhq/hw-transport-node-hid": "6.28.5",
         "@ledgerhq/hw-transport-node-speculos-http": "6.28.5",
-        "ergo-lib-wasm-nodejs": "v0.21.1",
+        "ergo-lib-wasm-nodejs": "v0.26.0",
         "ledger-ergo-js": "^0.1.14"
     }
 }

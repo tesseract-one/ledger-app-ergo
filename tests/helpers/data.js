@@ -13,7 +13,8 @@ class ExtendedAddress {
         this.network = network;
         this.address = address;
         this.path = DerivationPath.new(path[0], [path[1]]);
-        this.index = path[1];
+        this.acc_index = path[0];
+        this.addr_index = path[1];
     }
 
     toBase58() {
