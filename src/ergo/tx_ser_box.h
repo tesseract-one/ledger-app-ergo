@@ -92,7 +92,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_change_tree(
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
     ergo_tx_serializer_box_context_t* context,
     buffer_t* tokens,
-    const token_table_t* table);
+    const ergo_tx_serializer_table_context_t* table);
 
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_registers(
     ergo_tx_serializer_box_context_t* context,

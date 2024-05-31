@@ -181,7 +181,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_change_tree(
 ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
     ergo_tx_serializer_box_context_t* context,
     buffer_t* input,
-    const token_table_t* table) {
+    const ergo_tx_serializer_table_context_t* table) {
     CHECK_PROPER_STATE(context, ERGO_TX_SERIALIZER_BOX_STATE_TREE_ADDED);
     RW_BUFFER_NEW_LOCAL_EMPTY(buffer, 10);
 
@@ -209,7 +209,7 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
                 return ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX;
             }
             // index should be inside table
-            if (token_id.index >= table->count) {
+            if (token_id.index >= table->distinct_tokens_count) {
                 return res_error(context, ERGO_TX_SERIALIZER_BOX_RES_ERR_BAD_TOKEN_INDEX);
             }
             // hashing index
@@ -239,7 +239,8 @@ ergo_tx_serializer_box_result_e ergo_tx_serializer_box_add_tokens(
         }
 
         if (context->callbacks.on_token != NULL) {
-            const uint8_t* tid = table == NULL ? token_id.id : table->tokens[token_id.index];
+            const uint8_t* tid =
+                table == NULL ? token_id.id : table->tokens_table->tokens[token_id.index];
             CHECK_CALL_RESULT_OK(
                 context,
                 context->callbacks.on_token(context->type, tid, value, context->callbacks.context));
