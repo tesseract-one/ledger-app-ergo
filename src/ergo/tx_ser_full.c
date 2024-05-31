@@ -182,7 +182,6 @@ ergo_tx_serializer_full_result_e ergo_tx_serializer_full_init(
     context->inputs_count = inputs_count;
     context->data_inputs_count = data_inputs_count;
     context->outputs_count = outputs_count;
-    memset(tokens_table, 0, sizeof(token_table_t));
     CHECK_CALL_RESULT_OK(
         context,
         map_table_result(

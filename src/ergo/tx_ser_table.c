@@ -22,6 +22,9 @@ ergo_tx_serializer_table_result_e ergo_tx_serializer_table_init(
     if (tokens_table->count != 0 || tokens_count > TOKEN_MAX_COUNT) {
         return ERGO_TX_SERIALIZER_TABLE_RES_ERR_TOO_MANY_TOKENS;
     }
+    // clean tokens area (we will search)
+    memset(&tokens_table->tokens, 0, MEMBER_SIZE(token_table_t, tokens));
+    // save in context
     context->distinct_tokens_count = tokens_count;
     context->tokens_table = tokens_table;
     return ERGO_TX_SERIALIZER_TABLE_RES_OK;
